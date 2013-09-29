@@ -19,4 +19,5 @@ $(TARGET_DIRS):
 .PHONY: install
 install:
 	scp api.tar pi@raspberrypi:
+	ssh pi@raspberrypi tar xvf api.tar
 

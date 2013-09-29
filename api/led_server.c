@@ -23,190 +23,196 @@
 
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
 
-unsigned long reg, val;
+#define MAX_MATRICIES 8
 
-static void pabort(const char *s)
-{
-	perror(s);
-	abort();
-}
+char rowmap[MAX_MATRICIES][8];
+char colmap[MAX_MATRICIES][8];
+int num_matrixes = 1;
 
-static const char *device = "/dev/spidev0.0";
-static uint8_t mode;
-static uint8_t bits = 8;
-static uint32_t speed = 500000;
-static uint16_t delay;
-
-static void transfer(int fd)
+static int transfer(int fd, uint8_t reg, uint8_t val)
 {
 	int ret;
-	uint8_t tx[] = {
-		0x0F, 0x00
-	};
-	uint8_t rx[ARRAY_SIZE(tx)] = {0, };
+	uint8_t tx[2];
 	struct spi_ioc_transfer tr = {
 		.tx_buf = (unsigned long)tx,
-		.rx_buf = (unsigned long)rx,
 		.len = ARRAY_SIZE(tx),
-		.delay_usecs = delay,
-		.speed_hz = speed,
-		.bits_per_word = bits,
 	};
 
+//printf("----led_server: %02X: %02X\n", reg, val);
 	tx[0] = reg;
 	tx[1] = val;
-printf("%02X, %02X\n", tx[0], tx[1]);
 	ret = ioctl(fd, SPI_IOC_MESSAGE(1), &tr);
-	if (ret < 1)
-		pabort("can't send spi message");
 
-	for (ret = 0; ret < ARRAY_SIZE(tx); ret++) {
-		if (!(ret % 6))
-			puts("");
-		printf("%.2X ", rx[ret]);
-	}
-	puts("");
+    return ret;
 }
 
-static void print_usage(const char *prog)
+int open_spi()
 {
-	printf("Usage: %s [-DsbdlHOLC3]\n", prog);
-	puts("  -D --device   device to use (default /dev/spidev1.1)\n"
-	     "  -s --speed    max speed (Hz)\n"
-	     "  -d --delay    delay (usec)\n"
-	     "  -b --bpw      bits per word \n"
-	     "  -l --loop     loopback\n"
-	     "  -H --cpha     clock phase\n"
-	     "  -O --cpol     clock polarity\n"
-	     "  -L --lsb      least significant bit first\n"
-	     "  -C --cs-high  chip select active high\n"
-	     "  -3 --3wire    SI/SO signals shared\n");
-	exit(1);
+    const char *device = "/dev/spidev0.0";
+    uint8_t mode = 0;
+    uint8_t bits = 8;
+    uint32_t speed = 500000;
+    int spi = 0;
+    int err = -1;
+
+	spi = open(device, O_RDWR);
+	if (spi < 0)
+		goto out;
+
+	/*
+	 * spi mode
+	 */
+	err = ioctl(spi, SPI_IOC_WR_MODE, &mode);
+	if (err < 0)
+		goto out;
+
+	err = ioctl(spi, SPI_IOC_RD_MODE, &mode);
+	if (err < 0)
+		goto out;
+
+	/*
+	 * bits per word
+	 */
+	err = ioctl(spi, SPI_IOC_WR_BITS_PER_WORD, &bits);
+	if (err < 0)
+		goto out;
+
+	/*
+	 * max speed hz
+	 */
+	err = ioctl(spi, SPI_IOC_WR_MAX_SPEED_HZ, &speed);
+	if (err < 0)
+		goto out;
+
+	err = transfer(spi, 0x09, 0x00);
+	if (err < 0)
+		goto out;
+	err = transfer(spi, 0x0A, 0x08);
+	if (err < 0)
+		goto out;
+	err = transfer(spi, 0x0B, 0x07);
+	if (err < 0)
+		goto out;
+	err = transfer(spi, 0x0C, 0x01);
+	if (err < 0)
+		goto out;
+
+out:
+    if (err < 0 && spi > 0)
+        close(spi);
+    
+	return spi;
 }
 
-static void parse_opts(int argc, char *argv[])
+char * get_data(int fifo)
 {
-	while (1) {
-		static const struct option lopts[] = {
-			{ "device",  1, 0, 'D' },
-			{ "speed",   1, 0, 's' },
-			{ "delay",   1, 0, 'd' },
-			{ "bpw",     1, 0, 'b' },
-			{ "loop",    0, 0, 'l' },
-			{ "cpha",    0, 0, 'H' },
-			{ "cpol",    0, 0, 'O' },
-			{ "lsb",     0, 0, 'L' },
-			{ "cs-high", 0, 0, 'C' },
-			{ "3wire",   0, 0, '3' },
-			{ "no-cs",   0, 0, 'N' },
-			{ "ready",   0, 0, 'R' },
-			{ NULL, 0, 0, 0 },
-		};
-		int c;
+    static char s[256];
+    int ret;
+    int len;
 
-		c = getopt_long(argc, argv, "D:s:d:b:lHOLC3NR", lopts, NULL);
+    ret = read(fifo, s, 2);
+    if (ret != 2) return NULL;
+    s[2] = 0;
+    len = strtoul(s, NULL, 16);
 
-		if (c == -1)
-			break;
+    ret = read(fifo, s, len);
+    if (ret != len) return NULL;
+    s[len] = 0;
 
-		switch (c) {
-		case 'D':
-			device = optarg;
-			break;
-		case 's':
-			speed = atoi(optarg);
-			break;
-		case 'd':
-			delay = atoi(optarg);
-			break;
-		case 'b':
-			bits = atoi(optarg);
-			break;
-		case 'l':
-			mode |= SPI_LOOP;
-			break;
-		case 'H':
-			mode |= SPI_CPHA;
-			break;
-		case 'O':
-			mode |= SPI_CPOL;
-			break;
-		case 'L':
-			mode |= SPI_LSB_FIRST;
-			break;
-		case 'C':
-			mode |= SPI_CS_HIGH;
-			break;
-		case '3':
-			mode |= SPI_3WIRE;
-			break;
-		case 'N':
-			mode |= SPI_NO_CS;
-			break;
-		case 'R':
-			mode |= SPI_READY;
-			break;
-		default:
-			print_usage(argv[0]);
-			break;
-		}
-	}
+    return s;
+}
 
-	reg = strtoul(argv[optind], NULL, 16);
-	val = strtoul(argv[optind+1], NULL, 16);
+void set_order(char * data)
+{
+    int m;
+    int i;
+    int j;
+
+    for (m = 0; m < num_matrixes; m++) {
+        for (i = 0; i < 2; i++) {
+            for (j = 0; j < 8; j++) {
+                int mapping = data[m*16+i*8+j] - '0';
+                if (i) {
+                    colmap[m][j] = mapping;
+                } else {
+printf("----%s: %d: %d, %d, %d\n", __FILE__, __LINE__, m, j, mapping);
+                    rowmap[m][j] = mapping;
+                }
+            }
+        }
+    }
+}
+
+void display_matrix(int spi, char * data)
+{
+    int m;
+    int row;
+    int col;
+    char s[3];
+
+printf("----led_server: %s\n", data);
+    for (m = 0; m < num_matrixes; m++) {
+//printf("----%s: %d - %d\n", __FILE__, __LINE__, m);
+        for (row = 0; row < 8; row++) {
+            char * digit_str = &data[m*16+row*2];
+            int digit;
+            int mapped_digit;
+            s[0] = digit_str[0];
+            s[1] = digit_str[1];
+            s[2] = 0;
+            digit = strtoul(s, NULL, 16);
+            mapped_digit = 0;
+            for (col = 0; col < 8; col++) {
+                if (digit & (1<<col)) 
+                    mapped_digit |= 1 << colmap[m][col] - 1;
+            }
+printf("----%s: %d - %s, %02X - %d, %02X\n", __FILE__, __LINE__, s, digit, rowmap[m][row],
+mapped_digit);
+            transfer(spi, rowmap[m][row], mapped_digit);
+        }
+    }
+}
+
+void process_cmd(int fifo, int spi)
+{
+    char cmd;
+    int ret;
+    ret = read(fifo, &cmd, 1);
+    if (ret != 1) return;
+    switch (cmd) {
+        case 'n':
+            num_matrixes = atoi(get_data(fifo));
+            break;
+        case 'o':
+            set_order(get_data(fifo));
+            break;
+        case 'm':
+            display_matrix(spi, get_data(fifo));
+            break;
+    }
 }
 
 int main(int argc, char *argv[])
 {
 	int ret = 0;
-	int fd;
+	int spi;
+    unsigned long reg, val;
+    int fifo;
+    int c;
+    int i;
+    
+    spi = open_spi();
 
-	parse_opts(argc, argv);
+    fifo = open("fifo", O_RDONLY);
 
-	fd = open(device, O_RDWR);
-	if (fd < 0)
-		pabort("can't open device");
+    for (;;) {
+        process_cmd(fifo, spi);
+    }
 
-	/*
-	 * spi mode
-	 */
-	ret = ioctl(fd, SPI_IOC_WR_MODE, &mode);
-	if (ret == -1)
-		pabort("can't set spi mode");
+    close(fifo);
+    close(spi);
 
-	ret = ioctl(fd, SPI_IOC_RD_MODE, &mode);
-	if (ret == -1)
-		pabort("can't get spi mode");
-
-	/*
-	 * bits per word
-	 */
-	ret = ioctl(fd, SPI_IOC_WR_BITS_PER_WORD, &bits);
-	if (ret == -1)
-		pabort("can't set bits per word");
-
-	ret = ioctl(fd, SPI_IOC_RD_BITS_PER_WORD, &bits);
-	if (ret == -1)
-		pabort("can't get bits per word");
-
-	/*
-	 * max speed hz
-	 */
-	ret = ioctl(fd, SPI_IOC_WR_MAX_SPEED_HZ, &speed);
-	if (ret == -1)
-		pabort("can't set max speed hz");
-
-	ret = ioctl(fd, SPI_IOC_RD_MAX_SPEED_HZ, &speed);
-	if (ret == -1)
-		pabort("can't get max speed hz");
-
-	printf("spi mode: %d\n", mode);
-	printf("bits per word: %d\n", bits);
-	printf("max speed: %d Hz (%d KHz)\n", speed, speed/1000);
-
-	transfer(fd);
-
-	close(fd);
-
-	return ret;
+    return 0;
 }
+
+
