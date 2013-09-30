@@ -38,7 +38,6 @@ static int transfer(int fd, uint8_t reg, uint8_t val)
 		.len = ARRAY_SIZE(tx),
 	};
 
-//printf("----led_server: %02X: %02X\n", reg, val);
 	tx[0] = reg;
 	tx[1] = val;
 	ret = ioctl(fd, SPI_IOC_MESSAGE(1), &tr);
@@ -51,7 +50,7 @@ int open_spi()
     const char *device = "/dev/spidev0.0";
     uint8_t mode = 0;
     uint8_t bits = 8;
-    uint32_t speed = 500000;
+    uint32_t speed = 10000000;
     int spi = 0;
     int err = -1;
 
@@ -135,7 +134,6 @@ void set_order(char * data)
                 if (i) {
                     colmap[m][j] = mapping;
                 } else {
-printf("----%s: %d: %d, %d, %d\n", __FILE__, __LINE__, m, j, mapping);
                     rowmap[m][j] = mapping;
                 }
             }
@@ -150,27 +148,39 @@ void display_matrix(int spi, char * data)
     int col;
     char s[3];
 
-printf("----led_server: %s\n", data);
     for (m = 0; m < num_matrixes; m++) {
-//printf("----%s: %d - %d\n", __FILE__, __LINE__, m);
         for (row = 0; row < 8; row++) {
             char * digit_str = &data[m*16+row*2];
             int digit;
-            int mapped_digit;
+            int remapped_digit;
             s[0] = digit_str[0];
             s[1] = digit_str[1];
             s[2] = 0;
             digit = strtoul(s, NULL, 16);
-            mapped_digit = 0;
+            remapped_digit = 0;
             for (col = 0; col < 8; col++) {
                 if (digit & (1<<col)) 
-                    mapped_digit |= 1 << colmap[m][col] - 1;
+                    remapped_digit |= 1 << colmap[m][col] - 1;
             }
-printf("----%s: %d - %s, %02X - %d, %02X\n", __FILE__, __LINE__, s, digit, rowmap[m][row],
-mapped_digit);
-            transfer(spi, rowmap[m][row], mapped_digit);
+            transfer(spi, rowmap[m][row], remapped_digit);
         }
     }
+#if 0
+    for(;;) {
+        int i;
+        for (i = 0; i < 256; i++) {
+            transfer(spi, rowmap[0][0], i & 1 ? 0xff : 0);
+            transfer(spi, rowmap[0][1], i & 2 ? 0xff : 0);
+            transfer(spi, rowmap[0][2], i & 3 ? 0xff : 0);
+            transfer(spi, rowmap[0][3], i & 4 ? 0xff : 0);
+            transfer(spi, rowmap[0][4], i & 5 ? 0xff : 0);
+            transfer(spi, rowmap[0][5], i & 6 ? 0xff : 0);
+            transfer(spi, rowmap[0][6], i & 7 ? 0xff : 0);
+            transfer(spi, rowmap[0][7], i & 8 ? 0xff : 0);
+            usleep(16000);
+        }
+    }
+#endif
 }
 
 void process_cmd(int fifo, int spi)
@@ -189,6 +199,8 @@ void process_cmd(int fifo, int spi)
         case 'm':
             display_matrix(spi, get_data(fifo));
             break;
+        default:
+            break;
     }
 }
 
@@ -203,7 +215,8 @@ int main(int argc, char *argv[])
     
     spi = open_spi();
 
-    fifo = open("fifo", O_RDONLY);
+    //fifo = open("fifo", O_RDONLY);
+    fifo = 0;
 
     for (;;) {
         process_cmd(fifo, spi);
