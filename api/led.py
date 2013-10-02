@@ -23,6 +23,9 @@ def _main():
                 time.sleep(0.5);
                 led.point(x, y, color=0)
 
+def sign(n):
+    return 1 if n >= 0 else -1
+
 def erase(color=0):
     global fb
     fb = [[color]*8 for i in range(8)]
@@ -30,6 +33,21 @@ def erase(color=0):
 def point(x, y, color=1):
     fb[x][y] = color;
 
+def line(point_a, point_b):
+    x_diff = point_a[0] - point_b[0]
+    y_diff = point_a[1] - point_b[1]
+    step = sign(x_diff) * sign(y_diff)
+    width = abs(x_diff) + 1
+    height = abs(y_diff) + 1
+    if (width > height):
+        start_point = point_a if x_diff < 0 else point_b
+        for x_offset in range(width):
+            point(start_point[0] + x_offset, start_point[1] + step*(x_offset*height/width))
+    else:
+        start_point = point_a if y_diff < 0 else point_b
+        for y_offset in range(height):
+            point(start_point[0] + step*(y_offset*width/height), start_point[1] + y_offset)
+    
 def show():
     s = ""
     for x in range(8):
