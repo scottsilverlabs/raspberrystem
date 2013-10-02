@@ -11,6 +11,7 @@ for i in range(1):
             led.point(x, y, color=0)
 """
 
+"""
 for x1 in range(8):
     for y1 in range(8):
         for x2 in range(8):
@@ -18,4 +19,13 @@ for x1 in range(8):
                 led.line((x1,y1), (x2,y2))
                 led.show()
                 time.sleep(0.005);
+                led.erase()
+"""
+for x1 in range(8):
+    for y1 in range(8):
+        for x2 in range(8):
+            for y2 in range(8):
+                led.rect((x1,y1), (x2,y2))
+                led.show()
+                time.sleep(0.05);
                 led.erase()

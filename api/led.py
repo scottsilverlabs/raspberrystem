@@ -31,7 +31,11 @@ def erase(color=0):
     fb = [[color]*8 for i in range(8)]
 
 def point(x, y, color=1):
-    fb[x][y] = color;
+    # If out of range, its off the screen - just don't display it
+    try:
+        fb[x][y] = color;
+    except IndexError:
+        pass
 
 def line(point_a, point_b):
     x_diff = point_a[0] - point_b[0]
@@ -48,6 +52,14 @@ def line(point_a, point_b):
         for y_offset in range(height):
             point(start_point[0] + step*(y_offset*width/height), start_point[1] + y_offset)
     
+def rect(start, dimensions):
+    x, y = start
+    width, height = dimensions
+    line((x, y), (x, y + height))
+    line((x, y + height), (x + width, y + height))
+    line((x + width, y + height), (x + width, y))
+    line((x + width, y), (x, y))
+
 def show():
     s = ""
     for x in range(8):
@@ -56,7 +68,6 @@ def show():
             col |= fb[x][y] << (8-y-1)
         s += "%02X" % col
     _send_cmd("m", s);
-
 
 _init_module()
 if __name__ == "__main__":
