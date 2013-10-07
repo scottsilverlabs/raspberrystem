@@ -23,6 +23,9 @@
 
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
 
+#define SPI_DEV "/dev/spidev0.0"
+#define SPI_HZ 5000000
+
 #define MAX_MATRICIES 8
 
 char rowmap[MAX_MATRICIES][8];
@@ -47,10 +50,10 @@ static int transfer(int fd, uint8_t reg, uint8_t val)
 
 int open_spi()
 {
-    const char *device = "/dev/spidev0.0";
+    const char *device = SPI_DEV;
     uint8_t mode = 0;
     uint8_t bits = 8;
-    uint32_t speed = 10000000;
+    uint32_t speed = SPI_HZ;
     int spi = 0;
     int err = -1;
 
@@ -165,22 +168,6 @@ void display_matrix(int spi, char * data)
             transfer(spi, rowmap[m][row], remapped_digit);
         }
     }
-#if 0
-    for(;;) {
-        int i;
-        for (i = 0; i < 256; i++) {
-            transfer(spi, rowmap[0][0], i & 1 ? 0xff : 0);
-            transfer(spi, rowmap[0][1], i & 2 ? 0xff : 0);
-            transfer(spi, rowmap[0][2], i & 3 ? 0xff : 0);
-            transfer(spi, rowmap[0][3], i & 4 ? 0xff : 0);
-            transfer(spi, rowmap[0][4], i & 5 ? 0xff : 0);
-            transfer(spi, rowmap[0][5], i & 6 ? 0xff : 0);
-            transfer(spi, rowmap[0][6], i & 7 ? 0xff : 0);
-            transfer(spi, rowmap[0][7], i & 8 ? 0xff : 0);
-            usleep(16000);
-        }
-    }
-#endif
 }
 
 void process_cmd(int fifo, int spi)
@@ -215,8 +202,7 @@ int main(int argc, char *argv[])
     
     spi = open_spi();
 
-    //fifo = open("fifo", O_RDONLY);
-    fifo = 0;
+    fifo = 0; // stdin
 
     for (;;) {
         process_cmd(fifo, spi);
