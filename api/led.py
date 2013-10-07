@@ -23,6 +23,23 @@ def _main():
                 time.sleep(0.5);
                 led.point(x, y, color=0)
 
+def bound(x, y=None, color=1):
+    # If y is not given, then x is a tuple of the point
+    if y == None:
+        x, y = x
+
+    if x >= 8:
+        x = 7
+    elif x < 0:
+        x = 0
+
+    if y >= 8:
+        y = 7
+    elif y < 0:
+        y = 0
+
+    return (x, y)
+
 def sign(n):
     return 1 if n >= 0 else -1
 
