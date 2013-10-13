@@ -1,6 +1,6 @@
 from subprocess import *
 
-def _get_data():
+def get_data():
     pipe_out.write("6800")
     x = int(pipe_in.read(4), 16)
     pipe_out.write("7800")
@@ -17,10 +17,10 @@ def _main():
     import time
     import led
 
-    xbase, ybase =  _get_data()
+    xbase, ybase =  get_data()
     x, y = (4, 4)
     while True:
-        xaccel, yaccel =  _get_data()
+        xaccel, yaccel =  get_data()
         xchg = (xaccel - xbase)/20.0
         ychg = (yaccel - ybase)/20.0
         x, y = led.bound(x + xchg, y + ychg)
