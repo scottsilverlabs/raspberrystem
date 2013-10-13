@@ -28,8 +28,8 @@
 
 #define MAX_MATRICIES 8
 
-char rowmap[MAX_MATRICIES][8];
 char colmap[MAX_MATRICIES][8];
+char rowmap[MAX_MATRICIES][8];
 int num_matrixes = 1;
 
 static int transfer(int fd, uint8_t reg, uint8_t val)
@@ -135,9 +135,9 @@ void set_order(char * data)
             for (j = 0; j < 8; j++) {
                 int mapping = data[m*16+i*8+j] - '0';
                 if (i) {
-                    colmap[m][j] = mapping;
-                } else {
                     rowmap[m][j] = mapping;
+                } else {
+                    colmap[m][j] = mapping;
                 }
             }
         }
@@ -147,13 +147,13 @@ void set_order(char * data)
 void display_matrix(int spi, char * data)
 {
     int m;
-    int row;
     int col;
+    int row;
     char s[3];
 
     for (m = 0; m < num_matrixes; m++) {
-        for (row = 0; row < 8; row++) {
-            char * digit_str = &data[m*16+row*2];
+        for (col = 0; col < 8; col++) {
+            char * digit_str = &data[m*16+col*2];
             int digit;
             int remapped_digit;
             s[0] = digit_str[0];
@@ -161,11 +161,11 @@ void display_matrix(int spi, char * data)
             s[2] = 0;
             digit = strtoul(s, NULL, 16);
             remapped_digit = 0;
-            for (col = 0; col < 8; col++) {
-                if (digit & (1<<col)) 
-                    remapped_digit |= 1 << colmap[m][col] - 1;
+            for (row = 0; row < 8; row++) {
+                if (digit & (0x80>>row)) 
+                    remapped_digit |= 0x80 >> (rowmap[m][row] - 1);
             }
-            transfer(spi, rowmap[m][row], remapped_digit);
+            transfer(spi, colmap[m][col], remapped_digit);
         }
     }
 }
