@@ -3,7 +3,7 @@
 #
 
 DIR=$(notdir $(CURDIR))
-TAR=../$(DIR).tar
+TAR=$(DIR).tar
 PI=pi@raspberrypi
 PY_FILES=$(wildcard *.py)
 
@@ -12,3 +12,5 @@ all: $(TAR)
 $(TAR): $(PY_FILES)
 	tar cvf $@  -C .. $(addprefix $(DIR)/,$^)
 
+clean:
+	rm -f $(TAR)

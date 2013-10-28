@@ -98,6 +98,9 @@ int open_spi()
 	err = transfer(spi, 0x0C, 0x01);
 	if (err < 0)
 		goto out;
+	err = transfer(spi, 0x0F, 0x00);
+	if (err < 0)
+		goto out;
 
 out:
     if (err < 0 && spi > 0)
