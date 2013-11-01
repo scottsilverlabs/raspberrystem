@@ -24,7 +24,7 @@ def new_vector(ball, direction, speed, time, width=8.0, height=8.0):
 ball = (0.0, 0.0)
 direction = 70.0
 speed = 100.0
-period = 0.01
+period = 0.02
 dimensions = (1,1)
 while True:
     led.rect(ball, dimensions)

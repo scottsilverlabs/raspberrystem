@@ -29,22 +29,21 @@ def _input_num(name_of_num, min_num, max_num, default=None):
 
     return n
     
-def _input_row_col(matrix, is_row, default_vals):
+def _input_row_or_col(matrix, is_row, default_vals):
     s = "row" if is_row else "column"
     while True:
         vals = []
         for val in range(8):
             erase()
             if is_row:
-                line((0, val), (8, val))
+                line((0, val), (get_fb_width(), val))
             else:
-                line((val, 0), (val, 8))
+                line((val, 0), (val, get_fb_height()))
             show()
 
             default = default_vals[val] if default_vals else None
             name_of_num = "%s currently displayed on LED matrix %d" % (s, matrix)
             vals += [_input_num(name_of_num, 1, 8, default)]
-            #vals[_input_num(name_of_num, 1, 8, default) - 1] = val + 1
 
         if len(set(vals)) != len(vals):
             print "Hmmmm, weird.  All %ss entered should be unique, but they aren't" % s
@@ -61,31 +60,25 @@ def _input_row_col(matrix, is_row, default_vals):
 def _send_cmd(cmd, data):
     pipe.write(cmd + ("%02X" % len(data)) + data)
 
-def _lines_to_matrix(lines):
+def _restore_calibration(force_default_order=False):
+    ORDERED_MATRIX_LINES = ["01234567,01234567"]
+    if force_default_order:
+        lines = ORDERED_MATRIX_LINES
+    else:
+        # Read in all nonempty lines of cal file
+        try:
+            lines = [line.strip() for line in open(LED_CAL_FILE).readlines() if len(line.strip())]
+        except IOError:
+            lines = ORDERED_MATRIX_LINES
+
+    for line, mapping in enumerate(lines):
+        _send_cmd("o", "%d%s" % (line, mapping))
+
     matrices = []
     for line in lines:
         matrices += [[list(s) for s in line.split(",")]]
+
     return matrices
-
-def _restore_calibration(force_default_order=False):
-    ORDERED_MATRIX_LINES = ["12345678,12345678"]
-    # Read in all nonempty lines of cal file
-    try:
-        lines = [line.strip() for line in open(LED_CAL_FILE).readlines() if len(line.strip())]
-    except IOError:
-        lines = ORDERED_MATRIX_LINES
-    loaded_matrices = _lines_to_matrix(lines)
-    if force_default_order:
-        restored_matrices = _lines_to_matrix(ORDERED_MATRIX_LINES)
-    else:
-        restored_matrices = loaded_matrices
-
-    colstr = "".join([str(n) for n in restored_matrices[0][0]])
-    rowstr = "".join([str(n) for n in restored_matrices[0][1]])
-    _send_cmd("n", str(len(restored_matrices)))
-    _send_cmd("o", colstr + rowstr)
-
-    return loaded_matrices
 
 def _save_calibration(matrices):
     f = open(LED_CAL_FILE, "w")
@@ -180,7 +173,7 @@ def rect(start, dimensions, color=1):
     line((x + width, y), (x, y), color=color)
 
 def show():
-    s = ""
+    s = "0"
     for x in range(8):
         col = 0
         for y in range(8):
@@ -199,8 +192,8 @@ def recalibrate():
         default_cols = previous_matrices[i][0] if i < len(previous_matrices) else None
         default_rows = previous_matrices[i][1] if i < len(previous_matrices) else None
         print default_cols, default_rows
-        cols = _input_row_col(i, False, default_cols)
-        rows = _input_row_col(i, True, default_rows)
+        cols = _input_row_or_col(i, False, default_cols)
+        rows = _input_row_or_col(i, True, default_rows)
         matrices += [(cols, rows)]
     print matrices
 
