@@ -7,21 +7,22 @@ from led_cal import led_cal
 from subprocess import *
 
 class led_draw:
-    def __init__(self, server):
+    def __init__(self, server, cal):
         self.server = server
+        self.cal = cal
 
     def bound(self, x, y=None, color=1):
         # If y is not given, then x is a tuple of the point
         if y == None:
             x, y = x
 
-        if x >= 8:
-            x = 7
+        if x >= self.cal.get_fb_width():
+            x = self.cal.get_fb_width() - 1
         elif x < 0:
             x = 0
 
-        if y >= 8:
-            y = 7
+        if y >= self.cal.get_fb_height():
+            y = self.cal.get_fb_height() - 1
         elif y < 0:
             y = 0
 
@@ -31,8 +32,7 @@ class led_draw:
         return 1 if n >= 0 else -1
 
     def erase(self, color=0):
-        global fb
-        fb = [[color]*8 for i in range(8)]
+        self.fb = [[color]*self.cal.get_fb_height() for i in range(self.cal.get_fb_width())]
 
     def point(self, x, y=None, color=1):
         # If y is not given, then x is a tuple of the point
@@ -41,7 +41,7 @@ class led_draw:
 
         # If out of range, its off the screen - just don't display it
         try:
-            fb[int(x)][int(y)] = color;
+            self.fb[int(x)][int(y)] = color;
         except IndexError:
             pass
 
@@ -77,11 +77,13 @@ class led_draw:
         self.line((x + width, y), (x, y), color=color)
 
     def show(self):
-        s = "0"
-        for x in range(8):
-            col = 0
-            for y in range(8):
-                col |= fb[x][y] << (8-y-1)
-            s += "%02X" % col
-        self.server.send_cmd("m", s);
+        for m in range(self.cal.get_num_matrices()):
+            origin_x, origin_y = self.cal.get_matrix_origin(m)
+            s = ""
+            for x in range(self.cal.get_matrix_width()):
+                col = 0
+                for y in range(self.cal.get_matrix_height()):
+                    col |= self.fb[origin_x + x][origin_y + y] << (self.cal.get_fb_height()-y-1)
+                s += "%02X" % col
+            self.server.send_cmd("m", str(m) + s);
 

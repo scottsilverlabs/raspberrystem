@@ -2,6 +2,8 @@ import os
 
 class led_cal:
     LED_CAL_FILE=os.path.expanduser("~/.ledcal")
+    MATRIX_COLS=8
+    MATRIX_ROWS=8
     
     def __init__(self, server):
         self.server = server
@@ -78,6 +80,9 @@ class led_cal:
         matrices = []
         for line in lines:
             matrices += [[list(s) for s in line.split(",")]]
+        
+        if not force_default_order:
+            self.matrices = matrices
 
         return matrices
 
@@ -91,6 +96,25 @@ class led_cal:
         _restore_calibration(server)
 
         return matrices
+
+    def get_matrix_origin(self, m):
+        # For now, assume matrices are horizontally laid out, in order.
+        return (m * self.MATRIX_COLS, 0)
+
+    def get_num_matrices(self):
+        return len(self.matrices)
+
+    def get_fb_width(self):
+        return self.get_num_matrices() * self.get_matrix_width()
+
+    def get_fb_height(self):
+        return self.get_matrix_height()
+
+    def get_matrix_width(self):
+        return self.MATRIX_COLS
+
+    def get_matrix_height(self):
+        return self.MATRIX_ROWS
 
     def recalibrate(self):
         print "recalibrate"

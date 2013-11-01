@@ -10,7 +10,7 @@ from subprocess import *
 def _init_module():
     server = led_server()
     cal = led_cal(server)
-    draw = led_draw(server)
+    draw = led_draw(server, cal)
     draw.erase()
     return server, cal, draw
 
@@ -21,6 +21,8 @@ line = draw.line
 point = draw.point
 bound = draw.bound
 erase = draw.erase
+width = cal.get_fb_width
+height = cal.get_fb_height
 
 def _main():
     while 1:

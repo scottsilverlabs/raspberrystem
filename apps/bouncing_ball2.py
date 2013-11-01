@@ -26,10 +26,12 @@ direction = 70.0
 speed = 100.0
 period = 0.02
 dimensions = (1,1)
+width=led.width()
+height=led.height()
 while True:
     led.rect(ball, dimensions)
     led.show()
     time.sleep(period);
     led.rect(ball, dimensions, color=0)
-    ball, direction = new_vector(ball, direction, speed, period, width=7, height=7)
+    ball, direction = new_vector(ball, direction, speed, period, width=width, height=height)
 
