@@ -11,7 +11,7 @@ class led_draw:
         self.server = server
         self.cal = cal
 
-    def bound(self, x, y=None, color=1):
+    def bound(self, x, y=None):
         # If y is not given, then x is a tuple of the point
         if y == None:
             x, y = x
@@ -81,9 +81,7 @@ class led_draw:
             origin_x, origin_y = self.cal.get_matrix_origin(m)
             s = ""
             for x in range(self.cal.get_matrix_width()):
-                col = 0
                 for y in range(self.cal.get_matrix_height()):
-                    col |= self.fb[origin_x + x][origin_y + y] << (self.cal.get_fb_height()-y-1)
-                s += "%02X" % col
+                    s += hex(self.fb[origin_x + x][origin_y + y])[-1]
             self.server.send_cmd("m", str(m) + s);
 

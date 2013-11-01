@@ -48,12 +48,12 @@
  *              write to the 0th register (which is MAX7221 register 0x01).
  *              Each number a-h should be unique.
  *      m       Write data to the framebuffer for a specific matrix
- *              data format: "Maabbccddeeffgghh", where:
+ *              data format: "Maaaa...", where:
  *                  M           is the matrix index (0-7)
- *                  aa          is the data for row 0
- *                  ...
- *                  hh          is the data for row 7
- *              For each row, the MSB is the first col.
+ *                  aaaa...     is the pixel data.  Each "a" is hex digit
+ *                              representing a 4-bit color for one pixel.  Data
+ *                              is arranged as 8 row 0 pixels (with col 0
+ *                              first), then 8 row 1 pixels ... through row 7.
  */
 
 #include <stdint.h>
@@ -93,7 +93,7 @@
 
 #define DEFAULT_INTENSITY   0x08
 
-#define DISPLAY_PERIOD      20000
+#define DISPLAY_PERIOD      15000
 
 #define MAX_MATRICIES   8
 #define MATRIX_COLS     8
@@ -239,13 +239,12 @@ void set_order(char * data)
     }
 }
 
-int hex2bin(char * hex)
+int hex2dec(char hex)
 {
-    char s[3];
-    s[0] = hex[0];
-    s[1] = hex[1];
-    s[2] = 0;
-    return strtoul(s, NULL, 16);
+    if (hex <= '9')
+        return hex - '0';
+    else
+        return toupper(hex) - 'A' + 10;
 }
 
 void write_fb(char * data)
@@ -255,15 +254,12 @@ void write_fb(char * data)
     int row;
 
     //
-    // data format: "Maabbccddeeffgghh", where:
-    //      M               is the matrix index ('0' - '7')
-    //      aa through hh   is the hex value of column
-    //          
+    // See header for data format
+    //
     m = data[0] - '0';
     for (col = 0; col < MATRIX_COLS; col++) {
-        int rowval = hex2bin(&data[1+col*2]);
         for (row = 0; row < MATRIX_ROWS; row++) {
-            fb[m][col][row] = rowval & (FIRST_ROW_BIT_SET>>row);
+            fb[m][col][row] = hex2dec(data[1 + col*MATRIX_ROWS + row]);
         }
     }
 }
@@ -295,6 +291,7 @@ void display_matrix(int spi)
     int col;
     int row;
     uint8_t shadow[MATRIX_COLS][MAX_MATRICIES];
+    static unsigned int tick = 0;
 
     debug_display_fb();
 
@@ -303,7 +300,19 @@ void display_matrix(int spi)
         for (col = 0; col < MATRIX_COLS; col++) {
             int digit = 0;
             for (row = 0; row < MATRIX_ROWS; row++) {
-                if (fb[m][col][row])
+                int on;
+                int color = fb[m][col][row];
+                if (color == 0) {
+                    on = 0;
+                } else if (color == 1) {
+                    on = 1;
+                } else if (color == 0xF) {
+                    on = 0;  // Transparent - assume off.
+                } else {
+                    on = (1 << (color - 2)) & tick;
+                }
+
+                if (on)
                     digit |= FIRST_ROW_BIT_SET >> rowmap[m][row];
             }
             shadow[colmap[m][col]][m] = digit;
@@ -312,6 +321,8 @@ void display_matrix(int spi)
     for (col = 0; col < MATRIX_COLS; col++) {
         spi_write_reg_on_all_matrices(spi, col + 1, shadow[col]);
     }
+
+    tick++;
 }
 
 void process_cmd(int fifo, int spi)
