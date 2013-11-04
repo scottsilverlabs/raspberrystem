@@ -45,13 +45,11 @@ class led_draw:
             # supports them
             if x < 0 or y < 0:
                 raise IndexError()
-            self.fb[int(x)][int(y)] = color;
+            self.fb[int(round(x))][int(round(y))] = color;
         except IndexError:
             pass
 
     def line(self, point_a, point_b, color=1):
-        point_a = (int(point_a[0]), int(point_a[1]))
-        point_b = (int(point_b[0]), int(point_b[1]))
         x_diff = point_a[0] - point_b[0]
         y_diff = point_a[1] - point_b[1]
         step = self.sign(x_diff) * self.sign(y_diff)
