@@ -1,4 +1,5 @@
 import sys
+import random
 import time
 import led
 import accel
@@ -17,7 +18,7 @@ for g in [SHOOT, LEFT, DOWN, UP, RIGHT]:
 try:
     num_dots = int(sys.argv[1])
 except:
-    num_dots = 3
+    num_dots = 16
 
 class AddableTuple(tuple):
     def __add__(self, a):
@@ -30,7 +31,13 @@ change = {
     DOWN    : AddableTuple((0,-1)),
 }
 
-dots = [AddableTuple((0,0)) for i in range(num_dots)]
+dots = [
+    AddableTuple((
+        int(random.random()*led.width()),
+        int(random.random()*led.height())
+        )) 
+    for i in range(num_dots)
+    ]
 current_dot = 0
 while True:
     clicks = gpio.was_clicked()
@@ -47,4 +54,16 @@ while True:
     led.point(dots[current_dot], color=3)
     led.show()
     time.sleep(POLL_PERIOD)
+
+    xs = [x for x, y in dots]
+    uniq_xs = set(xs)
+    if len(uniq_xs) == 2:
+        col1, col2 = uniq_xs
+        col1_ys = [y for x, y in dots if x == col1]
+        col2_ys = [y for x, y in dots if x == col2]
+        if len(set(col1_ys)) == 8 and len(set(col2_ys)) == 8 and abs(col1 - col2) == 1:
+            break
+        
+
     
+
