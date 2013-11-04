@@ -15,7 +15,7 @@ def _init_module():
     return server, cal, draw
 
 server, cal, draw = _init_module()
-for name in ['show', 'rect', 'list', 'point', 'bound', 'erase']:
+for name in ['show', 'rect', 'line', 'point', 'bound', 'erase']:
     globals()[name] = getattr(draw, name)
 width = cal.get_fb_width
 height = cal.get_fb_height
