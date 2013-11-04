@@ -41,6 +41,10 @@ class led_draw:
 
         # If out of range, its off the screen - just don't display it
         try:
+            # Handle negaitive indicies as an exception, because Python
+            # supports them
+            if x < 0 or y < 0:
+                raise IndexError()
             self.fb[int(x)][int(y)] = color;
         except IndexError:
             pass
