@@ -40,14 +40,8 @@ class led_draw:
             x, y = x
 
         # If out of range, its off the screen - just don't display it
-        try:
-            # Handle negaitive indicies as an exception, because Python
-            # supports them
-            if x < 0 or y < 0:
-                raise IndexError()
-            self.fb[int(round(x))][int(round(y))] = color;
-        except IndexError:
-            pass
+        if x >= 0 and y >= 0 and x < len(self.fb) and y < len(self.fb[0]):
+            self.fb[x][y] = color;
 
     def line(self, point_a, point_b, color=1):
         x_diff = point_a[0] - point_b[0]
@@ -57,17 +51,19 @@ class led_draw:
         height = abs(y_diff) + 1
         if (width > height):
             start_point = point_a if x_diff < 0 else point_b
-            for x_offset in range(int(width)):
+            start_x, start_y = start_point
+            for x_offset in range(width):
                 self.point(
-                    start_point[0] + x_offset,
-                    start_point[1] + step*(x_offset*height/width),
+                    start_x + x_offset,
+                    start_y + step*(x_offset*height/width),
                     color=color)
         else:
             start_point = point_a if y_diff < 0 else point_b
-            for y_offset in range(int(height)):
+            start_x, start_y = start_point
+            for y_offset in range(height):
                 self.point(
-                    start_point[0] + step*(y_offset*width/height),
-                    start_point[1] + y_offset,
+                    start_x + step*(y_offset*width/height),
+                    start_y + y_offset,
                     color=color)
         
     def rect(self, start, dimensions, color=1):
