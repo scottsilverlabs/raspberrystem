@@ -98,9 +98,11 @@ for name in ['configure', 'get_level', 'set_level', 'was_clicked']:
 
 def _main():
     configure(2, INPUT)
-    for i in range(20):
-        print get_level(2)
-        time.sleep(0.5)
+    while True:
+        c = was_clicked()
+        if c:
+            print c
+        time.sleep(0.030)
 
 if __name__ == "__main__":
     _main()
