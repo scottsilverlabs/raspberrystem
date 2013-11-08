@@ -14,6 +14,8 @@ TARGET_DIRS+=apps
 
 TARGET_TARBALLS=$(foreach t,$(TARGET_DIRS),$(t)/$(t).tar)
 
+SETUID_FILES=api/pullup
+
 .PHONY: $(TARGET_DIRS)
 all: $(TARGET_DIRS)
 
@@ -28,4 +30,8 @@ install: $(TARGET_TARBALLS)
 	for i in $^; do \
 		scp $$i $(PI): ;\
 		ssh $(PI) tar xvf `basename $$i` ;\
+	done
+	for i in $(SETUID_FILES); do \
+		ssh $(PI) sudo chown root $$i; \
+		ssh $(PI) sudo chmod 4755 $$i; \
 	done

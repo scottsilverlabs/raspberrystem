@@ -10,6 +10,10 @@ OUTPUT=1
 INPUT=2
 DISABLED=3
 
+ARG_PULL_DISABLE=0
+ARG_PULL_DOWN=1
+ARG_PULL_UP=2
+
 class Gpio:
     def __init__(self, pin):
         self.gpio_dir = "/sys/class/gpio/gpio%d" % pin
@@ -21,6 +25,16 @@ class Gpio:
             if not os.path.exists(self.gpio_dir):
                 with open("/sys/class/gpio/export", "w") as f:
                     f.write("%d\n" % pin)
+        # Add PYTHONPATH to PATH
+        os.putenv("PATH", os.getenv("PATH") + ":" + os.getenv("PYTHONPATH"))
+
+    def __pullup(self, pin, enable):
+        os.system("pullup %d %d" % (pin, enable))
+
+    def __enable_pullup(self, pin):     self.__pullup(pin, ARG_PULL_UP)
+    def __disable_pullup(self, pin):    self.__pullup(pin, ARG_PULL_DISABLE)
+    def __enable_pulldown(self, pin):   self.__pullup(pin, ARG_PULL_DOWN)
+    def __disable_pulldown(self, pin):  self.__pullup(pin, ARG_PULL_DISABLE)
 
     def configure(self, direction):
         if direction == OUTPUT:
@@ -40,6 +54,7 @@ class Gpio:
                     fdirection.write("out")
                     self.fvalue = open(self.gpio_dir + "/value", "w")
                 elif direction == INPUT:
+                    self.__enable_pullup(self.pin)
                     fdirection.write("in")
                     self.fvalue = open(self.gpio_dir + "/value", "r")
                 elif direction == DISABLED:
