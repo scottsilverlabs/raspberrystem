@@ -15,11 +15,11 @@ WIDTH=led.width()
 HEIGHT=led.height()
 MIN_TUNNEL_THICKNESS = 2
 MAX_TUNNEL_THICKNESS = HEIGHT - 4
-START_SCROLL_RATE=2
-SCROLL_RATE_PERIOD=10
+START_SCROLL_RATE=3
+SCROLL_RATE_PERIOD=5
 MISSILE_RATE=10
-MORE_COLS_MIN=2
-MORE_COLS_MAX=5
+MORE_COLS_MIN=3
+MORE_COLS_MAX=6
 
 for g in [SHOOT, LEFT, DOWN, UP, RIGHT]:
     gpio.configure(g, gpio.INPUT)
@@ -137,51 +137,91 @@ class Missiles:
     def new(self, start):
         self.missiles += [Missile(start + (1,0))]
 
-    def delete_collisions(self, wall):
-        for i, m in enumerate(self.missiles):
-            if m.collision(wall):
-                del self.missiles[i]
+    def delete(self, index):
+        del self.missiles[index]
 
     def __getitem__(self, index):
         return self.missiles[index]
     
 
-wall = Wall()
-ship = Ship((2,4))
-missiles = Missiles(MISSILE_RATE)
-next_tick = time.time() + POLL_PERIOD
+class States(object):
+    def __init__(self, l):
+        self.l = l
+        self.list_iter = iter(self.l)
+        self.next()
+
+    def next(self):
+        self.start_time = time.time()
+        self.current = self.list_iter.next()
+
+    def next_if_after(self, duration):
+        if time.time() - state.start_time > duration:
+            self.next()
+
+    def skipto(self, s):
+        while self.current != s:
+            self.next()
+
+DONE=1
+START=2
+WALL_SCENE=3
+ENEMY_SCENE=4
+BIG_BOSS=5
+GAME_OVER=6
+state = States([START] + [WALL_SCENE, ENEMY_SCENE] * 3 + [BIG_BOSS, GAME_OVER, DONE])
 while True:
-    # Adjust sprites based on user input
-    clicks = gpio.was_clicked()
-    for c in clicks:
-        if c in [LEFT, RIGHT, UP, DOWN]:
-            ship.adjust(c)
-        if c in [SHOOT]:
-            missiles.new(ship.origin)
+    while state.current != DONE:
+        if state.current == START:
+            wall = Wall()
+            ship = Ship((2,4))
+            missiles = Missiles(MISSILE_RATE)
+            next_tick = time.time() + POLL_PERIOD
+            new_state_start_time = time.time()
+            state.next()
 
-    # Move background and sprites
-    for sprite in [wall, ship, missiles]:
-        sprite.trystep()
+        elif state.current in [WALL_SCENE, ENEMY_SCENE, BIG_BOSS]:
+            # Adjust sprites based on user input
+            clicks = gpio.was_clicked()
+            for c in clicks:
+                if c in [LEFT, RIGHT, UP, DOWN]:
+                    ship.adjust(c)
+                if c in [SHOOT]:
+                    missiles.new(ship.origin)
 
-    # Draw background and sprites
-    led.erase()
-    for sprite in [wall, ship, missiles]:
-        sprite.draw()
-    led.show()
+            # Move background and sprites
+            for sprite in [wall, ship, missiles]:
+                sprite.trystep()
 
-    # Exit on collision
-    if ship.collision(wall):
-        led.point(ship.origin, color=5)
-        led.show()
-        break
+            # Draw background and sprites
+            led.erase()
+            for sprite in [wall, ship, missiles]:
+                sprite.draw()
+            led.show()
 
-    # Remove missiles colliding with walls
-    missiles.delete_collisions(wall)
+            # Exit on collision
+            if ship.collision(wall):
+                led.point(ship.origin, color=5)
+                led.show()
+                state.skipto(GAME_OVER)
 
-    t = next_tick - time.time()
-    if t > 0:
-        time.sleep(t)
-    next_tick += POLL_PERIOD
+            # Remove missiles colliding with walls
+            for i, m in enumerate(missiles):
+                if m.collision(wall):
+                    missiles.delete(i)
 
-while True:
-    time.sleep(1)
+            if state.current == WALL_SCENE:
+                state.next_if_after(20)
+            elif state.current == ENEMY_SCENE:
+                state.next()
+            elif state.current == BIG_BOSS:
+                state.next()
+
+        elif state.current == GAME_OVER:
+            # TODO - print game over unit button press
+            state.next()
+
+        t = next_tick - time.time()
+        if t > 0:
+            time.sleep(t)
+        next_tick += POLL_PERIOD
+
