@@ -53,6 +53,9 @@ no_wall_params = {
     "period":0,
 }
 
+def clamp(val, minimum, maximum):
+    return min(maximum, max(minimum, val))
+
 def randint(min, max):
     return int(random.random() * (max - min + 1)) + min
 
@@ -226,6 +229,11 @@ class Wall(Sprite):
 class Ship(MoveablePointSprite):
     def __init__(self, origin, color=3):
         super(Ship, self).__init__(origin=origin, color=color)
+
+    def step(self):
+        super(Ship, self).step()
+        x, y = self.origin
+        self.origin = AddableTuple((clamp(x, 0, WIDTH - 1), clamp(y, 0, HEIGHT - 1)))
 
 class Missile(MoveablePointSprite):
     def __init__(self, origin, rate=MISSILE_RATE, color=5, direction=RIGHT, collideswith=None):
