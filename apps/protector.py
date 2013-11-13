@@ -15,6 +15,7 @@ RIGHT=15
 WIDTH=led.width()
 HEIGHT=led.height()
 MISSILE_RATE=10
+ENEMY_RATE=10
 
 wall_params = [
     {
@@ -126,6 +127,9 @@ class SpriteGroup(object):
         for s in self.sprites:
             s.draw()
 
+    def __len__(self):
+        return len(self.sprites)
+
     def __getitem__(self, index):
         return self.sprites[index]
 
@@ -165,9 +169,12 @@ class MoveablePointSprite(PointSprite):
 
     def step(self):
         for d in range(len(self.dirq)):
-            self.origin += self.change[self.dirq.popleft()]
+            self.adjust(self.dirq.popleft())
 
     def adjust(self, direction):
+        self.origin += self.change[direction]
+
+    def deferred_adjust(self, direction):
         self.dirq.append(direction)
     
 class Wall(Sprite):
@@ -247,23 +254,38 @@ class Missile(MoveablePointSprite):
         super(Missile, self).step()
 
 class Missiles(SpriteGroup):
-    def new(self, start=(0,0), direction=RIGHT):
-        self.sprites += [Missile(start, direction=direction, collideswith=self.getcollideswith())]
+    def __init__(self, direction=RIGHT):
+        self.direction = direction
+        super(Missiles, self).__init__()
+
+    def new(self, start=(0,0)):
+        self.sprites += [Missile(start, direction=self.direction, collideswith=self.getcollideswith())]
 
 class Enemy(MoveablePointSprite):
-    def __init__(self, origin, rate=MISSILE_RATE, color=2, direction=RIGHT, collideswith=None):
-        self.direction = direction
+    def __init__(self, origin, missiles, rate=ENEMY_RATE, color=1, collideswith=None):
+        self.missiles = missiles
         super(Enemy, self).__init__(
             origin=origin, rate=rate, color=color, collideswith=collideswith
             )
 
     def step(self):
-        self.adjust(self.direction)
+        if randint(0,100) > 30:
+            self.adjust([LEFT, RIGHT, UP, DOWN][randint(0, 3)])
+            x, y = self.origin
+            self.origin = AddableTuple((clamp(x, WIDTH/2, WIDTH - 1), clamp(y, 0, HEIGHT - 1)))
+        if randint(0,100) > 99:
+            self.missiles.new(self.origin)
         super(Enemy, self).step()
 
 class Enemies(SpriteGroup):
-    def new(self):
-        self.sprites += [Enemy((WIDTH-1, randint(0, HEIGHT)), collideswith=self.getcollideswith())]
+    def __init__(self, missiles):
+        self.missiles = missiles
+        super(Enemies, self).__init__()
+
+    def new(self, num=1):
+        start = (WIDTH-1, randint(0, HEIGHT))
+        c = self.getcollideswith()
+        self.sprites += [Enemy(start, self.missiles, collideswith=c) for i in range(num)]
 
 class States(object):
     def __init__(self, l):
@@ -297,12 +319,13 @@ for g in [SHOOT, LEFT, DOWN, UP, RIGHT]:
 
 DONE=1
 WALL_SCENE=2
-ENEMY_SCENE=3
-BIG_BOSS=4
-YOU_WIN=5
-GAME_OVER=6
+WALL_2_ENEMY_SCENE=3
+ENEMY_SCENE=4
+BIG_BOSS=5
+YOU_WIN=6
+GAME_OVER=7
 while True:
-    state = States([WALL_SCENE, ENEMY_SCENE] * 3 + [BIG_BOSS, YOU_WIN, GAME_OVER, DONE])
+    state = States([WALL_SCENE, WALL_2_ENEMY_SCENE, ENEMY_SCENE] * 3 + [BIG_BOSS, YOU_WIN, GAME_OVER, DONE])
     wall_scene = 0
     enemy_scene = 0
 
@@ -310,8 +333,7 @@ while True:
     ship = Ship((2,4))
     missiles = Missiles(direction=RIGHT)
     enemy_missiles = Missiles(direction=LEFT)
-    #enemies = Enemies(enemy_missiles)
-    enemies = Enemies()
+    enemies = Enemies(enemy_missiles)
     all_sprites = [wall, ship, missiles, enemies, enemy_missiles]
 
     wall.collideswith(ship, missiles, enemy_missiles, enemies)
@@ -323,13 +345,16 @@ while True:
     next_tick = time.time() + POLL_PERIOD
 
     while state.current() != DONE:
-        if state.current() in [WALL_SCENE, ENEMY_SCENE, BIG_BOSS]:
+        if state.current() in [WALL_SCENE, WALL_2_ENEMY_SCENE, ENEMY_SCENE, BIG_BOSS]:
             if state.first_time():
                 if state.current() == WALL_SCENE:
                     wall.set_params(**wall_params[wall_scene])
                     wall_scene += 1
+                elif state.current() == WALL_2_ENEMY_SCENE:
+                    wall.set_params(**no_wall_params)
                 elif state.current() == ENEMY_SCENE:
                     wall.set_params(**no_wall_params)
+                    enemies.new(5)
                     enemy_scene += 1
                 elif state.current() == BIG_BOSS:
                     pass
@@ -338,7 +363,7 @@ while True:
                 clicks = gpio.was_clicked()
                 for c in clicks:
                     if c in [LEFT, RIGHT, UP, DOWN]:
-                        ship.adjust(c)
+                        ship.deferred_adjust(c)
                     if c in [SHOOT]:
                         missiles.new(ship.origin)
 
@@ -357,10 +382,12 @@ while True:
                     state.skipto(GAME_OVER)
 
                 if state.current() == WALL_SCENE:
-                    pass
-                    #state.next_if_after(5)
+                    state.next_if_after(20)
+                elif state.current() == WALL_2_ENEMY_SCENE:
+                    state.next_if_after(3)
                 elif state.current() == ENEMY_SCENE:
-                    state.next_if_after(5)
+                    if len(enemies) == 0:
+                        state.next()
                 elif state.current() == BIG_BOSS:
                     state.next()
 
