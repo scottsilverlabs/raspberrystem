@@ -3,6 +3,7 @@ import random
 import led
 import accel
 import gpio
+from collections import deque
 
 POLL_PERIOD=0.020
 SHOOT=2
@@ -52,70 +53,100 @@ no_wall_params = {
     "period":0,
 }
 
-for g in [SHOOT, LEFT, DOWN, UP, RIGHT]:
-    gpio.configure(g, gpio.INPUT)
+def randint(min, max):
+    return int(random.random() * (max - min + 1)) + min
 
 class AddableTuple(tuple):
     def __add__(self, a):
         return self.__class__([sum(t) for t in zip(self, a)])
 
 class Sprite(object):
-    def __init__(self, origin=(0,0), rate=1, width=1, height=1, color=1):
+    def __init__(self, origin=(0,0), rate=999, width=1, height=1, color=1, collideswith=None):
         self.origin = AddableTuple(origin)
         self.rate = rate
         self.width = width
         self.height = height
         self.color = color
         self.tick = 0
+        self.__collided = None
+        self.__collideswith = collideswith if collideswith else []
         self.start_time = time.time()
+
+    def check_for_collisions(self):
+        for other in self.__collideswith:
+            collided = self.collision(other)
+            if collided:
+                s1, s2 = collided
+                s1.__collided = collided
+                s2.__collided = collided
+                s1.impact(s2)
+                s2.impact(s1)
 
     def trystep(self):
         if self.tick > 1/(self.rate*POLL_PERIOD):
             self.tick = 0
             self.step()
+            self.check_for_collisions()
         self.tick += 1
         return self
 
     def step(self):
         pass
 
+    def impact(self, other):
+        pass
+
     def offscreen(self):
         x, y = self.origin
-        return not (0 < x < WIDTH and 0 < y < HEIGHT)
+        return not (0 <= x < WIDTH and 0 <= y < HEIGHT)
 
-    def collision(self, other):
-        if type(other) == Wall:
-            x, y = self.origin
-            bottom, top = wall[x]
-            return y < bottom or y > top
-        else:
-            return self.origin == other.origin
+    def collideswith(self, *args):
+        self.__collideswith = args
+
+    def collided(self):
+        return bool(self.__collided)
 
 class SpriteGroup(object):
     def __init__(self, num=0, **kwds):
         self.sprites = []
         for i in range(num):
             self.new(**kwds)
+        self.__collideswith = []
 
     def trystep(self):
-        for i, m in enumerate(self.sprites):
-            m.trystep()
-            if m.offscreen():
+        for i, s in enumerate(self.sprites):
+            s.trystep()
+            if s.offscreen() or s.collided():
                 del self.sprites[i]
 
     def draw(self):
-        for m in self.sprites:
-            m.draw()
-
-    def delete(self, index):
-        del self.sprites[index]
+        for s in self.sprites:
+            s.draw()
 
     def __getitem__(self, index):
         return self.sprites[index]
 
+    def collision(self, other):
+        for s in self.sprites:
+            if s.collision(other):
+                return (s, other)
+        return None
+
+    def collideswith(self, *args):
+        self.__collideswith = args
+
+    def getcollideswith(self):
+        return self.__collideswith
+
 class PointSprite(Sprite):
     def draw(self):
         led.point(self.origin, color=self.color)
+
+    def collision(self, other):
+        if isinstance(other, PointSprite):
+            return (self, other) if self.origin == other.origin else None
+        else:
+            return other.collision(self)
     
 class MoveablePointSprite(PointSprite):
     change = {
@@ -125,18 +156,23 @@ class MoveablePointSprite(PointSprite):
         DOWN    : (0,-1),
     }
 
-    def adjust(self, direction):
-        self.origin += self.change[direction]
-    
-def randint(min, max):
-    return int(random.random() * (max - min + 1)) + min
+    def __init__(self, *args, **kwds):
+        self.dirq = deque()
+        super(MoveablePointSprite, self).__init__(*args, **kwds)
 
+    def step(self):
+        for d in range(len(self.dirq)):
+            self.origin += self.change[self.dirq.popleft()]
+
+    def adjust(self, direction):
+        self.dirq.append(direction)
+    
 class Wall(Sprite):
     def __init__(self):
         self.set_params()
         self.wall = [(0, HEIGHT - 1) for i in range(WIDTH)]
         self.start_time = time.time()
-        super(self.__class__, self).__init__(rate=self.start_rate)
+        super(Wall, self).__init__(rate=self.start_rate)
 
     def set_params(self, more_cols_min=3, more_cols_max=6, tunnel_min=3, tunnel_max=6, start_rate=3, period=5):
         self.more_cols_min = more_cols_min
@@ -150,7 +186,6 @@ class Wall(Sprite):
 
     def step(self):
         self.rate = self.start_rate + int((time.time() - self.start_time)/self.period)
-        print self.rate, self.start_rate, time.time() - self.start_time,self.period
         if len(self.wall) <= WIDTH:
             more_cols = randint(self.more_cols_min, self.more_cols_max)
             tunnel_thickness = randint(self.tunnel_min, self.tunnel_max)
@@ -175,36 +210,52 @@ class Wall(Sprite):
                 if y < bottom or y > top:
                     led.point(x, y)
 
+    def collision(self, other):
+        if isinstance(other, PointSprite):
+            x, y = other.origin
+            if 0 <= x < WIDTH:
+                bottom, top = wall[x]
+                return (self, other) if y < bottom or y > top else None
+            return None
+        else:
+            return other.collision(self)
+
     def __getitem__(self, index):
         return self.wall[index]
     
 class Ship(MoveablePointSprite):
     def __init__(self, origin, color=3):
-        super(self.__class__, self).__init__(origin=origin, color=color)
+        super(Ship, self).__init__(origin=origin, color=color)
 
 class Missile(MoveablePointSprite):
-    def __init__(self, origin, rate=MISSILE_RATE, color=5, direction=RIGHT):
-        super(self.__class__, self).__init__(origin=origin, rate=rate, color=color)
+    def __init__(self, origin, rate=MISSILE_RATE, color=5, direction=RIGHT, collideswith=None):
+        super(Missile, self).__init__(
+            origin=origin, rate=rate, color=color, collideswith=collideswith
+            )
         self.direction = direction
 
     def step(self):
         self.adjust(self.direction)
+        super(Missile, self).step()
 
 class Missiles(SpriteGroup):
-    def new(self, start=(0,0)):
-        self.sprites += [Missile(start)]
+    def new(self, start=(0,0), direction=RIGHT):
+        self.sprites += [Missile(start, direction=direction, collideswith=self.getcollideswith())]
 
 class Enemy(MoveablePointSprite):
-    def __init__(self, origin, rate=MISSILE_RATE, color=2, direction=RIGHT):
+    def __init__(self, origin, rate=MISSILE_RATE, color=2, direction=RIGHT, collideswith=None):
         self.direction = direction
-        super(self.__class__, self).__init__(origin=origin, rate=rate)
+        super(Enemy, self).__init__(
+            origin=origin, rate=rate, color=color, collideswith=collideswith
+            )
 
     def step(self):
         self.adjust(self.direction)
+        super(Enemy, self).step()
 
 class Enemies(SpriteGroup):
     def new(self):
-        self.sprites += [Enemy((WIDTH-1, randint(0, HEIGHT)))]
+        self.sprites += [Enemy((WIDTH-1, randint(0, HEIGHT)), collideswith=self.getcollideswith())]
 
 class States(object):
     def __init__(self, l):
@@ -233,30 +284,43 @@ class States(object):
         while self._current != s:
             self.next()
 
+for g in [SHOOT, LEFT, DOWN, UP, RIGHT]:
+    gpio.configure(g, gpio.INPUT)
+
 DONE=1
 WALL_SCENE=2
 ENEMY_SCENE=3
 BIG_BOSS=4
-GAME_OVER=5
+YOU_WIN=5
+GAME_OVER=6
 while True:
-    state = States([WALL_SCENE, ENEMY_SCENE] * 3 + [BIG_BOSS, GAME_OVER, DONE])
+    state = States([WALL_SCENE, ENEMY_SCENE] * 3 + [BIG_BOSS, YOU_WIN, GAME_OVER, DONE])
     wall_scene = 0
     enemy_scene = 0
+
     wall = Wall()
     ship = Ship((2,4))
-    missiles = Missiles()
-    enemy_missiles = Missiles()
+    missiles = Missiles(direction=RIGHT)
+    enemy_missiles = Missiles(direction=LEFT)
+    #enemies = Enemies(enemy_missiles)
+    enemies = Enemies()
+    all_sprites = [wall, ship, missiles, enemies, enemy_missiles]
+
+    wall.collideswith(ship, missiles, enemy_missiles, enemies)
+    ship.collideswith(wall, enemies, enemy_missiles)
+    missiles.collideswith(wall, enemies)
+    enemy_missiles.collideswith(wall, ship)
+    enemies.collideswith(wall, ship, missiles)
+
     next_tick = time.time() + POLL_PERIOD
 
     while state.current() != DONE:
         if state.current() in [WALL_SCENE, ENEMY_SCENE, BIG_BOSS]:
             if state.first_time():
                 if state.current() == WALL_SCENE:
-                    enemies = Enemies(0)
                     wall.set_params(**wall_params[wall_scene])
                     wall_scene += 1
                 elif state.current() == ENEMY_SCENE:
-                    enemies = Enemies(5)
                     wall.set_params(**no_wall_params)
                     enemy_scene += 1
                 elif state.current() == BIG_BOSS:
@@ -271,31 +335,22 @@ while True:
                         missiles.new(ship.origin)
 
                 # Move sprites
-                for sprite in [wall, ship, missiles]:
+                for sprite in all_sprites:
                     sprite.trystep()
 
                 # Draw sprites
                 led.erase()
-                for sprite in [wall, ship, missiles]:
+                for sprite in all_sprites:
                     sprite.draw()
                 led.show()
 
                 # Exit on collision
-                if ship.collision(wall):
-                    led.point(ship.origin, color=5)
-                    led.show()
+                if ship.collided():
                     state.skipto(GAME_OVER)
 
-                # Remove missiles colliding with walls
-                for i, m in enumerate(missiles):
-                    if m.collision(wall):
-                        missiles.delete(i)
-                for i, m in enumerate(enemies):
-                    if m.collision(wall):
-                        enemies.delete(i)
-
                 if state.current() == WALL_SCENE:
-                    state.next_if_after(5)
+                    pass
+                    #state.next_if_after(5)
                 elif state.current() == ENEMY_SCENE:
                     state.next_if_after(5)
                 elif state.current() == BIG_BOSS:
