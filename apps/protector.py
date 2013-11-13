@@ -13,13 +13,44 @@ RIGHT=15
 
 WIDTH=led.width()
 HEIGHT=led.height()
-MIN_TUNNEL_THICKNESS = 2
-MAX_TUNNEL_THICKNESS = HEIGHT - 4
-START_SCROLL_RATE=3
-SCROLL_RATE_PERIOD=5
 MISSILE_RATE=10
-MORE_COLS_MIN=3
-MORE_COLS_MAX=6
+
+wall_params = [
+    {
+        # WALL_SCENE 0
+        "more_cols_min":5,
+        "more_cols_max":8,
+        "tunnel_min":4,
+        "tunnel_max":HEIGHT - 3,
+        "start_rate":2,
+        "period":5,
+    }, {
+        # WALL_SCENE 1
+        "more_cols_min":3,
+        "more_cols_max":6,
+        "tunnel_min":2,
+        "tunnel_max":HEIGHT - 4,
+        "start_rate":3,
+        "period":5,
+    }, {
+        # WALL_SCENE 2
+        "more_cols_min":3,
+        "more_cols_max":5,
+        "tunnel_min":2,
+        "tunnel_max":HEIGHT - 5,
+        "start_rate":5,
+        "period":5,
+    }
+]
+
+no_wall_params = {
+    "more_cols_min":2,
+    "more_cols_max":2,
+    "tunnel_min":HEIGHT,
+    "tunnel_max":HEIGHT,
+    "start_rate":0,
+    "period":0,
+}
 
 for g in [SHOOT, LEFT, DOWN, UP, RIGHT]:
     gpio.configure(g, gpio.INPUT)
@@ -102,26 +133,39 @@ def randint(min, max):
 
 class Wall(Sprite):
     def __init__(self):
+        self.set_params()
         self.wall = [(0, HEIGHT - 1) for i in range(WIDTH)]
-        self.start_rate = START_SCROLL_RATE
-        self.period = SCROLL_RATE_PERIOD
         self.start_time = time.time()
         super(self.__class__, self).__init__(rate=self.start_rate)
 
+    def set_params(self, more_cols_min=3, more_cols_max=6, tunnel_min=3, tunnel_max=6, start_rate=3, period=5):
+        self.more_cols_min = more_cols_min
+        self.more_cols_max = more_cols_max
+        self.tunnel_min = tunnel_min
+        self.tunnel_max = tunnel_max
+        if start_rate > 0:
+            self.start_rate = start_rate
+        if period > 0:
+            self.period = period
+
     def step(self):
         self.rate = self.start_rate + int((time.time() - self.start_time)/self.period)
+        print self.rate, self.start_rate, time.time() - self.start_time,self.period
         if len(self.wall) <= WIDTH:
-            more_cols = randint(MORE_COLS_MIN, MORE_COLS_MAX)
-            tunnel_thickness = randint(MIN_TUNNEL_THICKNESS, MAX_TUNNEL_THICKNESS)
-            bottom = randint(0, HEIGHT - tunnel_thickness)
-            top = bottom + tunnel_thickness - 1
+            more_cols = randint(self.more_cols_min, self.more_cols_max)
+            tunnel_thickness = randint(self.tunnel_min, self.tunnel_max)
+            tunnel_bottom = randint(0, HEIGHT - tunnel_thickness)
+            tunnel_top = tunnel_bottom + tunnel_thickness - 1
             old_bottom, old_top = self.wall[-1]
-            self.wall += [
-                (
-                    old_bottom - (old_bottom - bottom) * col / more_cols,
-                    old_top    - (old_top    - top   ) * col / more_cols
-                ) 
-                for col in range(more_cols)]
+            def create_cols(old, new, more_cols):
+                diff = abs(old - new)
+                if new > old:
+                    return [min(new, old + 1 + diff * col / more_cols) for col in range(more_cols)]
+                else:
+                    return [max(new, old - 1 - diff * col / more_cols) for col in range(more_cols)]
+            new_bottoms = create_cols(old_bottom, tunnel_bottom, more_cols)
+            new_tops = create_cols(old_top, tunnel_top, more_cols)
+            self.wall += zip(new_bottoms, new_tops)
         del self.wall[0]
 
     def draw(self):
@@ -196,6 +240,8 @@ BIG_BOSS=4
 GAME_OVER=5
 while True:
     state = States([WALL_SCENE, ENEMY_SCENE] * 3 + [BIG_BOSS, GAME_OVER, DONE])
+    wall_scene = 0
+    enemy_scene = 0
     wall = Wall()
     ship = Ship((2,4))
     missiles = Missiles()
@@ -207,8 +253,12 @@ while True:
             if state.first_time():
                 if state.current() == WALL_SCENE:
                     enemies = Enemies(0)
+                    wall.set_params(**wall_params[wall_scene])
+                    wall_scene += 1
                 elif state.current() == ENEMY_SCENE:
                     enemies = Enemies(5)
+                    wall.set_params(**no_wall_params)
+                    enemy_scene += 1
                 elif state.current() == BIG_BOSS:
                     pass
             else:
@@ -220,11 +270,11 @@ while True:
                     if c in [SHOOT]:
                         missiles.new(ship.origin)
 
-                # Move background and sprites
+                # Move sprites
                 for sprite in [wall, ship, missiles]:
                     sprite.trystep()
 
-                # Draw background and sprites
+                # Draw sprites
                 led.erase()
                 for sprite in [wall, ship, missiles]:
                     sprite.draw()
@@ -242,12 +292,12 @@ while True:
                         missiles.delete(i)
                 for i, m in enumerate(enemies):
                     if m.collision(wall):
-                        missiles.delete(i)
+                        enemies.delete(i)
 
                 if state.current() == WALL_SCENE:
-                    state.next_if_after(20)
+                    state.next_if_after(5)
                 elif state.current() == ENEMY_SCENE:
-                    state.next()
+                    state.next_if_after(5)
                 elif state.current() == BIG_BOSS:
                     state.next()
 
