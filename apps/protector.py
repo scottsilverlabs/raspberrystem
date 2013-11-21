@@ -1,9 +1,12 @@
+import os
 import time
 import random
 import led
 import accel
 import gpio
 from collections import deque
+from subprocess import Popen
+
 
 POLL_PERIOD=0.020
 SHOOT=2
@@ -83,8 +86,8 @@ class Sprite(object):
                 s1, s2 = collided
                 s1.__collided = collided
                 s2.__collided = collided
-                s1.impact(s2)
-                s2.impact(s1)
+                handled = s1.impact(s2)
+                s2.impact(s1, handled)
 
     def trystep(self):
         if self.tick > 1/(self.rate*POLL_PERIOD):
@@ -97,8 +100,8 @@ class Sprite(object):
     def step(self):
         pass
 
-    def impact(self, other):
-        pass
+    def impact(self, other, handled=False):
+        return False
 
     def offscreen(self):
         x, y = self.origin
@@ -144,6 +147,11 @@ class SpriteGroup(object):
 
     def getcollideswith(self):
         return self.__collideswith
+
+class AudibleSprite(Sprite):
+    def impact(self, other, handled=False):
+        #os.system("aplay /usr/share/pyshared/pygame/examples/data/boom.wav &")
+        return True
 
 class PointSprite(Sprite):
     def draw(self):
@@ -224,7 +232,7 @@ class Wall(Sprite):
         if isinstance(other, PointSprite):
             x, y = other.origin
             if 0 <= x < WIDTH:
-                bottom, top = wall[x]
+                bottom, top = self.wall[x]
                 return (self, other) if y < bottom or y > top else None
             return None
         else:
@@ -233,7 +241,7 @@ class Wall(Sprite):
     def __getitem__(self, index):
         return self.wall[index]
     
-class Ship(MoveablePointSprite):
+class Ship(MoveablePointSprite, AudibleSprite):
     def __init__(self, origin, color=3):
         super(Ship, self).__init__(origin=origin, color=color)
 
@@ -242,7 +250,7 @@ class Ship(MoveablePointSprite):
         x, y = self.origin
         self.origin = AddableTuple((clamp(x, 0, WIDTH - 1), clamp(y, 0, HEIGHT - 1)))
 
-class Missile(MoveablePointSprite):
+class Missile(MoveablePointSprite, AudibleSprite):
     def __init__(self, origin, rate=MISSILE_RATE, color=5, direction=RIGHT, collideswith=None):
         super(Missile, self).__init__(
             origin=origin, rate=rate, color=color, collideswith=collideswith
@@ -261,7 +269,7 @@ class Missiles(SpriteGroup):
     def new(self, start=(0,0)):
         self.sprites += [Missile(start, direction=self.direction, collideswith=self.getcollideswith())]
 
-class Enemy(MoveablePointSprite):
+class Enemy(MoveablePointSprite, AudibleSprite):
     def __init__(self, origin, missiles, rate=ENEMY_RATE, color=1, collideswith=None):
         self.missiles = missiles
         super(Enemy, self).__init__(
@@ -307,96 +315,132 @@ class States(object):
         return ft
 
     def next_if_after(self, duration):
-        if time.time() - state.start_time > duration:
+        if time.time() - self.start_time > duration:
             self.next()
 
     def skipto(self, s):
         while self._current != s:
             self.next()
 
+def protector():
+    try:
+        music_cmd = "exec mpg123 /usr/share/scratch/Media/Sounds/Music\ Loops/Cave.mp3 -g 50 -l 0"
+        music = Popen(music_cmd, shell=True)
+
+        DONE=1
+        WALL_SCENE=2
+        WALL_2_ENEMY_SCENE=3
+        ENEMY_SCENE=4
+        BIG_BOSS=5
+        YOU_WIN=6
+        GAME_OVER=7
+
+        state = States(
+            [WALL_SCENE, WALL_2_ENEMY_SCENE, ENEMY_SCENE] * 3 + [BIG_BOSS, YOU_WIN, GAME_OVER, DONE])
+        wall_scene = 0
+        enemy_scene = 0
+
+        wall = Wall()
+        ship = Ship((2,4))
+        missiles = Missiles(direction=RIGHT)
+        enemy_missiles = Missiles(direction=LEFT)
+        enemies = Enemies(enemy_missiles)
+        all_sprites = [wall, ship, missiles, enemies, enemy_missiles]
+
+        wall.collideswith(ship, missiles, enemy_missiles, enemies)
+        ship.collideswith(wall, enemies, enemy_missiles)
+        missiles.collideswith(wall, enemies)
+        enemy_missiles.collideswith(wall, ship)
+        enemies.collideswith(wall, ship, missiles)
+
+        next_tick = time.time() + POLL_PERIOD
+
+        while state.current() != DONE:
+            if state.current() in [WALL_SCENE, WALL_2_ENEMY_SCENE, ENEMY_SCENE, BIG_BOSS]:
+                if state.first_time():
+                    if state.current() == WALL_SCENE:
+                        wall.set_params(**wall_params[wall_scene])
+                        wall_scene += 1
+                    elif state.current() == WALL_2_ENEMY_SCENE:
+                        wall.set_params(**no_wall_params)
+                    elif state.current() == ENEMY_SCENE:
+                        wall.set_params(**no_wall_params)
+                        enemies.new(5)
+                        enemy_scene += 1
+                    elif state.current() == BIG_BOSS:
+                        pass
+                else:
+                    # Adjust sprites based on user input
+                    clicks = gpio.was_clicked()
+                    for c in clicks:
+                        if c in [LEFT, RIGHT, UP, DOWN]:
+                            ship.deferred_adjust(c)
+                        if c in [SHOOT]:
+                            missiles.new(ship.origin)
+
+                    # Move sprites
+                    for sprite in all_sprites:
+                        sprite.trystep()
+
+                    # Draw sprites
+                    led.erase()
+                    for sprite in all_sprites:
+                        sprite.draw()
+                    led.show()
+
+                    # Exit on collision
+                    if ship.collided():
+                        state.skipto(GAME_OVER)
+
+                    if state.current() == WALL_SCENE:
+                        state.next_if_after(20)
+                    elif state.current() == WALL_2_ENEMY_SCENE:
+                        state.next_if_after(3)
+                    elif state.current() == ENEMY_SCENE:
+                        if len(enemies) == 0:
+                            state.next()
+                    elif state.current() == BIG_BOSS:
+                        state.next()
+
+            elif state.current() == GAME_OVER:
+                # TODO - print game over unit button press
+                state.next()
+
+            t = next_tick - time.time()
+            if t > 0:
+                time.sleep(t)
+            next_tick += POLL_PERIOD
+
+    finally:
+        music.kill()
+
+xbase, ybase =  accel.get_data()
+def balancing_dot():
+    x, y = (4, 4)
+    presses = 0
+    while True:
+        # Adjust sprites based on user input
+        clicks = gpio.was_clicked()
+        for c in clicks:
+            if c in [LEFT, RIGHT, UP, DOWN, SHOOT]:
+                presses += 1
+        if presses > 3:
+            break
+
+        xaccel, yaccel =  accel.get_data()
+        xchg = (xaccel - xbase)/20.0
+        ychg = (yaccel - ybase)/20.0
+        x, y = led.bound(x + xchg, y + ychg)
+
+        led.erase()
+        led.point(int(x), int(y))
+        led.show()
+        time.sleep(0.1)
+
+time.sleep(3)
 for g in [SHOOT, LEFT, DOWN, UP, RIGHT]:
     gpio.configure(g, gpio.INPUT)
 
-DONE=1
-WALL_SCENE=2
-WALL_2_ENEMY_SCENE=3
-ENEMY_SCENE=4
-BIG_BOSS=5
-YOU_WIN=6
-GAME_OVER=7
 while True:
-    state = States([WALL_SCENE, WALL_2_ENEMY_SCENE, ENEMY_SCENE] * 3 + [BIG_BOSS, YOU_WIN, GAME_OVER, DONE])
-    wall_scene = 0
-    enemy_scene = 0
-
-    wall = Wall()
-    ship = Ship((2,4))
-    missiles = Missiles(direction=RIGHT)
-    enemy_missiles = Missiles(direction=LEFT)
-    enemies = Enemies(enemy_missiles)
-    all_sprites = [wall, ship, missiles, enemies, enemy_missiles]
-
-    wall.collideswith(ship, missiles, enemy_missiles, enemies)
-    ship.collideswith(wall, enemies, enemy_missiles)
-    missiles.collideswith(wall, enemies)
-    enemy_missiles.collideswith(wall, ship)
-    enemies.collideswith(wall, ship, missiles)
-
-    next_tick = time.time() + POLL_PERIOD
-
-    while state.current() != DONE:
-        if state.current() in [WALL_SCENE, WALL_2_ENEMY_SCENE, ENEMY_SCENE, BIG_BOSS]:
-            if state.first_time():
-                if state.current() == WALL_SCENE:
-                    wall.set_params(**wall_params[wall_scene])
-                    wall_scene += 1
-                elif state.current() == WALL_2_ENEMY_SCENE:
-                    wall.set_params(**no_wall_params)
-                elif state.current() == ENEMY_SCENE:
-                    wall.set_params(**no_wall_params)
-                    enemies.new(5)
-                    enemy_scene += 1
-                elif state.current() == BIG_BOSS:
-                    pass
-            else:
-                # Adjust sprites based on user input
-                clicks = gpio.was_clicked()
-                for c in clicks:
-                    if c in [LEFT, RIGHT, UP, DOWN]:
-                        ship.deferred_adjust(c)
-                    if c in [SHOOT]:
-                        missiles.new(ship.origin)
-
-                # Move sprites
-                for sprite in all_sprites:
-                    sprite.trystep()
-
-                # Draw sprites
-                led.erase()
-                for sprite in all_sprites:
-                    sprite.draw()
-                led.show()
-
-                # Exit on collision
-                if ship.collided():
-                    state.skipto(GAME_OVER)
-
-                if state.current() == WALL_SCENE:
-                    state.next_if_after(20)
-                elif state.current() == WALL_2_ENEMY_SCENE:
-                    state.next_if_after(3)
-                elif state.current() == ENEMY_SCENE:
-                    if len(enemies) == 0:
-                        state.next()
-                elif state.current() == BIG_BOSS:
-                    state.next()
-
-        elif state.current() == GAME_OVER:
-            # TODO - print game over unit button press
-            state.next()
-
-        t = next_tick - time.time()
-        if t > 0:
-            time.sleep(t)
-        next_tick += POLL_PERIOD
-
+    balancing_dot()
+    protector()
