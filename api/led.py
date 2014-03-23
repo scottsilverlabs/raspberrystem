@@ -2,23 +2,40 @@ import time
 import os
 import sys
 import fcntl
-from led_server import led_server
-from led_cal import led_cal
-from led_draw import led_draw
+from led_server import LedServer
+from led_cal import LedCal
+from led_draw import LedDraw
 from subprocess import *
 
 def _init_module():
-    server = led_server()
-    cal = led_cal(server)
-    draw = led_draw(server, cal)
+    server = LedServer()
+    cal = LedCal(server)
+    draw = LedDraw(server, cal)
     draw.erase()
     return server, cal, draw
 
 server, cal, draw = _init_module()
-for name in ['show', 'rect', 'line', 'point', 'bound', 'erase']:
-    globals()[name] = getattr(draw, name)
-width = cal.get_fb_width
-height = cal.get_fb_height
+name_mappings = [
+    (draw,  'show'),
+    (draw,  'rect'),
+    (draw,  'line'),
+    (draw,  'point'),
+    (draw,  'bound'),
+    (draw,  'erase'),
+    (cal,   'v'),
+    (cal,   'h'),
+    (cal,   'recalibrate'),
+    (cal,   'width',    'get_fb_width'),
+    (cal,   'height',   'get_fb_height'),
+    ]
+    
+for m in name_mappings:
+    if len(m) == 2:
+        module, exported_name = m
+        name_in_module = exported_name
+    else:
+        module, exported_name, name_in_module = m
+    globals()[exported_name] = getattr(module, name_in_module)
 
 def _main():
     while 1:
