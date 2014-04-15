@@ -28,10 +28,14 @@ period = 0.02
 dimensions = (1,1)
 width=led.width()
 height=led.height()
+tick = 0
 while True:
-    led.rect(ball, dimensions)
+    led.erase()
+    led.rect(tuple(int(x) for x in ball), dimensions)
     led.show()
     time.sleep(period);
-    led.rect(ball, dimensions, color=0)
     ball, direction = new_vector(ball, direction, speed, period, width=width, height=height)
+    if tick % 100 == 0:
+        direction += 1000
+    tick += 1
 

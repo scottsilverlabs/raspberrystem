@@ -9,12 +9,12 @@ ydist = 0.5
 period = 0.01
 while True:
     led.erase()
-    led.point(x, y)
+    led.point(int(x), int(y))
     led.show()
     time.sleep(period);
     x, y = (x+xdist, y+ydist)
-    if (x > 8 or x < 0):
+    if (x >= led.width() or x < 0):
         xdist = - xdist
-    if (y > 8 or y < 0):
+    if (y >= led.height() or y < 0):
         ydist = - ydist
 
