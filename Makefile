@@ -1,32 +1,25 @@
 #
-# Makefile
+# Master Makefile
 #
-# Builds all tools needed on target (api, apps, ide, etc).  Optionally installs them.
+# Builds all software needed on target.  Optionally installs them.
 #
+export PRE_MAK=$(CURDIR)/make/prerules.mak
+export POST_MAK=$(CURDIR)/make/postrules.mak
+include $(PRE_MAK)
 
-PI=pi@raspberrypi
+export TOPDIR=$(CURDIR)
 
-TARGET_DIRS=
-TARGET_DIRS+=api
-TARGET_DIRS+=apps
-#TARGET_DIRS+=ide
-#TARGET_DIRS+=etc
+DIRS=
+DIRS+=rs
+DIRS+=cellapps
+DIRS+=projects
+DIRS+=misc
 
-TARGET_TARBALLS=$(foreach t,$(TARGET_DIRS),$(t)/$(t).tar)
-
-SETUID_FILES=api/pullup
-
-.PHONY: $(TARGET_DIRS)
-all: $(TARGET_DIRS)
-
-$(TARGET_DIRS):
-	make -C $@
-
-clean:
-	for t in $(TARGET_DIRS); do make -C $$t clean; done
+#Putting all here forces it to be the default rule.
+all::
 
 .PHONY: install
-install: $(TARGET_TARBALLS)
+install: 
 	for i in $^; do \
 		scp $$i $(PI): ;\
 		ssh $(PI) tar xvf `basename $$i` ;\
@@ -35,3 +28,5 @@ install: $(TARGET_TARBALLS)
 		ssh $(PI) sudo chown root $$i; \
 		ssh $(PI) sudo chmod 4755 $$i; \
 	done
+
+include $(POST_MAK)
