@@ -39,8 +39,14 @@ PI=pi@raspberrypi
 # Per file build rules
 #
 %: %.c
-	$(eval REMOTE_TMP=$(shell ssh $(PI) "mktemp -d"))
-	scp $^ $(PI):$(REMOTE_TMP)
-	ssh $(PI) "cd $(REMOTE_TMP) && gcc -lpthread $^ -o $@"
-	scp $(PI):$(REMOTE_TMP)/$@ $@
-	ssh $(PI) "rm -r $(REMOTE_TMP)"
+	scp $^ $(PI):/tmp
+	ssh $(PI) "\
+		mkdir -p /tmp/rs; \
+		cd /tmp/rs; \
+		mv ../$^ .; \
+		gcc $(CFLAGS) $^ -o $@; \
+		mv $@ ..; \
+		cd ..; \
+		rm -r /tmp/rs; \
+		"
+	scp $(PI):/tmp/$@ $@
