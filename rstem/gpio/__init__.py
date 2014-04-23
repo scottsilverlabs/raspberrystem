@@ -25,11 +25,10 @@ class Gpio:
             if not os.path.exists(self.gpio_dir):
                 with open("/sys/class/gpio/export", "w") as f:
                     f.write("%d\n" % pin)
-        # Add PYTHONPATH to PATH
-        os.putenv("PATH", os.getenv("PATH") + ":" + os.getenv("PYTHONPATH"))
 
     def __pullup(self, pin, enable):
-        os.system("pullup %d %d" % (pin, enable))
+        here = os.path.dirname(os.path.realpath(__file__))
+        os.system(here + "/pullup.sbin %d %d" % (pin, enable))
 
     def __enable_pullup(self, pin):     self.__pullup(pin, ARG_PULL_UP)
     def __disable_pullup(self, pin):    self.__pullup(pin, ARG_PULL_DISABLE)

@@ -1,3 +1,4 @@
+import os
 from subprocess import *
 
 def get_data():
@@ -9,7 +10,8 @@ def get_data():
 
 def _init_module():
     global pipe_in, pipe_out
-    p = Popen("api/accel_server", shell=True, stdin=PIPE, stdout=PIPE)
+    here = os.path.dirname(os.path.realpath(__file__))
+    p = Popen(here + "/accel_server", shell=True, stdin=PIPE, stdout=PIPE)
     pipe_in = p.stdout
     pipe_out = p.stdin
 
