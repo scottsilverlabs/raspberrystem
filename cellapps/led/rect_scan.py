@@ -1,11 +1,14 @@
 import time
 import led
 
-for x1 in range(8):
-    for y1 in range(8):
-        for x2 in range(8):
-            for y2 in range(8):
+WIDTH=led.width()
+HEIGHT=led.height()
+
+for x in range(WIDTH):
+    for y in range(HEIGHT):
+        for w in range(WIDTH-x):
+            for h in range(HEIGHT-y):
                 led.erase()
-                led.rect((x1,y1), (x2,y2))
+                led.rect((x,y), (w,h))
                 led.show()
                 time.sleep(0.01);

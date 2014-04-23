@@ -2,11 +2,11 @@ import time
 import os
 import sys
 import fcntl
-from led_server import led_server
-from led_cal import led_cal
+from led_server import LedServer
+from led_cal import LedCal
 from subprocess import *
 
-class led_draw:
+class LedDraw:
     def __init__(self, server, cal):
         self.server = server
         self.cal = cal

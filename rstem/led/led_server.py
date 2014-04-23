@@ -1,6 +1,6 @@
 from subprocess import *
 
-class led_server:
+class LedServer:
     def __init__(self):
         self.pipe = Popen("api/led_server", shell=True, stdin=PIPE).stdin
 

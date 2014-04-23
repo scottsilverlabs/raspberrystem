@@ -55,11 +55,11 @@
  *                              is arranged as 8 row 0 pixels (with col 0
  *                              first), then 8 row 1 pixels ... through row 7.
  */
-
 #include <stdint.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <getopt.h>
 #include <fcntl.h>
 #include <pthread.h> 
@@ -106,6 +106,11 @@ int fb[MAX_MATRICIES][MATRIX_COLS][MATRIX_ROWS];
 char colmap[MAX_MATRICIES][MATRIX_COLS];
 char rowmap[MAX_MATRICIES][MATRIX_ROWS];
 int num_matrixes = 1;
+
+enum {
+    VERTICAL_LINE,
+    HORIZONTAL_LINE
+};
 
 static int spi_write_reg_on_all_matrices(int fd, uint8_t reg, uint8_t vals[MAX_MATRICIES])
 {
@@ -247,6 +252,26 @@ int hex2dec(char hex)
         return toupper(hex) - 'A' + 10;
 }
 
+void write_line(int type, char * data)
+{
+    int m;
+    int col;
+    int row;
+    int line;
+
+    //
+    // See header for data format
+    //
+    m = data[0] - '0';
+    line = data[1] - '0';
+    for (col = 0; col < MATRIX_COLS; col++) {
+        for (row = 0; row < MATRIX_ROWS; row++) {
+            int line_match = (type == VERTICAL_LINE) ? line == col : line == row;
+            fb[m][col][row] = line_match ? 1 : 0;
+        }
+    }
+}
+
 void write_fb(char * data)
 {
     int m;
@@ -280,6 +305,7 @@ void debug_display_fb()
         }
         printf("\n");
     }
+    printf("\n");
 }
 #else
 void debug_display_fb() {}
@@ -313,7 +339,9 @@ void display_matrix(int spi)
                 }
 
                 if (on)
+                {
                     digit |= FIRST_ROW_BIT_SET >> rowmap[m][row];
+                }
             }
             shadow[colmap[m][col]][m] = digit;
         }
@@ -340,6 +368,12 @@ void process_cmd(int fifo, int spi)
             break;
         case 'm':
             write_fb(get_data(fifo));
+            break;
+        case 'h':
+            write_line(HORIZONTAL_LINE, get_data(fifo));
+            break;
+        case 'v':
+            write_line(VERTICAL_LINE, get_data(fifo));
             break;
         default:
             break;
@@ -372,14 +406,14 @@ int main(int argc, char *argv[])
 
     fifo = 0; // stdin
 
-    void *f1(int *x){
+    void *f1(void *x){
         for (;;) {
             usleep(DISPLAY_PERIOD);
-            display_matrix(*x);
+            display_matrix(*((int *) x));
         }
     }
     pthread_t f1_thread; 
-    pthread_create(&f1_thread,NULL,f1,&spi);
+    pthread_create(&f1_thread, NULL, f1, &spi);
 
     for (;;) {
         process_cmd(fifo, spi);
