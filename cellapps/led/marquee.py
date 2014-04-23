@@ -13,7 +13,7 @@
 #
 #
 import time
-import led
+from rstem import led
 
 # Create a list of points, that are all the points of the marquee border, in
 # order.

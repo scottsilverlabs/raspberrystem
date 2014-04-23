@@ -1,6 +1,6 @@
 import time
-import led
-import accel
+from rstem import led
+from rstem import accel
 
 xbase, ybase =  accel.get_data()
 x, y = (4, 4)

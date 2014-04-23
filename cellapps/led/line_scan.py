@@ -1,5 +1,5 @@
 import time
-import led
+from rstem import led
 
 WIDTH=led.width()
 HEIGHT=led.height()

@@ -1,8 +1,8 @@
 import sys
 import time
-import led
-import accel
-import gpio
+from rstem import led
+from rstem import accel
+from rstem import gpio
 
 POLL_PERIOD=0.010
 SHOOT=2

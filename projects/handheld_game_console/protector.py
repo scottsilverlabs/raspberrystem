@@ -1,9 +1,9 @@
 import os
 import time
 import random
-import led
-import accel
-import gpio
+from rstem import led
+from rstem import accel
+from rstem import gpio
 from collections import deque
 from subprocess import Popen
 
