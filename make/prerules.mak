@@ -23,7 +23,6 @@ PI=pi@raspberrypi
 	rm -f $*
 
 %.clean:
-	@echo dude
 	rm -f $*
 
 #

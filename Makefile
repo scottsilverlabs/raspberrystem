@@ -18,15 +18,22 @@ DIRS+=misc
 #Putting all here forces it to be the default rule.
 all::
 
+clean::
+	rm -f install.tar
+
+install.tar: 
+	tar cvf $@ `$(MAKE) targets`
+
 .PHONY: install
-install: 
-	for i in $^; do \
-		scp $$i $(PI): ;\
-		ssh $(PI) tar xvf `basename $$i` ;\
-	done
-	for i in $(SETUID_FILES); do \
-		ssh $(PI) sudo chown root $$i; \
-		ssh $(PI) sudo chmod 4755 $$i; \
-	done
+install: install.tar
+	scp $< $(PI):
+	ssh $(PI) "\
+		rm -rf rsinstall; \
+		mkdir -p rsinstall; \
+		cd rsinstall; \
+		tar xvf ../$<; \
+		find . -name *.sbin -exec sudo chown root {} \\; ; \
+		find . -name *.sbin -exec sudo chmod 4755 {} \\; ; \
+		"
 
 include $(POST_MAK)

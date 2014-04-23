@@ -1,4 +1,2 @@
-led_server
-accel_server
-pullup
-
+*_server
+*.sbin
