@@ -10,7 +10,7 @@ include $(PRE_MAK)
 export TOPDIR=$(CURDIR)
 
 DIRS=
-DIRS+=rs
+DIRS+=rstem
 DIRS+=cellapps
 DIRS+=projects
 DIRS+=misc
@@ -21,8 +21,9 @@ all::
 clean::
 	rm -f install.tar
 
+.PHONY: install.tar
 install.tar: 
-	tar cvf $@ `$(MAKE) targets`
+	tar cvf $@ $(shell $(MAKE) targets)
 
 .PHONY: install
 install: install.tar

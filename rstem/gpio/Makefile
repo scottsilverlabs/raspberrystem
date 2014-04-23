@@ -1,8 +1,8 @@
 include $(PRE_MAK)
 
 TARGETS=
+TARGETS+=__init__.py
 TARGETS+=pullup.sbin
-TARGETS+=gpio.py
 
 include $(POST_MAK)
 
