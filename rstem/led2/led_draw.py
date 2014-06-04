@@ -39,7 +39,7 @@ class LedDraw:
         return bitPosColumn + bitPosRow
         
     def show(self):
-        led_server.flush(self._bitArrayToIntArray())
+        led_server.flush(self._bitArrayToIntArray())  # give frame buffer to led_server
         
     def erase(self, color=0x0):
         self.bitarray = bitstring.BitArray(length=(self.num_matrices*SIZE_OF_PIXEL*SIZE_OF_MATRIX))
@@ -59,7 +59,12 @@ class LedDraw:
     def _sign(self, n):
         return 1 if n >= 0 else -1
             
-    def line(self, point_a, point_b, color=1):
+    def line(self, point_a, point_b, color=0xF):
+        """Create a line from point_a to point_b"""       
+        if color < 0x0 or color > 0xF:
+            print "Invalid Color"
+            return
+    
         x_diff = point_a[0] - point_b[0]
         y_diff = point_a[1] - point_b[1]
         step = self._sign(x_diff) * self._sign(y_diff)
@@ -81,7 +86,14 @@ class LedDraw:
                     start_x + step*(y_offset*width/height),
                     start_y + y_offset,
                     color=color)
-            
+    
+    def rect(self, start, dimensions, color=0xF):
+        x, y = start
+        width, height = dimensions
+        self.line((x, y), (x, y + height), color=color)
+        self.line((x, y + height), (x + width, y + height), color=color)
+        self.line((x + width, y + height), (x + width, y), color=color)
+        self.line((x + width, y), (x, y), color=color)
             
             
             
