@@ -66,18 +66,19 @@ static PyObject *flushBytes(PyObject *self, PyObject *args){
 	int size = 1;
 	int index = 0;
 	PyArg_ParseTuple(args, "O", &seq);
-	if(!PyByteArray_Check(seq))
+	if(!PyByteArray_Check(seq)){
 		PyErr_SetString(PyExc_TypeError, "Not a bytearray");
 		return NULL;
+	}
 	size = PyObject_Length(seq);
 	data = PyByteArray_AsString(seq);
 return Py_BuildValue("i",writeBytes(spi, data, size));
 }
 
 static PyMethodDef spiMethods[] = {
-	{"flush", flushBytes, METH_VARARGS}
+	{"flushBytes", flushBytes, METH_VARARGS}
 };
 
-void initSPIDriver() {
+void initled_server() {
 	(void) Py_InitModule("led_server", spiMethods);
 }
