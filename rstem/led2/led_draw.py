@@ -1,7 +1,7 @@
 import os
 import bitstring
 from array import array
-import led_server # from the attiny48 controller
+import led_server     # from the attiny48 controller
 
 SIZE_OF_PIXEL = 4     # 4 bits to represent color
 DIM_OF_MATRIX = 8     # 8x8 led matrix elements
@@ -44,6 +44,13 @@ class LedDraw:
         
     def show(self):
         led_server.flush(self._bitArrayToByteArray())  # give frame buffer to led_server
+        
+        # debugging
+        for y in range(self.num_rows*DIM_OF_MATRIX):
+            for x in range(self.num_cols*DIM_OF_MATRIX):
+                bitPos = self._pointToBitPos(x,y)
+                printf(self.bitarray[bitPos : bitPos+4].hex)
+            printf("\n")
         
     def erase(self, color=0x0):
         self.bitarray = bitstring.BitArray(length=(self.num_matrices*SIZE_OF_PIXEL*SIZE_OF_MATRIX))
