@@ -1,7 +1,7 @@
 import os
 import bitstring
 from array import array
-#import led_server # from the attiny48 controller
+import led_server # from the attiny48 controller
 
 SIZE_OF_PIXEL = 4     # 4 bits to represent color
 DIM_OF_MATRIX = 8     # 8x8 led matrix elements
@@ -13,12 +13,14 @@ class LedDraw:
             raise Exception("Invalid arguments in LedDraw initialization")  
         self.bitarray = bitstring.BitArray(length=(num_matrices*SIZE_OF_PIXEL*(DIM_OF_MATRIX**2)))  # create a bitset of all 0's
         self.num_rows = num_rows
+        self.num_cols = num_matrices/num_rows
         self.num_matrices = num_matrices
         
-    def _bitArrayToIntArray(self):
+    def _bitArrayToByteArray(self):
         """Convert bitarray into an int array that can be given to led_server"""
         # TODO: implement flipping part of bitarray for multiple rows
-        return array('I', [x.uint for x in list(self.bitarray.cut(16))])
+        return bytearray([x.uint for x in list(self.bitarray.cut(8))])
+#        return array('I', [x.uint for x in list(self.bitarray.cut(16))])
         
     def _pointToBitPos(self, x, y):
         """Convert the (x,y) coordinates into the bit position in bitarray
@@ -27,6 +29,8 @@ class LedDraw:
         if y < 0 or y >= self.num_rows*DIM_OF_MATRIX \
             or x < 0 or x >= self.num_matrices/self.num_rows*DIM_OF_MATRIX:
             return None
+            
+#        mat_col = floor(
             
         # bottom left corner of first matrix is bitpos = 0, 
         # - bit pos incrememnt going up matrix column were bitpos 7*4 is top left of first matrix
@@ -39,7 +43,7 @@ class LedDraw:
         return bitPosColumn + bitPosRow
         
     def show(self):
-        led_server.flush(self._bitArrayToIntArray())  # give frame buffer to led_server
+        led_server.flush(self._bitArrayToByteArray())  # give frame buffer to led_server
         
     def erase(self, color=0x0):
         self.bitarray = bitstring.BitArray(length=(self.num_matrices*SIZE_OF_PIXEL*SIZE_OF_MATRIX))
