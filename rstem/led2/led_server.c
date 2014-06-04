@@ -59,7 +59,7 @@ int writeBytes(int dev, unsigned char* val, int len) {
 return ret;
 }
 
-static PyObject *flushBytes(PyObject *self, PyObject *args){
+static PyObject *flush(PyObject *self, PyObject *args){
 	startSPI();
 	PyObject* seq;
 	unsigned char *data;
@@ -76,7 +76,7 @@ return Py_BuildValue("i",writeBytes(spi, data, size));
 }
 
 static PyMethodDef spiMethods[] = {
-	{"flushBytes", flushBytes, METH_VARARGS}
+	{"flush", flush, METH_VARARGS}
 };
 
 void initled_server() {
