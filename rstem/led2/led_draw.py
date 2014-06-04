@@ -49,8 +49,8 @@ class LedDraw:
         for y in range(self.num_rows*DIM_OF_MATRIX):
             for x in range(self.num_cols*DIM_OF_MATRIX):
                 bitPos = self._pointToBitPos(x,y)
-                printf(self.bitarray[bitPos : bitPos+4].hex)
-            printf("\n")
+                print (self.bitarray[bitPos : bitPos+4].hex),
+            printf " "
         
     def erase(self, color=0x0):
         self.bitarray = bitstring.BitArray(length=(self.num_matrices*SIZE_OF_PIXEL*SIZE_OF_MATRIX))
