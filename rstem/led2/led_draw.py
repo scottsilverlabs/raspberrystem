@@ -1,6 +1,5 @@
 import os
 import bitstring
-from array import array
 import led_server     # from the attiny48 controller
 
 SIZE_OF_PIXEL = 4     # 4 bits to represent color
@@ -21,30 +20,18 @@ class LedMatrix:
         self.bitarray = \
             bitstring.BitArray(length=(num_rows*num_cols*SIZE_OF_PIXEL*(DIM_OF_MATRIX**2)))
         self.num_rows = num_rows
-        self.num_cols = num_rows
+        self.num_cols = num_cols
         self.num_matrices = num_rows*num_cols
         
+        
     def _bitArrayToByteArray(self):
-        """Convert bitarray into an bytearray python type that can be given to led_server"""
-        
-#        temp = bitstring.BitArray()
-#        for i, byte in enumerate(self.bitarray.cut(8)):
-#            # swap low and high nibbles in each byte
-#            temp.append(byte[4:8])
-#            temp.append(byte[0:4])
-#            print "swaping byte " + i
-#            print "     swap 
-#            temp[i*4:i*4+4] = byte[4:8]
-#            temp[i*4+4:i*4+8] = byte[0:4]
-        
+        """Convert bitarray into an bytearray python type that can be given to led_server"""     
         return bytearray(self.bitarray.tobytes())
-#        return bytearray([x.uint for x in list(self.bitarray.cut(8))])
-#        return array('I', [x.uint for x in list(self.bitarray.cut(16))])
+        
         
     def _pointToBitPos(self, x, y):
         """Convert the (x,y) coordinates into the bit position in bitarray
         Returns None if point not located on led matrix"""
-        # TODO: implement support for multiple matrix rows
         if y < 0 or y >= self.num_rows*DIM_OF_MATRIX \
             or x < 0 or x >= self.num_matrices/self.num_rows*DIM_OF_MATRIX:
             return None
@@ -53,38 +40,43 @@ class LedMatrix:
         mat_col = x/DIM_OF_MATRIX
         mat_row = y/DIM_OF_MATRIX
         
+        # subtract off above matrix rows so we can treat y relative to matrix row
+        y = (y - mat_row*DIM_OF_MATRIX)
         
-            
-        # bottom left corner of first matrix is bitpos = 0, 
-        # - bit pos incrememnt going up matrix column were bitpos 7*4 is top left of first matrix
-        # - then repeats so bitpos 8*4 is pixel to right of bottom left of first matrix
-        bitPosCol = x*DIM_OF_MATRIX*SIZE_OF_PIXEL  # bit position of the first pixel (going up) of column 
-        bitPosColOffset = (DIM_OF_MATRIX-1 - y)*SIZE_OF_PIXEL  # flip y coordinate around
+        # if on odd matrix row and zigzag enabled, we need to flip x and y coords
+        if mat_row % 2 == 1 and self.zigzag:
+            x = (DIM_OF_MATRIX*self.num_cols - 1) - x
+            y = (DIM_OF_MATRIX - 1) - y
         
-        #TODO: implement bitPosMatrix variable
-        bitPos = bitPosCol + bitPosColOffset
+        # bit position of the first pixel (going up) of column 
+        bitPosCol = (x + mat_row*DIM_OF_MATRIX*self.num_cols)*DIM_OF_MATRIX*SIZE_OF_PIXEL  
+        bitPosColOffset = (DIM_OF_MATRIX - 1 - y)*SIZE_OF_PIXEL # flip y to move up
         
+        bitPos = bitPosCol + bitPosColOffset  
+        
+        # swap nibble (low to high, high to low) for the led_server
         if bitPos % 8 == 0: # beginning of byte
             bitPos += 4
         elif bitPos % 8 == 4: # middle of byte
             bitPos -= 4
         else:
-            raise Exception("This shouldn't happen")
+            assert False, "bitPos is not nibble aligned"
             
         return bitPos
         
+        
     def show(self):
         led_server.flush(self._bitArrayToByteArray())  # give frame buffer to led_server
-        
-        # debugging
-#        for y in range(self.num_rows*DIM_OF_MATRIX):
-#            for x in range(self.num_cols*DIM_OF_MATRIX):
-#                bitPos = self._pointToBitPos(x,y)
-#                print (self.bitarray[bitPos : bitPos+SIZE_OF_PIXEL].hex),
-#            print " " #print newline
+        if __debug__:
+            for y in range(self.num_rows*DIM_OF_MATRIX):
+                for x in range(self.num_cols*DIM_OF_MATRIX):
+                    bitPos = self._pointToBitPos(x,y)
+                    print (self.bitarray[bitPos : bitPos+SIZE_OF_PIXEL].hex),
+                print " " #print newline
         
     def erase(self, color=0x0):
-        self.bitarray = bitstring.BitArray(length=(self.num_matrices*SIZE_OF_PIXEL*DIM_OF_MATRIX**2))
+        self.bitarray = \
+            bitstring.BitArray(length=(self.num_matrices*SIZE_OF_PIXEL*DIM_OF_MATRIX**2))
         self.show()
         
         
@@ -93,20 +85,20 @@ class LedMatrix:
         if color < 0x0 or color > 0xF:
             print "Invalid Color"
             return
-        
         bitPos = self._pointToBitPos(x, y)
         if bitPos != None:
             self.bitarray[bitPos:bitPos+4] = color  # set 4 bits
             
+            
     def _sign(self, n):
         return 1 if n >= 0 else -1
+            
             
     def line(self, point_a, point_b, color=0xF):
         """Create a line from point_a to point_b"""       
         if color < 0x0 or color > 0xF:
             print "Invalid Color"
             return
-    
         x_diff = point_a[0] - point_b[0]
         y_diff = point_a[1] - point_b[1]
         step = self._sign(x_diff) * self._sign(y_diff)
@@ -128,6 +120,7 @@ class LedMatrix:
                     start_x + step*(y_offset*width/height),
                     start_y + y_offset,
                     color=color)
+    
     
     def rect(self, start, dimensions, color=0xF):
         x, y = start
