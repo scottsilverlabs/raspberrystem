@@ -27,11 +27,15 @@ class LedMatrix:
     def _bitArrayToByteArray(self):
         """Convert bitarray into an bytearray python type that can be given to led_server"""
         
-        temp = self.bitarray.copy()
+        temp = bitstring.BitArray()
         for i, byte in enumerate(self.bitarray.cut(8)):
             # swap low and high nibbles in each byte
-            temp[i*4:i*4+4] = byte[4:8]
-            temp[i*4+4:i*4+8] = byte[0:4]
+            temp.append(byte[4:8])
+            temp.append(byte[0:4])
+#            print "swaping byte " + i
+#            print "     swap 
+#            temp[i*4:i*4+4] = byte[4:8]
+#            temp[i*4+4:i*4+8] = byte[0:4]
         
         return bytearray(temp.tobytes())
 #        return bytearray([x.uint for x in list(self.bitarray.cut(8))])
