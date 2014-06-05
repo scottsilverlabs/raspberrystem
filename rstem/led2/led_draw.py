@@ -27,17 +27,17 @@ class LedMatrix:
     def _bitArrayToByteArray(self):
         """Convert bitarray into an bytearray python type that can be given to led_server"""
         
-        temp = bitstring.BitArray()
-        for i, byte in enumerate(self.bitarray.cut(8)):
-            # swap low and high nibbles in each byte
-            temp.append(byte[4:8])
-            temp.append(byte[0:4])
+#        temp = bitstring.BitArray()
+#        for i, byte in enumerate(self.bitarray.cut(8)):
+#            # swap low and high nibbles in each byte
+#            temp.append(byte[4:8])
+#            temp.append(byte[0:4])
 #            print "swaping byte " + i
 #            print "     swap 
 #            temp[i*4:i*4+4] = byte[4:8]
 #            temp[i*4+4:i*4+8] = byte[0:4]
         
-        return bytearray(temp.tobytes())
+        return bytearray(self.bitarray.tobytes())
 #        return bytearray([x.uint for x in list(self.bitarray.cut(8))])
 #        return array('I', [x.uint for x in list(self.bitarray.cut(16))])
         
@@ -58,12 +58,20 @@ class LedMatrix:
         # bottom left corner of first matrix is bitpos = 0, 
         # - bit pos incrememnt going up matrix column were bitpos 7*4 is top left of first matrix
         # - then repeats so bitpos 8*4 is pixel to right of bottom left of first matrix
-        bitPosColumn = x*DIM_OF_MATRIX*SIZE_OF_PIXEL  # bit position of the first pixel (going up) of column 
-        bitPosRow = (DIM_OF_MATRIX-1 - y)*SIZE_OF_PIXEL  # flip y coordinate around
+        bitPosCol = x*DIM_OF_MATRIX*SIZE_OF_PIXEL  # bit position of the first pixel (going up) of column 
+        bitPosColOffset = (DIM_OF_MATRIX-1 - y)*SIZE_OF_PIXEL  # flip y coordinate around
         
         #TODO: implement bitPosMatrix variable
+        bitPos = bitPosCol + bitPosColOffset
         
-        return bitPosColumn + bitPosRow
+        if bitPos % 8 = 0: # beginning of byte
+            bitPos += 4
+        elif bitPos % 8 = 4: # middle of byte
+            bitPos -= 4
+        else:
+            raise Exception("This shouldn't happen")
+            
+        return bitPos
         
     def show(self):
         led_server.flush(self._bitArrayToByteArray())  # give frame buffer to led_server
