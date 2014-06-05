@@ -5,7 +5,7 @@ import led_server     # from the attiny48 controller
 SIZE_OF_PIXEL = 4     # 4 bits to represent color
 DIM_OF_MATRIX = 8     # 8x8 led matrix elements
 
-class LEDMatrix:
+class LedMatrix:
 
     def __init__(self, num_rows=1, num_cols=1, zigzag=True):
         """Initializes a matrix of led matrices
