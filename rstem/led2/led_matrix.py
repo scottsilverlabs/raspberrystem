@@ -18,7 +18,7 @@ class Matrix:
                     left to right on each rowm
         """
         if num_rows <= 0 or num_cols <= 0:
-            raise Exception("Invalid arguments in LedDraw initialization") 
+            raise ValueError("Invalid arguments in LedDraw initialization") 
         # create a bitset of all 0's 
         self.bitarray = \
             bitstring.BitArray(length=(num_rows*num_cols*SIZE_OF_PIXEL*(DIM_OF_MATRIX**2)))
@@ -26,6 +26,18 @@ class Matrix:
         self.num_cols = num_cols
         self.num_matrices = num_rows*num_cols
         self.angle = angle  # rotation of x y coordinates
+        
+        # initialize spi
+        led_server.initSPI()
+        
+    def _getWidth(self):
+        return self.num_cols*DIM_OF_MATRIX
+        
+    def _getHeight(self):
+        return self.num_rows*DIM_OF_MATRIX
+        
+    def _isInMatrix(self, x, y):
+        return (y >= 0 and y < self._getHeight() and x >= 0 and x < self._getWidth())
         
         
     def _bitArrayToByteArray(self):
@@ -40,18 +52,17 @@ class Matrix:
         if self.angle == 90:
             oldx = x
             x = y
-            y = (self.num_rows*DIM_OF_MATRIX - 1) - oldx
+            y = (self._getHeight() - 1) - oldx
         elif self.angle == 180:
-            x = (self.num_cols*DIM_OF_MATRIX - 1) - x
-            y = (self.num_rows*DIM_OF_MATRIX - 1) - y
+            x = (self._getWidth() - 1) - x
+            y = (self._getHeight() - 1) - y
         elif self.angle == 270:
             oldy = y
             y = x
-            x = (self.num_cols*DIM_OF_MATRIX - 1) - oldy
+            x = (self._getWidth() - 1) - oldy
         
         # do nothing if x and y out of bound
-        if y < 0 or y >= self.num_rows*DIM_OF_MATRIX \
-            or x < 0 or x >= self.num_matrices/self.num_rows*DIM_OF_MATRIX:
+        if not self._isInMatrix(x, y):
             return None
            
         # figure out what matrix we are dealing with
@@ -86,22 +97,29 @@ class Matrix:
     def show(self):
         led_server.flush(self._bitArrayToByteArray())  # give frame buffer to led_server
         if __debug__:
-            for y in range(self.num_rows*DIM_OF_MATRIX):
-                for x in range(self.num_cols*DIM_OF_MATRIX):
+            for y in range(self._getHeight()):
+                for x in range(self._getWidth()):
                     bitPos = self._pointToBitPos(x,y)
                     print (self.bitarray[bitPos : bitPos+SIZE_OF_PIXEL].hex),
                 print " " #print newline
         
-    def erase(self, color=0x0):
+    def erase(self):
         self.bitarray = \
             bitstring.BitArray(length=(self.num_matrices*SIZE_OF_PIXEL*DIM_OF_MATRIX**2))
         self.show()
         
+    def fill(self, color=0x0):
+        old_angle = self.angle
+        self.angle = 0    # switch to standard coordinates temporarily
+        for x in range(self._getWidth()):
+            for y in range(self._getHeight()):
+                self.point(x, y, color)
+        self.angle = old_angle
         
     def point(self, x, y, color=0xF):
         """Adds point to bitArray"""
         if color < 0x0 or color > 0xF:
-            print "Invalid Color"
+            raise ValueError("Invalid Color")
             return
         bitPos = self._pointToBitPos(x, y)
         if bitPos != None:
@@ -115,8 +133,8 @@ class Matrix:
     def line(self, point_a, point_b, color=0xF):
         """Create a line from point_a to point_b"""       
         if color < 0x0 or color > 0xF:
-            print "Invalid Color"
-            return
+            raise ValueError("Invalid color")
+            
         x_diff = point_a[0] - point_b[0]
         y_diff = point_a[1] - point_b[1]
         step = self._sign(x_diff) * self._sign(y_diff)
@@ -147,20 +165,42 @@ class Matrix:
         self.line((x, y + height), (x + width, y + height), color=color)
         self.line((x + width, y + height), (x + width, y), color=color)
         self.line((x + width, y), (x, y), color=color)
+        
+    def bitmap(self, bitmap, x_offset=0, y_offset=0):
+        """Sets given bitmap with top left corner at given position"""
+
+        for y, line in enumerate(bitmap.bitmap):
+            for x, pixel in enumerate(line):
+                if pixel != '-':
+                    self.point(x + x_offset, y + y_offset, color=pixel)
+
+
             
 class Bitmap:
+    """Allows the creation of a LED Bitmap that is defined in a text file.
+        - The text file must only contain hex numbers 0-9, a-f, A-F, or - (dash)
+        - The hex number indicates pixel color and "-" indicates a transparent pixel
+    """
 
-    __init__(self, filename):
+    def __init__(self, filename):
         self.filename = filename
         bitmap = []
         bitmapWidth = 0  # keep track of width
         f = open(filename, 'r')
+        
         for line in f:
             if not re.match(r'^[0-9a-fA-F\s-]+$', line):
                 raise Exception("Bitmap file contains invalid characters")
-            bitmap.append(line.split())
-            
-            
+            # Determine if widths are consistent
+            leds = line.split()
+            if bitmapWidth != 0:
+                if leds.length() != bitmapWidth:
+                    raise Exception("Bitmap has different widths")
+            else:
+                bitmapWidth = leds.length()
+            bitmap.append(leds)
+        f.close()
+        self.bitmap = bitmap
             
             
             
