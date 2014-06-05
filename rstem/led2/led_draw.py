@@ -6,20 +6,34 @@ import led_server     # from the attiny48 controller
 SIZE_OF_PIXEL = 4     # 4 bits to represent color
 DIM_OF_MATRIX = 8     # 8x8 led matrix elements
 
-class LedDraw:
+class LedMatrix:
 
-    def __init__(self, num_rows=1, num_cols=1):
+    def __init__(self, num_rows=1, num_cols=1, zigzag=True):
+        """Initializes a matrix of led matrices
+        num_rows = number of led matrices set up vertically
+        num_cols = number of led matrices set up horizontally
+        zigzag = True if matrices set up in zigzag fashion instead of 
+                    left to right on each rowm
+        """
         if num_rows <= 0 or num_cols <= 0:
-            raise Exception("Invalid arguments in LedDraw initialization")  
-        self.bitarray = bitstring.BitArray(length=(num_rows*num_cols*SIZE_OF_PIXEL*(DIM_OF_MATRIX**2)))  # create a bitset of all 0's
+            raise Exception("Invalid arguments in LedDraw initialization") 
+        # create a bitset of all 0's 
+        self.bitarray = \
+            bitstring.BitArray(length=(num_rows*num_cols*SIZE_OF_PIXEL*(DIM_OF_MATRIX**2)))
         self.num_rows = num_rows
         self.num_cols = num_rows
         self.num_matrices = num_rows*num_cols
         
     def _bitArrayToByteArray(self):
-        """Convert bitarray into an int array that can be given to led_server"""
-        # TODO: implement flipping part of bitarray for multiple rows
-        return bytearray(self.bitarray.tobytes())
+        """Convert bitarray into an bytearray python type that can be given to led_server"""
+        
+        temp = self.bitarray.copy()
+        for i, byte in enumerate(self.bitarray.cut(8)):
+            # swap low and high nibbles in each byte
+            temp[i*4:i*4+4] = byte[4:8]
+            temp[i*4+4:i*4+8] = byte[0:4]
+        
+        return bytearray(temp.tobytes())
 #        return bytearray([x.uint for x in list(self.bitarray.cut(8))])
 #        return array('I', [x.uint for x in list(self.bitarray.cut(16))])
         
@@ -30,8 +44,12 @@ class LedDraw:
         if y < 0 or y >= self.num_rows*DIM_OF_MATRIX \
             or x < 0 or x >= self.num_matrices/self.num_rows*DIM_OF_MATRIX:
             return None
-            
-#        mat_col = floor(
+           
+        # figure out what matrix we are dealing with
+        mat_col = x/DIM_OF_MATRIX
+        mat_row = y/DIM_OF_MATRIX
+        
+        
             
         # bottom left corner of first matrix is bitpos = 0, 
         # - bit pos incrememnt going up matrix column were bitpos 7*4 is top left of first matrix
@@ -50,7 +68,7 @@ class LedDraw:
         for y in range(self.num_rows*DIM_OF_MATRIX):
             for x in range(self.num_cols*DIM_OF_MATRIX):
                 bitPos = self._pointToBitPos(x,y)
-                print (self.bitarray[bitPos : bitPos+4].hex),
+                print (self.bitarray[bitPos : bitPos+SIZE_OF_PIXEL].hex),
             print " " #print newline
         
     def erase(self, color=0x0):
