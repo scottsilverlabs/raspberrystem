@@ -1,16 +1,19 @@
 import os
 import bitstring
+import re
 import led_server     # from the attiny48 controller
 
-SIZE_OF_PIXEL = 4     # 4 bits to represent color
-DIM_OF_MATRIX = 8     # 8x8 led matrix elements
+class Matrix:
 
-class LedMatrix:
+    SIZE_OF_PIXEL = 4     # 4 bits to represent color
+    DIM_OF_MATRIX = 8     # 8x8 led matrix elements
 
-    def __init__(self, num_rows=1, num_cols=1, zigzag=True):
+    def __init__(self, num_rows=1, num_cols=1, angle=0, zigzag=True):
         """Initializes a matrix of led matrices
         num_rows = number of led matrices set up vertically
         num_cols = number of led matrices set up horizontally
+        angle = orientation of x and y coordinates
+                - supports angle = 0, 90, 180, and 270
         zigzag = True if matrices set up in zigzag fashion instead of 
                     left to right on each rowm
         """
@@ -22,6 +25,7 @@ class LedMatrix:
         self.num_rows = num_rows
         self.num_cols = num_cols
         self.num_matrices = num_rows*num_cols
+        self.angle = angle  # rotation of x y coordinates
         
         
     def _bitArrayToByteArray(self):
@@ -32,6 +36,20 @@ class LedMatrix:
     def _pointToBitPos(self, x, y):
         """Convert the (x,y) coordinates into the bit position in bitarray
         Returns None if point not located on led matrix"""
+        # convert coordinate system to standard angle=0 coordinates
+        if self.angle == 90:
+            oldx = x
+            x = y
+            y = (self.num_rows*DIM_OF_MATRIX - 1) - oldx
+        elif self.angle == 180:
+            x = (self.num_cols*DIM_OF_MATRIX - 1) - x
+            y = (self.num_rows*DIM_OF_MATRIX - 1) - y
+        elif self.angle == 270:
+            oldy = y
+            y = x
+            x = (self.num_cols*DIM_OF_MATRIX - 1) - oldy
+        
+        # do nothing if x and y out of bound
         if y < 0 or y >= self.num_rows*DIM_OF_MATRIX \
             or x < 0 or x >= self.num_matrices/self.num_rows*DIM_OF_MATRIX:
             return None
@@ -55,9 +73,9 @@ class LedMatrix:
         bitPos = bitPosCol + bitPosColOffset  
         
         # swap nibble (low to high, high to low) for the led_server
-        if bitPos % 8 = 0: # beginning of byte
+        if bitPos % 8 == 0: # beginning of byte
             bitPos += 4
-        elif bitPos % 8 = 4: # middle of byte
+        elif bitPos % 8 == 4: # middle of byte
             bitPos -= 4
         else:
             assert False, "bitPos is not nibble aligned"
@@ -129,6 +147,21 @@ class LedMatrix:
         self.line((x, y + height), (x + width, y + height), color=color)
         self.line((x + width, y + height), (x + width, y), color=color)
         self.line((x + width, y), (x, y), color=color)
+            
+class Bitmap:
+
+    __init__(self, filename):
+        self.filename = filename
+        bitmap = []
+        bitmapWidth = 0  # keep track of width
+        f = open(filename, 'r')
+        for line in f:
+            if not re.match(r'^[0-9a-fA-F\s-]+$', line):
+                raise Exception("Bitmap file contains invalid characters")
+            bitmap.append(line.split())
+            
+            
+            
             
             
             

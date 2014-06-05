@@ -1,5 +1,5 @@
 import os
-from led_draw import LedDraw
+from led_matrix import LEDMatrix
 
 def _main():
     while 1:
