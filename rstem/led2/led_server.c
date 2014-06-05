@@ -1,5 +1,7 @@
 #include <Python.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <linux/spi/spidev.h>
@@ -15,7 +17,7 @@ int startSPI(){
 	int err;
 	spiMode = SPI_MODE_0;
 	bitsPerTrans = 8;
-	spiSpeed = 500000;
+	spiSpeed = 250000;
 	spi = open(SPI_DEV,O_RDWR);
 	/*
 	* spi mode
@@ -49,18 +51,25 @@ return spi;
 }
 
 int writeBytes(int dev, unsigned char* val, int len) {
-	int ret;
+	int i = len;
+	int ret = 1;
+//	for(i = 0; i < len; i++){
+//	unsigned char data[1];
+//	data[0] = val[i];
 	struct spi_ioc_transfer tr = {
 		.tx_buf = (unsigned long)val,
 		.len = len,
 	};
 	ret = ioctl(dev, SPI_IOC_MESSAGE(1), &tr);
-
+//	usleep(50);
+//	}
 return ret;
 }
-
+static PyObject *initSPI(PyObject *self, PyObject *args){
+	return Py_BuildValue("i",startSPI());
+}
 static PyObject *flush(PyObject *self, PyObject *args){
-	startSPI();
+//	startSPI();
 	PyObject* seq;
 	unsigned char *data;
 	int size = 1;
@@ -76,7 +85,8 @@ return Py_BuildValue("i",writeBytes(spi, data, size));
 }
 
 static PyMethodDef spiMethods[] = {
-	{"flush", flush, METH_VARARGS}
+	{"flush", flush, METH_VARARGS},
+	{"initSPI", initSPI, METH_VARARGS}
 };
 
 void initled_server() {

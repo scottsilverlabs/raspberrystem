@@ -64,9 +64,9 @@ class LedMatrix:
         #TODO: implement bitPosMatrix variable
         bitPos = bitPosCol + bitPosColOffset
         
-        if bitPos % 8 = 0: # beginning of byte
+        if bitPos % 8 == 0: # beginning of byte
             bitPos += 4
-        elif bitPos % 8 = 4: # middle of byte
+        elif bitPos % 8 == 4: # middle of byte
             bitPos -= 4
         else:
             raise Exception("This shouldn't happen")
@@ -77,11 +77,11 @@ class LedMatrix:
         led_server.flush(self._bitArrayToByteArray())  # give frame buffer to led_server
         
         # debugging
-        for y in range(self.num_rows*DIM_OF_MATRIX):
-            for x in range(self.num_cols*DIM_OF_MATRIX):
-                bitPos = self._pointToBitPos(x,y)
-                print (self.bitarray[bitPos : bitPos+SIZE_OF_PIXEL].hex),
-            print " " #print newline
+#        for y in range(self.num_rows*DIM_OF_MATRIX):
+#            for x in range(self.num_cols*DIM_OF_MATRIX):
+#                bitPos = self._pointToBitPos(x,y)
+#                print (self.bitarray[bitPos : bitPos+SIZE_OF_PIXEL].hex),
+#            print " " #print newline
         
     def erase(self, color=0x0):
         self.bitarray = bitstring.BitArray(length=(self.num_matrices*SIZE_OF_PIXEL*DIM_OF_MATRIX**2))
