@@ -99,5 +99,5 @@ static PyMethodDef spiMethods[] = {
 };
 
 void initaccel() {
-	(void) Py_InitModule("accel", spiMethods);
+	(void) Py_InitModule("accel_server", spiMethods);
 }
