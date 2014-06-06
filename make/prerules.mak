@@ -1,5 +1,5 @@
 RELDIR=$(subst $(TOPDIR),.,$(CURDIR))
-PI=pi@$USER-raspberrypi
+PI=pi@$(USER)-raspberrypi
 
 #
 # Directory rules
