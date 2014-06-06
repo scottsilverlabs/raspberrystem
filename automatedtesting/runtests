@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
-from os import path
-from os import listdir
+from os import path, listdir
 from sys import exit
-import threading
+from threading import Thread, Event
 
 targetdir = path.abspath("./rsinstall/") #Path to the top level directory
 targetfile = "test.auto" #What to look for in the folders
@@ -46,7 +45,7 @@ def test(fpath, contents, stop): #fpath in this case being the path to the testi
 
 def checkDir(dpath):
 	if path.isdir(dpath) and path.exists(dpath+"/"+targetfile):
-		stop = threading.Event()
+		stop = Event()
 		f = open(dpath+"/"+targetfile, "r")
 		contents = f.readlines()
 		f.close()
@@ -54,7 +53,7 @@ def checkDir(dpath):
 		if contents[0][0:10] == "TIMEOUT = ":
 			timeout = eval(contents[0][10:])
 			contents = contents[1:]
-		thread = threading.Thread(target = test, args = (dpath+"/"+targetfile, contents, stop))
+		thread = Thread(target = test, args = (dpath+"/"+targetfile, contents, stop))
 		thread.setDaemon(True)
 		thread.start()
 		thread.join(timeout)
