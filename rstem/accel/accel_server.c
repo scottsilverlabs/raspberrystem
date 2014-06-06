@@ -81,6 +81,7 @@ static PyObject *WRByte(PyObject *self, PyObject *args){
 	unsigned char b;
 	if(!PyArg_ParseTuple(args, "b", &b)) {
 		PyErr_SetString(PyExc_TypeError, "Not a byte!");
+		return NULL;
 	}
 	data[0] = b;
 	if(writeByte(spi, data, rx) < 0) {
@@ -98,6 +99,6 @@ static PyMethodDef spiMethods[] = {
 	{"closeSPI", closeSPI, METH_VARARGS}
 };
 
-void initaccel() {
-	(void) Py_InitModule("accel", spiMethods);
+void initaccel_server() {
+	(void) Py_InitModule("accel_server", spiMethods);
 }
