@@ -7,9 +7,9 @@ targetdir = path.abspath("./rsinstall/") #Path to the top level directory
 targetfile = "test.auto" #What to look for in the folders
 results = []
 
-def test(fpath, contents, stop): #fpath in this case being the path to the testing file
+def test(dpath, contents, stop): #fpath in this case being the path to the testing file
 	global results
-	print("Testing "+fpath)
+	print("Testing "+dpath)
 	pos = 0
 	fail = False
 	try:
@@ -33,15 +33,15 @@ def test(fpath, contents, stop): #fpath in this case being the path to the testi
 			elif ret != None:
 				print("\t"+str(ret)+" = "+str(expected))
 	except Exception as e:
-		print("\t"+fpath+" errored at line "+str(pos)+": "+str(e))
-		results.append([fpath, "Errored"])
+		print("\t"+dpath+"/"+targetfile+" errored at line "+str(pos)+": "+str(e))
+		results.append([dpath, "Errored"])
 		return
 	if not fail:
-		print(fpath+":Passed")
-		results.append([fpath, "Passed"])
+		print(dpath+":Passed")
+		results.append([dpath, "Passed"])
 	else:
-		print(fpath+":Failed")
-		results.append([fpath, "Failed"])
+		print(dpath+":Failed")
+		results.append([dpath, "Failed"])
 
 def checkDir(dpath):
 	if path.isdir(dpath) and path.exists(dpath+"/"+targetfile):
@@ -52,15 +52,15 @@ def checkDir(dpath):
 		timeout = 10
 		if contents[0][0:10] == "TIMEOUT = ":
 			timeout = eval(contents[0][10:])
-			contents = contents[1:]
-		thread = Thread(target = test, args = (dpath+"/"+targetfile, contents, stop))
+			#contents = contents[1:]
+		thread = Thread(target = test, args = (dpath, contents, stop))
 		thread.setDaemon(True)
 		thread.start()
 		thread.join(timeout)
 		if thread.is_alive():
 			stop.set() #Not reliable if it's an infinite loop issue.
-			print(dpath+"/"+targetfile+":Timeout")
-			results.append([dpath+"/"+targetfile, "Timeout"])
+			print(dpath+":Timeout")
+			results.append([dpath, "Timeout"])
 
 
 for topdir in listdir(targetdir):
@@ -69,5 +69,5 @@ for topdir in listdir(targetdir):
 		checkDir(targetdir+"/"+topdir+"/"+diractual)
 print("Results:")
 for i in results:
-	print("\t"+i[0]+":"+i[1])
+	print("\t"+path.dirname(i[0])+":"+i[1])
 exit(0) #To kill any infinite loop threads
