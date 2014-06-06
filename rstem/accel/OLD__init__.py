@@ -1,5 +1,5 @@
 import os
-import accel_server
+from subprocess import *
 
 def get_data():
     pipe_out.write("6800")  # notify we want to receive x
