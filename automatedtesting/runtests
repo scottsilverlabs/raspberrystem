@@ -49,7 +49,7 @@ def checkDir(dpath):
 		f = open(dpath+"/"+targetfile, "r")
 		contents = f.readlines()
 		f.close()
-		timeout = 10
+		timeout = 20
 		if contents[0][0:10] == "TIMEOUT = ":
 			timeout = eval(contents[0][10:])
 			#contents = contents[1:]
