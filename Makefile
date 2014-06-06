@@ -22,8 +22,8 @@ clean::
 	rm -f install.tar
 
 .PHONY: install.tar
-install.tar: 
-	tar cvf $@ $(shell $(MAKE) targets)
+install.tar:
+	tar cvf $@ $(shell $(MAKE) --no-print-directory targets)
 
 .PHONY: install
 install: install.tar
@@ -36,5 +36,9 @@ install: install.tar
 		find . -name *.sbin -exec sudo chown root {} \\; ; \
 		find . -name *.sbin -exec sudo chmod 4755 {} \\; ; \
 		"
+
+.PHONY: check-dev
+check-dev:
+	ssh $(PI) "cat - > ./test; chmod +x ./test; ./test full; rm ./test" < ./automatedtesting/runtests
 
 include $(POST_MAK)

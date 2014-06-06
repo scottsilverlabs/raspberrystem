@@ -1,0 +1,44 @@
+#!/usr/bin/env python3
+from os import path
+from os import listdir
+
+targetdir = path.abspath("./rsinstall/") #Path to the top level directory
+targetfile = "test.auto" #What to look for in the folders
+
+def test(fpath): #fpath in this case being the path to the testing file
+	print("Testing "+fpath)
+	contents = open(fpath, "r").readlines()
+	pos = 0
+	fail = False
+	try:
+		for i in range(len(contents)):
+			pos = i+1
+			line = contents[i]
+			split = line.split(" -> ") #Do we want to check for a return value?
+			expected = None
+			ret = None
+			if len(split) > 1:
+				expected = eval(split[1])
+				ret = eval(split[0])
+			else:
+				exec(contents[i])
+			if ret != expected:
+				print("\tAt line "+str(i)+" expected "+str(expected)+" got "+str(ret))
+				fail = True
+				break
+			elif ret != None:
+				print("\t"+str(ret)+" = "+str(expected))
+	except Exception as e:
+		print("\t"+fpath+" errored at line "+str(pos)+": "+str(e))
+		fail = True
+		pass
+	if not fail:
+		print(fpath+":Passed")
+	else:
+		print(fpath+":Failed")
+
+for topdir in listdir(targetdir):
+	for diractual in listdir(targetdir+"/"+topdir):
+		diractual = targetdir+"/"+topdir+"/"+diractual
+		if path.isdir(diractual) and path.isfile(diractual+"/"+targetfile):
+			test(diractual+"/"+targetfile)
