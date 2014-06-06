@@ -1,8 +1,8 @@
 TIMEOUT = 10 #Sets the timeout in the runtests script, MUST be the top line if used.
 from os import path
-path.abspath("/") -> "/" #-> indicates an assertions, basically: path.abspath("/") == "/"
+path.abspath("/") -> "/" #-> indicates an assertion, basically: path.abspath("/") == "/"
 a = 4
 b = 0
-#File is evaluated line by line, so if statements, functions, etc, would have to be one line.
+#the file is evaluated line by line, so if statements, functions, etc, would have to be one line.
 if a == 4: b = 1
 b -> 1
