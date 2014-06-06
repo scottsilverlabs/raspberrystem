@@ -22,6 +22,7 @@ class Matrix:
         if num_rows <= 0 or num_cols <= 0:
             raise ValueError("Invalid arguments in LedDraw initialization") 
         # create a bitset of all 0's 
+	self.zigzag = zigzag
         self.bitarray = \
             bitstring.BitArray(length=(num_rows*num_cols*SIZE_OF_PIXEL*(DIM_OF_MATRIX**2)))
         self.num_rows = num_rows
@@ -226,10 +227,10 @@ class Bitmap:
             # Determine if widths are consistent
             leds = line.split()
             if bitmapWidth != 0:
-                if leds.length() != bitmapWidth:
+                if len(leds) != bitmapWidth:
                     raise Exception("Bitmap has different widths")
             else:
-                bitmapWidth = leds.length()
+                bitmapWidth = len(leds)
             bitmap.append(leds)
         f.close()
         self.bitmap = bitmap

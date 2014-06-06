@@ -53,16 +53,16 @@ return spi;
 int writeBytes(int dev, unsigned char* val, int len) {
 	int i = len;
 	int ret = 1;
-//	for(i = 0; i < len; i++){
-//	unsigned char data[1];
-//	data[0] = val[i];
+	for(i = 0; i < len; i++){
+	unsigned char data[1];
+	data[0] = val[i];
 	struct spi_ioc_transfer tr = {
-		.tx_buf = (unsigned long)val,
-		.len = len,
+		.tx_buf = (unsigned long)data,
+		.len = 1,
 	};
 	ret = ioctl(dev, SPI_IOC_MESSAGE(1), &tr);
-//	usleep(50);
-//	}
+	usleep(500000);
+	}
 return ret;
 }
 static PyObject *initSPI(PyObject *self, PyObject *args){
