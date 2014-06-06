@@ -8,7 +8,23 @@ import led_server     # from the attiny48 controller
 SIZE_OF_PIXEL = 4     # 4 bits to represent color
 DIM_OF_MATRIX = 8     # 8x8 led matrix elements
 
-class Matrix:
+
+# run demo program if run by itself
+def _main():
+    while 1:
+        for i in range(8):
+            for j in range(8):
+                mat = LEDMatrix()
+                mat.point(x, y)
+                mat.show()
+                time.sleep(0.5);
+                mat.point(x, y, color=0)
+
+if __name__ == "__main__":
+    _main()
+
+
+class LEDMatrix:
 
     def __init__(self, num_rows=1, num_cols=1, angle=0, zigzag=True):
         """Initializes a matrix of led matrices
@@ -33,42 +49,40 @@ class Matrix:
         # initialize spi
         led_server.initSPI()
         
-    def _getWidth(self):
+    def _get_width(self):
         return self.num_cols*DIM_OF_MATRIX
         
-    def _getHeight(self):
+    def _get_height(self):
         return self.num_rows*DIM_OF_MATRIX
         
-    def _isInMatrix(self, x, y):
-        return (y >= 0 and y < self._getHeight() and x >= 0 and x < self._getWidth())
+    def _in_matrix(self, x, y):
+        return (y >= 0 and y < self._get_height() and x >= 0 and x < self._get_width())
         
-        
-    def _bitArrayToByteArray(self):
+    def _bitarray_to_bytearray(self):
         """Convert bitarray into an bytearray python type that can be given to led_server"""     
         return bytearray(self.bitarray.tobytes())
         
-    def _numPixels(self):
-        return self._getHeight() * self._getWidth()
-        
-        
-    def _pointToBitPos(self, x, y):
+    def _num_pixels(self):
+        return self._get_height() * self._get_width()
+          
+    def _point_to_bitpos(self, x, y):
         """Convert the (x,y) coordinates into the bit position in bitarray
         Returns None if point not located on led matrix"""
         # convert coordinate system to standard angle=0 coordinates
         if self.angle == 90:
             oldx = x
             x = y
-            y = (self._getHeight() - 1) - oldx
+            y = (self._get_height() - 1) - oldx
         elif self.angle == 180:
-            x = (self._getWidth() - 1) - x
-            y = (self._getHeight() - 1) - y
+            x = (self._get_width() - 1) - x
+            y = (self._get_height() - 1) - y
         elif self.angle == 270:
             oldy = y
             y = x
-            x = (self._getWidth() - 1) - oldy
+            x = (self._get_width() - 1) - oldy
         
         # do nothing if x and y out of bound
-        if not self._isInMatrix(x, y):
+        if not self._in_matrix(x, y):
             return None
            
         # figure out what matrix we are dealing with
@@ -112,13 +126,13 @@ class Matrix:
         
         
     def show(self):
-        led_server.flush(self._bitArrayToByteArray())  # give frame buffer to led_server
+        led_server.flush(self._bitarray_to_bytearray())  # give frame buffer to led_server
         if __debug__:
-            for y in range(self._getHeight()):
-                for x in range(self._getWidth()):
-                    bitPos = self._pointToBitPos(x,y)
+            for y in range(self._get_height()):
+                for x in range(self._get_width()):
+                    bitPos = self._point_to_bitpos(x,y)
                     print(self.bitarray[bitPos : bitPos+SIZE_OF_PIXEL].hex),
-                print("") #print newline
+                print("") # print newline
         
     def erase(self):
         self.bitarray = \
@@ -128,8 +142,8 @@ class Matrix:
     def fill(self, color=0x0):
         old_angle = self.angle
         self.angle = 0    # switch to standard coordinates temporarily
-        for x in range(self._getWidth()):
-            for y in range(self._getHeight()):
+        for x in range(self._get_width()):
+            for y in range(self._get_height()):
                 self.point(x, y, color)
         self.angle = old_angle
         
@@ -138,8 +152,8 @@ class Matrix:
         if color < 0x0 or color > 0xF:
             raise ValueError("Invalid Color")
             return
-        bitPos = self._pointToBitPos(x, y)
-        if bitPos != None:
+        bitPos = self._point_to_bitpos(x, y)
+        if bitPos is not None:
             self.bitarray[bitPos:bitPos+4] = color  # set 4 bits
             
             
@@ -185,7 +199,6 @@ class Matrix:
         
     def bitmap(self, bitmap, x_offset=0, y_offset=0):
         """Sets given bitmap with top left corner at given position"""
-
         for y, line in enumerate(bitmap.bitmap):
             for x, pixel in enumerate(line):
                 if pixel != '-':
@@ -198,7 +211,6 @@ class Bitmap:
         - The text file must only contain hex numbers 0-9, a-f, A-F, or - (dash)
         - The hex number indicates pixel color and "-" indicates a transparent pixel
     """
-
     def __init__(self, filename):
         self.filename = filename
         bitmap = []
