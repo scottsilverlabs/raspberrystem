@@ -1,12 +1,14 @@
+#!/usr/bin/python3
+
 import os
 import bitstring
 import re
 import led_server     # from the attiny48 controller
 
-class Matrix:
+SIZE_OF_PIXEL = 4     # 4 bits to represent color
+DIM_OF_MATRIX = 8     # 8x8 led matrix elements
 
-    SIZE_OF_PIXEL = 4     # 4 bits to represent color
-    DIM_OF_MATRIX = 8     # 8x8 led matrix elements
+class Matrix:
 
     def __init__(self, num_rows=1, num_cols=1, angle=0, zigzag=True):
         """Initializes a matrix of led matrices
@@ -44,6 +46,9 @@ class Matrix:
         """Convert bitarray into an bytearray python type that can be given to led_server"""     
         return bytearray(self.bitarray.tobytes())
         
+    def _numPixels(self):
+        return self._getHeight() * self._getWidth()
+        
         
     def _pointToBitPos(self, x, y):
         """Convert the (x,y) coordinates into the bit position in bitarray
@@ -69,19 +74,46 @@ class Matrix:
         mat_col = x/DIM_OF_MATRIX
         mat_row = y/DIM_OF_MATRIX
         
-        # subtract off above matrix rows so we can treat y relative to matrix row
+        # now change that to give matrixes to led_server in reverse order
+#        mat_col = (self.num_cols - 1) - mat_col
+#        mat_row = (self.num_rows - 1) - mat_row
+        
+        # subtract off above matrix row and column so we can treat y relative to matrix row
         y = (y - mat_row*DIM_OF_MATRIX)
         
         # if on odd matrix row and zigzag enabled, we need to flip x and y coords
         if mat_row % 2 == 1 and self.zigzag:
             x = (DIM_OF_MATRIX*self.num_cols - 1) - x
             y = (DIM_OF_MATRIX - 1) - y
+            # update mat_col
+            mat_col = x/DIM_OF_MATRIX
+            
+        # subtract off left columns so we can treat x relative to matrix element
+        x = (x - mat_col*DIM_OF_MATRIX)
+        
+        # get bitPos relative to matrix element
+        bitPosCol = x*DIM_OF_MATRIX*SIZE_OF_PIXEL
+        bitPosColOffset = (DIM_OF_MATRIX - 1 - y)*SIZE_OF_PIXEL
+        bitPos = bitPosCol + bitPosColOffset
+        
+        # switch matrix element to be reversed
+        mat_index = mat_row*self.num_cols + mat_col  # original index
+        mat_index = (self.num_matrices - 1) - mat_index  # swapped index
+        
+        # convert bitPos to absolute index
+        bitPos = mat_index*(DIM_OF_MATRIX**2)*SIZE_OF_PIXEL + bitPos
+        
         
         # bit position of the first pixel (going up) of column 
-        bitPosCol = (x + mat_row*DIM_OF_MATRIX*self.num_cols)*DIM_OF_MATRIX*SIZE_OF_PIXEL  
-        bitPosColOffset = (DIM_OF_MATRIX - 1 - y)*SIZE_OF_PIXEL # flip y to move up
+#        bitPosCol = (x + mat_row*DIM_OF_MATRIX*self.num_cols)*DIM_OF_MATRIX*SIZE_OF_PIXEL  
+#        bitPosColOffset = (DIM_OF_MATRIX - 1 - y)*SIZE_OF_PIXEL # flip y to move up
+#        bitPos = bitPosCol + bitPosColOffset  
         
-        bitPos = bitPosCol + bitPosColOffset  
+        
+#        bitPos = (bitPos % 252) + 256*(self._numPixels()/(DIM_OF_MATRIX**2) - mat_row*self.num_rows + mat_col)
+        
+        # swap order in which given pixels
+#        bitPos = (self._numPixels() - SIZE_OF_PIXEL) - bitPos
         
         # swap nibble (low to high, high to low) for the led_server
         if bitPos % 8 == 0: # beginning of byte
