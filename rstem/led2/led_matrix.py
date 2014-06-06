@@ -100,8 +100,8 @@ class Matrix:
             for y in range(self._getHeight()):
                 for x in range(self._getWidth()):
                     bitPos = self._pointToBitPos(x,y)
-                    print (self.bitarray[bitPos : bitPos+SIZE_OF_PIXEL].hex),
-                print " " #print newline
+                    print(self.bitarray[bitPos : bitPos+SIZE_OF_PIXEL].hex),
+                print("") #print newline
         
     def erase(self):
         self.bitarray = \
