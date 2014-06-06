@@ -28,6 +28,7 @@ class Matrix:
         self.num_cols = num_cols
         self.num_matrices = num_rows*num_cols
         self.angle = angle  # rotation of x y coordinates
+        self.zigzag = zigzag
         
         # initialize spi
         led_server.initSPI()
@@ -74,21 +75,17 @@ class Matrix:
         mat_col = x/DIM_OF_MATRIX
         mat_row = y/DIM_OF_MATRIX
         
-        # now change that to give matrixes to led_server in reverse order
-#        mat_col = (self.num_cols - 1) - mat_col
-#        mat_row = (self.num_rows - 1) - mat_row
-        
         # subtract off above matrix row and column so we can treat y relative to matrix row
         y = (y - mat_row*DIM_OF_MATRIX)
         
         # if on odd matrix row and zigzag enabled, we need to flip x and y coords
+        # (this allows us to treat x,y,mat_row,and mat_col as if zigzag == False)
         if mat_row % 2 == 1 and self.zigzag:
             x = (DIM_OF_MATRIX*self.num_cols - 1) - x
             y = (DIM_OF_MATRIX - 1) - y
-            # update mat_col
-            mat_col = x/DIM_OF_MATRIX
+            mat_col = x/DIM_OF_MATRIX    # update mat_col to new matrix element
             
-        # subtract off left columns so we can treat x relative to matrix element
+        # subtract off left matrix columns so we can treat x relative to matrix element
         x = (x - mat_col*DIM_OF_MATRIX)
         
         # get bitPos relative to matrix element
@@ -96,26 +93,14 @@ class Matrix:
         bitPosColOffset = (DIM_OF_MATRIX - 1 - y)*SIZE_OF_PIXEL
         bitPos = bitPosCol + bitPosColOffset
         
-        # switch matrix element to be reversed
+        # switch matrix element to be flipped version (needed for led_server)
         mat_index = mat_row*self.num_cols + mat_col  # original index
         mat_index = (self.num_matrices - 1) - mat_index  # swapped index
         
-        # convert bitPos to absolute index
+        # convert bitPos to absolute index of entire matrix
         bitPos = mat_index*(DIM_OF_MATRIX**2)*SIZE_OF_PIXEL + bitPos
         
-        
-        # bit position of the first pixel (going up) of column 
-#        bitPosCol = (x + mat_row*DIM_OF_MATRIX*self.num_cols)*DIM_OF_MATRIX*SIZE_OF_PIXEL  
-#        bitPosColOffset = (DIM_OF_MATRIX - 1 - y)*SIZE_OF_PIXEL # flip y to move up
-#        bitPos = bitPosCol + bitPosColOffset  
-        
-        
-#        bitPos = (bitPos % 252) + 256*(self._numPixels()/(DIM_OF_MATRIX**2) - mat_row*self.num_rows + mat_col)
-        
-        # swap order in which given pixels
-#        bitPos = (self._numPixels() - SIZE_OF_PIXEL) - bitPos
-        
-        # swap nibble (low to high, high to low) for the led_server
+        # swap nibble (low to high, high to low) (needed for led_server)
         if bitPos % 8 == 0: # beginning of byte
             bitPos += 4
         elif bitPos % 8 == 4: # middle of byte
@@ -204,7 +189,7 @@ class Matrix:
         for y, line in enumerate(bitmap.bitmap):
             for x, pixel in enumerate(line):
                 if pixel != '-':
-                    self.point(x + x_offset, y + y_offset, color=pixel)
+                    self.point(x + x_offset, y + y_offset, color=int(pixel, 16))
 
 
             
@@ -226,10 +211,10 @@ class Bitmap:
             # Determine if widths are consistent
             leds = line.split()
             if bitmapWidth != 0:
-                if leds.length() != bitmapWidth:
+                if len(leds) != bitmapWidth:
                     raise Exception("Bitmap has different widths")
             else:
-                bitmapWidth = leds.length()
+                bitmapWidth = len(leds)
             bitmap.append(leds)
         f.close()
         self.bitmap = bitmap
