@@ -57,7 +57,7 @@ def checkDir(dpath):
 		thread.setDaemon(True)
 		thread.start()
 		thread.join(timeout)
-		if thread.isAlive():
+		if thread.is_alive():
 			stop.set() #Not reliable if it's an infinite loop issue.
 			print(dpath+"/"+targetfile+":Timeout")
 			results.append([dpath+"/"+targetfile, "Timeout"])
