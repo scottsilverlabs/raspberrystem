@@ -61,7 +61,7 @@ int writeBytes(int dev, unsigned char* val, int len) {
 		.len = 1,
 	};
 	ret = ioctl(dev, SPI_IOC_MESSAGE(1), &tr);
-	usleep(500000);
+	usleep(10);
 	}
 return ret;
 }
