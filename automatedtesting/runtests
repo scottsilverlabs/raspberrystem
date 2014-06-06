@@ -44,13 +44,13 @@ def test(dpath, contents, stop): #fpath in this case being the path to the testi
 			else:
 				exec(contents[i])
 			if ret != expected:
-				print("\tAt line "+str(pos)+" expected "+str(expected)+" got "+str(ret))
+				print("\tAt line " + str(pos) + " expected " + str(expected) + " got " + str(ret))
 				fail = True
 				break
 			elif ret != None:
-				print("\t"+str(ret)+" = "+str(expected))
+				print("\t" + str(ret) + " = " + str(expected))
 	except Exception as e:
-		print("\t"+dpath+"/"+targetfile+" errored at line "+str(pos)+": "+str(e))
+		print("\t" + dpath + "/" + targetfile + " errored at line " + str(pos) + ": " + str(e))
 		results.append([dpath, "Errored"])
 		return
 	if not fail:
@@ -63,7 +63,7 @@ def test(dpath, contents, stop): #fpath in this case being the path to the testi
 def checkDir(dpath):
 	if path.isdir(dpath) and path.exists(dpath+"/"+targetfile):
 		stop = Event()
-		f = open(dpath+"/"+targetfile, "r")
+		f = open(dpath + "/" + targetfile, "r")
 		contents = f.readlines()
 		f.close()
 		timeout = 20
@@ -81,10 +81,10 @@ def checkDir(dpath):
 
 
 for topdir in listdir(targetdir):
-	checkDir(targetdir+"/"+topdir)
+	checkDir(targetdir + "/" + topdir)
 	for diractual in listdir(targetdir+"/"+topdir):
-		checkDir(targetdir+"/"+topdir+"/"+diractual)
+		checkDir(targetdir + "/" + topdir + "/" + diractual)
 print("Results:")
 for i in results:
-	print("\t"+path.dirname(i[0])+":"+i[1])
+	print("\t" + path.dirname(i[0]) + ":" + i[1])
 exit(0) #To kill any infinite loop threads
