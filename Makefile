@@ -15,12 +15,36 @@ DIRS+=cellapps
 DIRS+=projects
 DIRS+=misc
 
+PYTHON=`which python`
+DESTDIR=/
+BUILDIR=$(CURDIR)/debian/raspberrystem
+PROJECT=raspberrystem
+VERSION=0.2.0
+
 #Putting all here forces it to be the default rule.
 all::
 
 clean::
 	rm -f pi-install.tar
-	
+	$(PYTHON) setup.py clean
+	$(MAKE) -f $(CURDIR)/debian/rules clean
+	rm -rf build/ MANIFEST
+	find . -name '*.pyc' -delete
+
+source:
+	$(PYTHON) setup.py sdist $(COMPILE)
+
+install:
+	$(PYTHON) setup.py install --root $(DESTDIR) $(COMPILE)
+
+builddeb:
+	# build the source package in the parent directory
+	# then rename it to project_version.orig.tar.gz
+	$(PYTHON) setup.py sdist $(COMPILE) --dist-dir=../ 
+	rename -f 's/$(PROJECT)-(.*)\.tar\.gz/$(PROJECT)_$$1\.orig\.tar\.gz/' ../*
+	# build the package
+	dpkg-buildpackage -i -I -rfakeroot
+
 # create .deb file
 .PHONY: deb
 deb:
