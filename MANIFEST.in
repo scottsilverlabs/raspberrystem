@@ -1,0 +1,4 @@
+include rstem/accel/accel_server
+include rstem/gpio/pullup.*
+include rstem/led/led_server
+include rstem/led/led_server.c
