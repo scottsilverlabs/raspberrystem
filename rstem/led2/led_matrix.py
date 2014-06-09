@@ -127,7 +127,7 @@ class LEDMatrix:
         
     def show(self):
         led_server.flush(self._bitarray_to_bytearray())  # give frame buffer to led_server
-        if __debug__:
+        if not __debug__:
             for y in range(self._get_height()):
                 for x in range(self._get_width()):
                     bitPos = self._point_to_bitpos(x,y)

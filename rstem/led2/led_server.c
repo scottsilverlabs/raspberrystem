@@ -17,7 +17,7 @@ int startSPI(){
 	int err;
 	spiMode = SPI_MODE_0;
 	bitsPerTrans = 8;
-	spiSpeed = 250000;
+	spiSpeed = 50000;
 	spi = open(SPI_DEV,O_RDWR);
 	/*
 	* spi mode
