@@ -26,6 +26,9 @@ setup(
         "Topic :: Education",
         "License :: OSI Approved :: Apache Software License",
     ],
+    install_requires=[
+        'bitstring',
+    ],
 )
 
 # TODO: register python package to https://pypi.python.org/pypi

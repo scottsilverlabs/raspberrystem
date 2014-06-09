@@ -1,0 +1,4 @@
+include accel/accel_server
+include gpio/pullup.*
+include led/led_server
+include led/led_server.c
