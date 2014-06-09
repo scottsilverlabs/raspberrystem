@@ -19,14 +19,29 @@ DIRS+=misc
 all::
 
 clean::
-	rm -f install.tar
+	rm -f pi-install.tar
+	
+# create .deb file
+.PHONY: deb
+deb:
+	@read -p "Enter Version Number (M.N.0):" version; \
+	rm -r ./raspberrystem-$$version; \
+	mkdir -p ./raspberrystem-$$version; \
+	cp -r ./* ./raspberrystem-$$version/; \
+	cd ./raspberrystem-$$version; \
+	dpkg-buildpackage -b
+	
+.PHONY: build
+build:
+	./setup.py install
 
-.PHONY: install.tar
-install.tar: 
+pi-install.tar: 
 	tar cvf $@ $(shell $(MAKE) targets)
+	
 
-.PHONY: install
-install: install.tar
+# had to rename from "install" for deb package installer
+.PHONY: pi-install
+pi-install: pi-install.tar
 	scp $< $(PI):
 	ssh $(PI) "\
 		rm -rf rsinstall; \

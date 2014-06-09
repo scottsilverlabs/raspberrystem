@@ -37,15 +37,15 @@ PI=pi@raspberrypi
 #
 # Per file build rules
 #
-%: %.c
-	scp $^ $(PI):/tmp
-	ssh $(PI) "\
-		mkdir -p /tmp/rs; \
-		cd /tmp/rs; \
-		mv ../$^ .; \
-		gcc $(CFLAGS) $^ -o $@; \
-		mv $@ ..; \
-		cd ..; \
-		rm -r /tmp/rs; \
-		"
-	scp $(PI):/tmp/$@ $@
+#%: %.c
+#	scp $^ $(PI):/tmp
+#	ssh $(PI) "\
+#		mkdir -p /tmp/rs; \
+#		cd /tmp/rs; \
+#		mv ../$^ .; \
+#		gcc $(CFLAGS) $^ -o $@; \
+#		mv $@ ..; \
+#		cd ..; \
+#		rm -r /tmp/rs; \
+#		"
+#	scp $(PI):/tmp/$@ $@
