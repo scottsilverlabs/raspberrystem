@@ -113,6 +113,11 @@ $(DIST_EGG): $(PY_SOURCES)
 	$(PYTHON) $(PYFLAGS) setup.py bdist_egg
 
 $(DIST_DEB): $(PY_SOURCES) $(DEB_SOURCES)
+	# put project and cellapps into user's home folder
+#	sudo mkdir -p $(BUILDIR)$(PROJECTSDIR)
+#	sudo mkdir -p $(BUILDIR)$(CELLAPPSDIR)
+#	sudo cp -r ./projects $(BUILDIR)$(PROJECTSDIR)
+#	sudo cp -r ./cellapps $(BUILDIR)$(CELLAPPSDIR)
 	# build the binary package in the parent directory then rename it to
 	# project_version.orig.tar.gz
 	$(PYTHON) $(PYFLAGS) setup.py sdist --dist-dir=../
@@ -132,9 +137,12 @@ $(DIST_DSC): $(PY_SOURCES) $(DEB_SOURCES)
 
 release: $(PY_SOURCES) $(DOC_SOURCES)
 	$(MAKE) clean
-	# make sure we are on a release branch
-	git branch rel/$(VER)
-	
+	# make sure we are on a master branch
+	test -z "$(shell git branch | grep -q '* master')"
+	# create release branch
+#	git branch rel/$(VER)
+	# checkout release branch
+#	git checkout rel/$(VER)
 	# update the debian changelog with new release information
 	dch --newversion $(VER) --controlmaint
 	# commit the changes and add a new tag
@@ -154,12 +162,7 @@ install:
 
 .PHONY: builddeb
 builddeb:
-	# put project and cellapps into user's home folder
-	# TODO: this doesn't work because the user folder won't be same as me...
-	sudo mkdir -p $(BUILDIR)$(PROJECTSDIR)
-	sudo mkdir -p $(BUILDIR)$(CELLAPPSDIR)
-	sudo cp -r ./projects $(BUILDIR)$(PROJECTSDIR)
-	sudo cp -r ./cellapps $(BUILDIR)$(CELLAPPSDIR)
+
 	# build the source package in the current directory
 	# then rename it to project_version.orig.tar.gz
 	sudo ./setup.py sdist --dist-dir=./ 
