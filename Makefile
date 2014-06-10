@@ -15,28 +15,28 @@ DIRS+=cellapps
 DIRS+=projects
 DIRS+=misc
 
-PYTHON=`which python`
 DESTDIR=/
 BUILDIR=$(CURDIR)/debian/raspberrystem
 PROJECT=raspberrystem
-VERSION=0.2.0
+VERSION=0.0.1
 
 #Putting all here forces it to be the default rule.
 all::
 
 clean::
 	rm -f pi-install.tar
-	$(PYTHON) setup.py clean
+	./setup.py clean
 	$(MAKE) -f $(CURDIR)/debian/rules clean
 	rm -rf build/ MANIFEST
 	find . -name '*.pyc' -delete
 
 source:
-	$(PYTHON) setup.py sdist $(COMPILE)
+	./setup.py sdist $(COMPILE)
 
 install:
-	$(PYTHON) setup.py install --root $(DESTDIR) $(COMPILE)
+	./setup.py install --root $(DESTDIR) $(COMPILE)
 
+.PHONY: builddeb
 builddeb:
 	# build the source package in the parent directory
 	# then rename it to project_version.orig.tar.gz
@@ -46,14 +46,15 @@ builddeb:
 	dpkg-buildpackage -i -I -rfakeroot
 
 # create .deb file
-.PHONY: deb
-deb:
-	@read -p "Enter Version Number (M.N.0):" version; \
-	rm -r ./raspberrystem-$$version; \
-	mkdir -p ./raspberrystem-$$version; \
-	cp -r ./* ./raspberrystem-$$version/; \
-	cd ./raspberrystem-$$version; \
-	dpkg-buildpackage -b
+#.PHONY: deb
+#deb:
+#	@read -p "Enter Version Number (M.N.0):" version; \
+#	rm -r ./raspberrystem_$$version; \
+#	mkdir -p ./raspberrystem_$$version; \
+#	cp -r ./* ./raspberrystem_$$version/; \
+#	cd ./raspberrystem_$$version; \
+#	./setup.py sdist --dist-dir=/
+#	dpkg-buildpackage -b
 	
 .PHONY: build
 build:
