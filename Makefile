@@ -59,13 +59,13 @@ DIST_DSC=dist/$(NAME)_$(VER).tar.gz \
 	dist/$(NAME)_$(VER).dsc \
 	dist/$(NAME)_$(VER)_source.changes
 
-.PHONY: all install test doc source egg zip tar deb dist clean release upload pi-install
+.PHONY: all install test doc source egg zip tar deb dist clean release upload pi-install projects cellapps
 
 all:
 	@echo "make install - Install on local system"
 	@echo "TODO: make pi-install - Install onto remote Raspberry Pi"
-	@echo "TODO: make projects - Install projects to home folder"
-	@echo "TODO: make cellapps - Install cellapps to home folder"
+	@echo "make projects - Install projects to home folder"
+	@echo "make cellapps - Install cellapps to home folder"
 #	@echo "make test - Run tests"
 #	@echo "make doc - Generate HTML and PDF documentation"
 	@echo "make source - Create source package"
@@ -79,7 +79,17 @@ all:
 #	@echo "make upload - Upload the new release to repositories"
 
 install:
-	$(PYTHON) $(PYFLAGS) ./setup.py install --root $(DESTDIR)
+	sudo $(PYTHON) $(PYFLAGS) ./setup.py install --root $(DESTDIR)
+	$(MAKE) projects
+	$(MAKE) cellapps
+	
+projects:
+	mkdir -p $(PROJECTSDIR)
+	cp -r ./projects $(PROJECTSDIR)
+
+cellapps:
+	mkdir -p $(CELLAPPSDIR)
+	cp -r ./cellapps $(CELLAPPSDIR)
 
 test:
     # TODO
@@ -116,11 +126,6 @@ $(DIST_EGG): $(PY_SOURCES)
 	$(PYTHON) $(PYFLAGS) setup.py bdist_egg
 
 $(DIST_DEB): $(PY_SOURCES) $(DEB_SOURCES)
-	# put project and cellapps into user's home folder
-#	sudo mkdir -p $(BUILDIR)$(PROJECTSDIR)
-#	sudo mkdir -p $(BUILDIR)$(CELLAPPSDIR)
-#	sudo cp -r ./projects $(BUILDIR)$(PROJECTSDIR)
-#	sudo cp -r ./cellapps $(BUILDIR)$(CELLAPPSDIR)
 	# build the binary package in the parent directory then rename it to
 	# project_version.orig.tar.gz
 	$(PYTHON) $(PYFLAGS) setup.py sdist --dist-dir=../
