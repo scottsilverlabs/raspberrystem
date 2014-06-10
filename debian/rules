@@ -1,8 +1,12 @@
 #!/usr/bin/make -f
 # -*- makefile -*-
 
+# skip dh_local, was causing build problems
+override_dh_usrlocal:
+
 %:
 	dh $@
+	
 
 #DEB_PYTHON_SYSTEM := pysupport
 

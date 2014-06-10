@@ -1,0 +1,11 @@
+#!/bin/sh
+
+#set -e
+
+#echo "IM HERE"
+
+#mkdir ~/rstem
+#mkdir ~/rstem/cellapps
+#cp -r ./cellapps ~/rstem
+#mkdir ~/rstem/projects
+#cp -r ./projects ~/rstem

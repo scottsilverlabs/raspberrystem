@@ -16,9 +16,10 @@ DIRS+=projects
 DIRS+=misc
 
 DESTDIR=/
+PROJECTSDIR=$$HOME/rstem/projects
+CELLAPPSDIR=$$HOME/rstem/cellapps
 BUILDIR=$(CURDIR)/debian/raspberrystem
 PROJECT=raspberrystem
-VERSION=0.0.1
 
 #Putting all here forces it to be the default rule.
 all::
@@ -26,7 +27,7 @@ all::
 clean::
 	rm -f pi-install.tar
 	./setup.py clean
-	$(MAKE) -f $(CURDIR)/debian/rules clean
+#	$(MAKE) -f $(CURDIR)/debian/rules clean
 	rm -rf build/ MANIFEST
 	find . -name '*.pyc' -delete
 
@@ -38,9 +39,15 @@ install:
 
 .PHONY: builddeb
 builddeb:
+	# put project and cellapps into user's home folder
+	# TODO: this doesn't work because the user folder won't be same as me...
+#	mkdir -p $(BUILDIR)/$(PROJECTSDIR)
+#	mkdir -p $(BUILDIR)/$(CELLAPPSDIR)
+#	cp -r ./projects $(BUILDIR)/$(PROJECTSDIR)
+#	cp -r ./cellapps $(BUILDIR)/$(CELLAPPSDIR)
 	# build the source package in the parent directory
 	# then rename it to project_version.orig.tar.gz
-	$(PYTHON) setup.py sdist $(COMPILE) --dist-dir=../ 
+	./setup.py sdist $(COMPILE) --dist-dir=../ 
 	rename -f 's/$(PROJECT)-(.*)\.tar\.gz/$(PROJECT)_$$1\.orig\.tar\.gz/' ../*
 	# build the package
 	dpkg-buildpackage -i -I -rfakeroot
