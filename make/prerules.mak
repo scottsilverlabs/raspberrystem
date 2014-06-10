@@ -1,6 +1,7 @@
 RELDIR=$(subst $(TOPDIR),.,$(CURDIR))
 COMPILEONPI=0 # set to 1 if you want to compile on pi instead
 PI=pi@raspberrypi
+PIPASSWORD=raspberry
 
 #
 # Directory rules

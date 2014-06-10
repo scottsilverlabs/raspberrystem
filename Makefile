@@ -35,11 +35,11 @@ DEB_SOURCES:=debian/changelog \
 	debian/control \
 	debian/copyright \
 	debian/rules \
-	debian/docs \
+#	debian/docs \
 	$(wildcard debian/*.init) \
 	$(wildcard debian/*.default) \
 	$(wildcard debian/*.manpages) \
-	$(wildcard debian/*.docs) \
+#	$(wildcard debian/*.docs) \
 	$(wildcard debian/*.doc-base) \
 	$(wildcard debian/*.desktop)
 DOC_SOURCES:=docs/conf.py \
@@ -59,7 +59,7 @@ DIST_DSC=dist/$(NAME)_$(VER).tar.gz \
 	dist/$(NAME)_$(VER).dsc \
 	dist/$(NAME)_$(VER)_source.changes
 
-.PHONY: all install test doc source egg zip tar deb dist clean release upload
+.PHONY: all install test doc source egg zip tar deb dist clean release upload pi-install
 
 all:
 	@echo "make install - Install on local system"
@@ -78,6 +78,9 @@ all:
 	@echo "make release - Create and tag a new release"
 #	@echo "make upload - Upload the new release to repositories"
 
+install:
+	$(PYTHON) $(PYFLAGS) ./setup.py install --root $(DESTDIR)
+
 test:
     # TODO
     
@@ -94,7 +97,7 @@ deb: $(DIST_EGG) $(DIST_DEB) $(DIST_DSC) $(DIST_TAR) $(DIST_ZIP)
 clean:
 	$(PYTHON) $(PYFLAGS) setup.py clean
 	$(MAKE) -f $(CURDIR)/debian/rules clean
-	rm -rf build/ dist/ $(NAME).egg-info/
+	rm -rf build/ dist/ $(NAME).egg-info/ $(NAME)-$(VER) debian/python3-$(NAME) debian/python-$(NAME)
 	find $(CURDIR) -name '*.pyc' -delete
 	# cleaning up builddeb files...
 #	sudo rm -rf ./build
@@ -122,8 +125,9 @@ $(DIST_DEB): $(PY_SOURCES) $(DEB_SOURCES)
 	# project_version.orig.tar.gz
 	$(PYTHON) $(PYFLAGS) setup.py sdist --dist-dir=../
 	rename -f 's/$(NAME)-(.*)\.tar\.gz/$(NAME)_$$1\.orig\.tar\.gz/' ../*
-	debuild -b -i -I -Idist -Ibuild -Idocs/_build -Icoverage -I__pycache__ -I.coverage -Itags -I*.pyc -I*.vim -I*.xcf -rfakeroot
+	debuild -b -i -I -aarmhf -rfakeroot
 	mkdir -p dist/
+	echo "HERE"
 	for f in $(DIST_DEB); do cp ../$${f##*/} dist/; done
 
 $(DIST_DSC): $(PY_SOURCES) $(DEB_SOURCES)
@@ -131,7 +135,7 @@ $(DIST_DSC): $(PY_SOURCES) $(DEB_SOURCES)
 	# project_version.orig.tar.gz
 	$(PYTHON) $(PYFLAGS) setup.py sdist --dist-dir=../
 	rename -f 's/$(NAME)-(.*)\.tar\.gz/$(NAME)_$$1\.orig\.tar\.gz/' ../*
-	debuild -S -i -I -Idist -Ibuild -Idocs/_build -Icoverage -I__pycache__ -I.coverage -Itags -I*.pyc -I*.vim -I*.xcf -rfakeroot
+	debuild -S -i -I -aarmhf -rfakeroot
 	mkdir -p dist/
 	for f in $(DIST_DSC); do cp ../$${f##*/} dist/; done
 
@@ -146,29 +150,25 @@ release: $(PY_SOURCES) $(DOC_SOURCES)
 	# update the debian changelog with new release information
 	dch --newversion $(VER) --controlmaint
 	# commit the changes and add a new tag
-	git commit debian/changelog -m "Updated changelog for release $(VER)"
-	git tag -s release-$(VER) -m "Release $(VER)"
+#	git commit debian/changelog -m "Updated changelog for release $(VER)"
+#	git tag -s release-$(VER) -m "Release $(VER)"
 	# update the package's registration on PyPI (in case any metadata's changed)
 	$(PYTHON) $(PYFLAGS) setup.py register
+	# TODO: send to deb repository
 
 upload:
 	# TODO
 
-source:
-	./setup.py sdist $(COMPILE)
 
-install:
-	$(PYTHON) $(PYFLAGS) ./setup.py install --root $(DESTDIR)
+#.PHONY: builddeb
+#builddeb:
 
-.PHONY: builddeb
-builddeb:
-
-	# build the source package in the current directory
-	# then rename it to project_version.orig.tar.gz
-	sudo ./setup.py sdist --dist-dir=./ 
-	rename -f 's/$(PROJECT)-(.*)\.tar\.gz/$(PROJECT)_$$1\.orig\.tar\.gz/' ./*
-	# build the package
-	sudo dpkg-buildpackage -i -I -rfakeroot
+#	# build the source package in the current directory
+#	# then rename it to project_version.orig.tar.gz
+#	sudo ./setup.py sdist --dist-dir=./ 
+#	rename -f 's/$(PROJECT)-(.*)\.tar\.gz/$(PROJECT)_$$1\.orig\.tar\.gz/' ./*
+#	# build the package
+#	sudo dpkg-buildpackage -i -I -rfakeroot
 
 
 # create .deb file
@@ -182,16 +182,12 @@ builddeb:
 #	./setup.py sdist --dist-dir=/
 #	dpkg-buildpackage -b
 	
-.PHONY: build
-build:
-	./setup.py install
 
 pi-install.tar: 
 	tar cvf $@ $(shell $(MAKE) targets)
 	
 
 # had to rename from "install" for deb package installer
-.PHONY: pi-install
 pi-install: pi-install.tar
 	scp $< $(PI):
 	ssh $(PI) "\
@@ -203,4 +199,4 @@ pi-install: pi-install.tar
 		find . -name *.sbin -exec sudo chmod 4755 {} \\; ; \
 		"
 
-include $(POST_MAK)
+#include $(POST_MAK)
