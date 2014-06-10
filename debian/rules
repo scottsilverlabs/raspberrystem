@@ -1,7 +1,11 @@
 #!/usr/bin/make -f
 # -*- makefile -*-
 
-
+clean:
+	# Do nothing
+	
+export DH_VERBOSE=1
+export DH_OPTIONS
 
 %:
 	dh $@ --with python2,python3 --buildsystem=python_distutils
@@ -12,9 +16,12 @@ override_dh_usrlocal:
 override_dh_auto_test:
     # don't run tests
     
+override_dh_strip:
+	# No stripping!
+    
 override_dh_auto_install:
-    python setup.py install --root debian/python-raspberrystem --install-layout=deb
-    python3 setup.py install --root debian/python3-raspberrystem --install-layout=deb
+	python setup.py install --root debian/python-raspberrystem --install-layout=deb
+	python3 setup.py install --root debian/python3-raspberrystem --install-layout=deb
 
 #DEB_PYTHON_SYSTEM := pysupport
 

@@ -44,9 +44,10 @@ setup(
     description = ("RaspberrySTEM Educational and Hobbyist Development Kit "
                     "based on the Raspberry Pi."),
     license = "BSD",
-    keywords = "raspberrypi",
+    keywords = ["raspberrypi", "stem"],
     url = "https://github.com/scottsilverlabs/raspberrystem",
     packages=find_packages(),
+    include_package_data = True,
     long_description=read('README.md'),
     # use https://pypi.python.org/pypi?%3Aaction=list_classifiers as help when editing this
     classifiers=[

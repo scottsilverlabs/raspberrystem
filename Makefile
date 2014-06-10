@@ -97,13 +97,13 @@ deb: $(DIST_EGG) $(DIST_DEB) $(DIST_DSC) $(DIST_TAR) $(DIST_ZIP)
 clean:
 	$(PYTHON) $(PYFLAGS) setup.py clean
 	$(MAKE) -f $(CURDIR)/debian/rules clean
-	rm -rf build/ dist/ $(NAME).egg-info/ $(NAME)-$(VER) debian/python3-$(NAME) debian/python-$(NAME)
+	rm -rf build/ dist/ $(NAME).egg-info/ $(NAME)-$(VER) 
+	rm -rf debian/python3-$(NAME) debian/python-$(NAME) 
+	rm -f debian/python*
+	rm -f ../$(NAME)_$(VER).orig.tar.gz ../$(NAME)_$(VER)_armhf.build ../$(NAME)_$(VER)_armhf.changes ../$(NAME)_$(VER)_source.build
 	find $(CURDIR) -name '*.pyc' -delete
-	# cleaning up builddeb files...
-#	sudo rm -rf ./build
-#	sudo rm -rf ./$(PROJECT).egg-info
-#	sudo rm -rf 's/$(PROJECT)-(.*)\.orig\.tar\.gz/'
-
+	rm -f debian/files
+	touch debian/files
 
 
 $(DIST_TAR): $(PY_SOURCES)
@@ -125,19 +125,20 @@ $(DIST_DEB): $(PY_SOURCES) $(DEB_SOURCES)
 	# project_version.orig.tar.gz
 	$(PYTHON) $(PYFLAGS) setup.py sdist --dist-dir=../
 	rename -f 's/$(NAME)-(.*)\.tar\.gz/$(NAME)_$$1\.orig\.tar\.gz/' ../*
-	debuild -b -i -I -aarmhf -rfakeroot
-	mkdir -p dist/
-	echo "HERE"
-	for f in $(DIST_DEB); do cp ../$${f##*/} dist/; done
+	debuild -b -i -I -Idist -Ibuild -Idocs/_build -Icoverage -I__pycache__ -I.coverage -Itags -I*.pyc -I*.vim -I*.xcf -aarmhf -rfakeroot
+#	debuild -b -i -I -aarmhf -rfakeroot
+	mkdir -p dist-$(VER)/
+	for f in $(DIST_DEB); do cp ../$${f##*/} dist-$(VER)/; done
 
 $(DIST_DSC): $(PY_SOURCES) $(DEB_SOURCES)
 	# build the source package in the parent directory then rename it to
 	# project_version.orig.tar.gz
 	$(PYTHON) $(PYFLAGS) setup.py sdist --dist-dir=../
 	rename -f 's/$(NAME)-(.*)\.tar\.gz/$(NAME)_$$1\.orig\.tar\.gz/' ../*
-	debuild -S -i -I -aarmhf -rfakeroot
-	mkdir -p dist/
-	for f in $(DIST_DSC); do cp ../$${f##*/} dist/; done
+	debuild -S -i -I -Idist -Ibuild -Idocs/_build -Icoverage -I__pycache__ -I.coverage -Itags -I*.pyc -I*.vim -I*.xcf -aarmhf -rfakeroot
+#	debuild -S -i -I -aarmhf -rfakeroot
+	mkdir -p dist-$(VER)/
+	for f in $(DIST_DSC); do cp ../$${f##*/} dist-$(VER)/; done
 
 release: $(PY_SOURCES) $(DOC_SOURCES)
 	$(MAKE) clean

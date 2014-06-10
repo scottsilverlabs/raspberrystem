@@ -9,3 +9,6 @@
 #cp -r ./cellapps ~/rstem
 #mkdir ~/rstem/projects
 #cp -r ./projects ~/rstem
+
+
+# TODO: detect running on raspberry pi then set up SPI, etc...
