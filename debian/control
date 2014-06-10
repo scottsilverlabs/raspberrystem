@@ -1,7 +1,14 @@
 Source: raspberrystem
 Maintainer: Scott Silver Labs LLC <bri@raspberrystem.com>
-Build-Depends: python3, python3-pip
+Build-Depends: debhelper (>= 9), python-all (>= 2.7), python-setuptools, python3-all, python3-setuptools, python3-pip
 Homepage: <http://github.com/scottsilverlabs/raspberrystem>
 
-Package: raspberrystem
+Package: python-raspberrystem
 Architecture: all
+Depends: ${misc:Depends}, ${python:Depends}
+Description: Python 2 version of RaspberrySTEM.
+
+Package: python3-raspberrystem
+Architecture: all
+Depends: ${misc:Depends}, ${python3:Depends}
+Description: Python 3 version of RaspberrySTEM.

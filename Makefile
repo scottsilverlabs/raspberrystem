@@ -28,8 +28,12 @@ clean::
 	rm -f pi-install.tar
 	./setup.py clean
 #	$(MAKE) -f $(CURDIR)/debian/rules clean
-	rm -rf build/ MANIFEST
+	rm -rf build/
 	find . -name '*.pyc' -delete
+	# cleaning up builddeb files...
+#	sudo rm -rf ./build
+#	sudo rm -rf ./$(PROJECT).egg-info
+#	sudo rm -rf 's/$(PROJECT)-(.*)\.orig\.tar\.gz/'
 
 source:
 	./setup.py sdist $(COMPILE)
@@ -41,16 +45,17 @@ install:
 builddeb:
 	# put project and cellapps into user's home folder
 	# TODO: this doesn't work because the user folder won't be same as me...
-#	mkdir -p $(BUILDIR)/$(PROJECTSDIR)
-#	mkdir -p $(BUILDIR)/$(CELLAPPSDIR)
-#	cp -r ./projects $(BUILDIR)/$(PROJECTSDIR)
-#	cp -r ./cellapps $(BUILDIR)/$(CELLAPPSDIR)
-	# build the source package in the parent directory
+	sudo mkdir -p $(BUILDIR)$(PROJECTSDIR)
+	sudo mkdir -p $(BUILDIR)$(CELLAPPSDIR)
+	sudo cp -r ./projects $(BUILDIR)$(PROJECTSDIR)
+	sudo cp -r ./cellapps $(BUILDIR)$(CELLAPPSDIR)
+	# build the source package in the current directory
 	# then rename it to project_version.orig.tar.gz
-	./setup.py sdist $(COMPILE) --dist-dir=../ 
-	rename -f 's/$(PROJECT)-(.*)\.tar\.gz/$(PROJECT)_$$1\.orig\.tar\.gz/' ../*
+	sudo ./setup.py sdist --dist-dir=./ 
+	rename -f 's/$(PROJECT)-(.*)\.tar\.gz/$(PROJECT)_$$1\.orig\.tar\.gz/' ./*
 	# build the package
-	dpkg-buildpackage -i -I -rfakeroot
+	sudo dpkg-buildpackage -i -I -rfakeroot
+
 
 # create .deb file
 #.PHONY: deb
