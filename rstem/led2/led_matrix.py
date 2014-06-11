@@ -3,6 +3,7 @@
 import os
 import bitstring
 import re
+import time
 import led_server     # from the attiny48 controller
 
 SIZE_OF_PIXEL = 4     # 4 bits to represent color
@@ -197,40 +198,39 @@ class LEDMatrix:
         self.line((x + width, y + height), (x + width, y), color=color)
         self.line((x + width, y), (x, y), color=color)
         
-    def bitmap(self, bitmap, x_offset=0, y_offset=0):
-        """Sets given bitmap with top left corner at given position"""
-        for y, line in enumerate(bitmap.bitmap):
+    def sprite(self, sprite, x_offset=0, y_offset=0):
+        """Sets given sprite with top left corner at given position"""
+        for y, line in enumerate(sprite.bitmap):
             for x, pixel in enumerate(line):
                 if pixel != '-':
                     self.point(x + x_offset, y + y_offset, color=int(pixel, 16))
 
 
             
-class Bitmap:
+class LEDSprite:
     """Allows the creation of a LED Bitmap that is defined in a text file.
         - The text file must only contain hex numbers 0-9, a-f, A-F, or - (dash)
         - The hex number indicates pixel color and "-" indicates a transparent pixel
     """
-    def __init__(self, filename):
+    def __init__(self, filename=None):
         self.filename = filename
         bitmap = []
         bitmapWidth = 0  # keep track of width
-        f = open(filename, 'r')
-        
-        for line in f:
-            if not re.match(r'^[0-9a-fA-F\s-]+$', line):
-                raise Exception("Bitmap file contains invalid characters")
-            # Determine if widths are consistent
-            leds = line.split()
-            if bitmapWidth != 0:
-                if len(leds) != bitmapWidth:
-                    raise Exception("Bitmap has different widths")
-            else:
-                bitmapWidth = len(leds)
-            bitmap.append(leds)
-        f.close()
-        self.bitmap = bitmap
-            
+        if filename is not None:
+		    f = open(filename, 'r')
+		    for line in f:
+		        if not re.match(r'^[0-9a-fA-F\s-]+$', line):
+		            raise Exception("Bitmap file contains invalid characters")
+		        # Determine if widths are consistent
+		        leds = line.split()
+		        if bitmapWidth != 0:
+		            if len(leds) != bitmapWidth:
+		                raise Exception("Bitmap has different widths")
+		        else:
+		            bitmapWidth = len(leds)
+		        bitmap.append(leds)
+		    f.close()
+	    self.bitmap = bitmap
             
             
             
