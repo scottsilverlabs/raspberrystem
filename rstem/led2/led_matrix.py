@@ -48,9 +48,13 @@ class LEDMatrix:
         self.zigzag = zigzag
          # sprite that indicates current background
         self.bgsprite = LEDSprite(
-        					height=num_cols*DIM_OF_MATRIX
-        					width=num_rows*DIM_OF_MATRIX
-        					)
+    						height=num_cols*DIM_OF_MATRIX,
+    						width=num_rows*DIM_OF_MATRIX
+    					)
+		self.fgsprite = LEDSprite(
+							height=num_cols*DIM_OF_MATRIX,
+							width=num_rows*DIM_OF_MATRIX
+						)
         
         # initialize spi
         led_server.initSPI()
@@ -156,19 +160,28 @@ class LEDMatrix:
     def point(self, x, y, color=0xF, background=False):
         """Adds point to bitArray"""
         if color < 0x0 or color > 0xF:
-            raise ValueError("Invalid Color")
+            raise ValueError("Invalid Color, must be between 0x0-0xF")
         bitPos = self._point_to_bitpos(x, y)
-        if bitPos is not None:
-            self.bitarray[bitPos:bitPos+4] = color  # set 4 bits
-        if background:
+        if bitPos is None: # out of bound
+        	return
         	
+        if background:
+        	self.bgsprite.set_pixel(x, y, color)
+        	 # if foreground not transparent don't display it
+        	if self.fgsprite.get_pixel(x, y) != '-':
+        		return
+    	else:
+    		self.fgsprite.set_pixel(x, y, color)
+    		
+		# set to display color
+        self.bitarray[bitPos:bitPos+4] = color  # set 4 bits
             
             
     def _sign(self, n):
         return 1 if n >= 0 else -1
             
             
-    def line(self, point_a, point_b, color=0xF):
+    def line(self, point_a, point_b, color=0xF, background=False):
         """Create a line from point_a to point_b"""       
         if color < 0x0 or color > 0xF:
             raise ValueError("Invalid color")
@@ -185,7 +198,9 @@ class LEDMatrix:
                 self.point(
                     start_x + x_offset,
                     start_y + step*(x_offset*height/width),
-                    color=color)
+                    color=color,
+                    background=background
+                )
         else:
             start_point = point_a if y_diff < 0 else point_b
             start_x, start_y = start_point
@@ -193,25 +208,58 @@ class LEDMatrix:
                 self.point(
                     start_x + step*(y_offset*width/height),
                     start_y + y_offset,
-                    color=color)
+                    color=color,
+                    background=background
+                )
     
     
-    def rect(self, start, dimensions, color=0xF):
+    def rect(self, start, dimensions, color=0xF, background=False):
         x, y = start
         width, height = dimensions
-        self.line((x, y), (x, y + height), color=color)
-        self.line((x, y + height), (x + width, y + height), color=color)
-        self.line((x + width, y + height), (x + width, y), color=color)
-        self.line((x + width, y), (x, y), color=color)
+        self.line((x, y), (x, y + height), color, background)
+        self.line((x, y + height), (x + width, y + height), color, background)
+        self.line((x + width, y + height), (x + width, y), color, background)
+        self.line((x + width, y), (x, y), color, background)
         
-    def sprite(self, sprite, x_offset=0, y_offset=0):
+    def set_sprite(self, sprite, x=0, y=0, background=False):
         """Sets given sprite with top left corner at given position"""
+        x_offset = x
+        y_offset = y
         for y, line in enumerate(sprite.bitmap):
             for x, pixel in enumerate(line):
                 if pixel != '-':
-                    self.point(x + x_offset, y + y_offset, color=int(pixel, 16))
+                    self.point(
+                    	x + x_offset, 
+                    	y + y_offset, 
+                		color=int(pixel, 16),
+                		background=background
+            		)
+	
+	def clear_sprite(self, sprite, x=0, y=0, background=True):
+		"""Clears given sprite at given position
+			- subsitutes the pixels the sprite was covering with the background
+			- note assumes the sprite was already there
+				- this function will clear the foreground the shape of the sprite
+		"""
+		x_offset = x
+		y_offset = y
+		for y, line in enumerate(sprite.bitmap):
+			for x, pixel in enumerate(line):
+				if pixel != '-':
+					x = x + x_offset
+					y = y + y_offset
+					# set background to be displayed
+					self.point(x, y, int(self.bgsprite.get_pixel(x, y), 16))
+					# remove pixel from foreground
 
-
+	def update_sprite(self, sprite, before_pos, after_pos):
+		self.clear_sprite(sprite, *before_pos)
+		self.set_sprite(sprite, *after_pos)
+		
+	def update_background(self, x, y):
+		"""Allows you to update the position of the background"""
+		self.set_sprite(self.bgsprite, x, y, background=True)
+		# TODO: crap this isn't going to work, we need to remember
             
 class LEDSprite:
     """Allows the creation of a LED Sprite that is defined in a text file.
