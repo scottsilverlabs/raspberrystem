@@ -46,6 +46,11 @@ class LEDMatrix:
         self.num_matrices = num_rows*num_cols
         self.angle = angle  # rotation of x y coordinates
         self.zigzag = zigzag
+         # sprite that indicates current background
+        self.bgsprite = LEDSprite(
+        					height=num_cols*DIM_OF_MATRIX
+        					width=num_rows*DIM_OF_MATRIX
+        					)
         
         # initialize spi
         led_server.initSPI()
@@ -140,22 +145,23 @@ class LEDMatrix:
             bitstring.BitArray(length=(self.num_matrices*SIZE_OF_PIXEL*DIM_OF_MATRIX**2))
         self.show()
         
-    def fill(self, color=0x0):
+    def fill(self, color=0x0, background=False):
         old_angle = self.angle
         self.angle = 0    # switch to standard coordinates temporarily
         for x in range(self._get_width()):
             for y in range(self._get_height()):
-                self.point(x, y, color)
+                self.point(x, y, color, background)
         self.angle = old_angle
         
-    def point(self, x, y, color=0xF):
+    def point(self, x, y, color=0xF, background=False):
         """Adds point to bitArray"""
         if color < 0x0 or color > 0xF:
             raise ValueError("Invalid Color")
-            return
         bitPos = self._point_to_bitpos(x, y)
         if bitPos is not None:
             self.bitarray[bitPos:bitPos+4] = color  # set 4 bits
+        if background:
+        	
             
             
     def _sign(self, n):
@@ -208,14 +214,15 @@ class LEDMatrix:
 
             
 class LEDSprite:
-    """Allows the creation of a LED Bitmap that is defined in a text file.
+    """Allows the creation of a LED Sprite that is defined in a text file.
         - The text file must only contain hex numbers 0-9, a-f, A-F, or - (dash)
         - The hex number indicates pixel color and "-" indicates a transparent pixel
     """
-    def __init__(self, filename=None):
+    def __init__(self, filename=None, height=0, width=0):
         self.filename = filename
         bitmap = []
-        bitmapWidth = 0  # keep track of width
+        bitmap_width = 0  # keep track of width and height
+        bitmap_height = 0
         if filename is not None:
 		    f = open(filename, 'r')
 		    for line in f:
@@ -223,14 +230,52 @@ class LEDSprite:
 		            raise Exception("Bitmap file contains invalid characters")
 		        # Determine if widths are consistent
 		        leds = line.split()
-		        if bitmapWidth != 0:
-		            if len(leds) != bitmapWidth:
+		        if bitmap_width != 0:
+		            if len(leds) != bitmap_width:
 		                raise Exception("Bitmap has different widths")
 		        else:
-		            bitmapWidth = len(leds)
+		            bitmap_width = len(leds)
 		        bitmap.append(leds)
+		        bitmap_height += 1
 		    f.close()
+	    # set custom height if given
+	    if height > 0 and width > 0 and filename is None:
+	    	bitmap =  [ [ '0' for i in range(width) ] for j in range(height) ]
+    		bitmap_height = height
+    		bitmap_width = width
+    		
 	    self.bitmap = bitmap
-            
+		self.height = bitmap_height
+		self.width = bitmap_width
+		
+	def set_pixel(self, x, y, color=0xF):
+		"""Sets given color to given x and y coordinate in sprite
+			- color can be a int or string of hex value
+			- return None if coordinate is not valid
+		"""
+		if x >= self.width or y >= self.height or x < 0 or y < 0:
+			return None
+		if type(color) is int:
+	        if color < 0x0 or color > 0xF:
+        		raise ValueError("Invalid color")
+			self.bitmap[y][x] = hex(color)[2]
+		elif type(color) is str:
+	        if not re.match(r'^[0-9a-fA-F-]$', color):
+	            raise ValueError("Not a valid color")
+            self.bitmap[y][x] = color
+		else:
+			raise ValueError("Invalid color type")
+		return 1
+			
+	def get_pixel(self, x, y):
+		"""Returns string of color at given position or None
+		"""
+		if x >= self.width or y >= self.height or x < 0 or y < 0:
+			return None
+		return self.bitmap[y][x]
+		
+	def save_to_file(self, filename):
+		pass
+		# TODO: ???
             
             
