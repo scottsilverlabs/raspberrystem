@@ -107,10 +107,11 @@ deb: $(DIST_EGG) $(DIST_DEB) $(DIST_DSC) $(DIST_TAR) $(DIST_ZIP)
 clean:
 	$(PYTHON) $(PYFLAGS) setup.py clean
 	$(MAKE) -f $(CURDIR)/debian/rules clean
-	rm -rf build/ dist/ $(NAME).egg-info/ $(NAME)-$(VER) 
+	rm -rf build/ dist-$(VER)/ $(NAME).egg-info/ $(NAME)-$(VER) 
 	rm -rf debian/python3-$(NAME) debian/python-$(NAME) 
 	rm -f debian/python*
 	rm -f ../$(NAME)_$(VER).orig.tar.gz ../$(NAME)_$(VER)_armhf.build ../$(NAME)_$(VER)_armhf.changes ../$(NAME)_$(VER)_source.build
+	rm -f ../python-$(NAME)_$(VER)_armhf.deb ../python3-$(NAME)_$(VER)_armhf.deb
 	find $(CURDIR) -name '*.pyc' -delete
 	rm -f debian/files
 	touch debian/files
