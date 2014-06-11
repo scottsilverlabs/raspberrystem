@@ -45,7 +45,7 @@ PIPASSWORD=raspberry
 %: %.c
 ifeq ($(COMPILEONPI), 1)
 	scp $^ $(PI):/tmp
-	sshpass '$(PIPASSWORD)' ssh $(PI) "\
+	sshpass -p '$(PIPASSWORD)' ssh $(PI) "\
 		mkdir -p /tmp/rs; \
 		cd /tmp/rs; \
 		mv ../$^ .; \

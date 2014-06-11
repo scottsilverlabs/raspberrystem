@@ -48,7 +48,7 @@ DOC_SOURCES:=docs/conf.py \
 	$(wildcard docs/*.rst) \
 	$(wildcard docs/*.pdf)
 
-# Calculate the name of all outputs
+# Types of dist files all located in dist folder
 DIST_EGG=dist/$(NAME)-$(VER)-$(PYVER).egg
 DIST_TAR=dist/$(NAME)-$(VER).tar.gz
 DIST_ZIP=dist/$(NAME)-$(VER).zip
@@ -59,7 +59,7 @@ DIST_DSC=dist/$(NAME)_$(VER).tar.gz \
 	dist/$(NAME)_$(VER).dsc \
 	dist/$(NAME)_$(VER)_source.changes
 
-.PHONY: all install test doc source egg zip tar deb dist clean release upload pi-install projects cellapps
+.PHONY: all install test doc source egg zip tar deb dist clean release upload-all upload-ppa upload-cheeseshop pi-install projects cellapps
 
 all:
 	@echo "make install - Install on local system"
@@ -76,7 +76,9 @@ all:
 	@echo "make dist - Generate all packages"
 	@echo "make clean - Get rid of all generated files"
 	@echo "make release - Create and tag a new release"
-#	@echo "make upload - Upload the new release to repositories"
+	@echo "make upload-all - Upload the new release to all repositories"
+	@echo "make upload-ppa - Upload the new release to ppa"
+	@echo "make upload-cheeseshop - Upload the new release to cheeseshop"
 
 install:
 	sudo $(PYTHON) $(PYFLAGS) ./setup.py install --root $(DESTDIR)
@@ -94,6 +96,19 @@ cellapps:
 test:
     # TODO
     
+upload-all:
+	$(MAKE) upload-ppa
+	$(MAKE) upload-cheeseshop
+	
+upload-ppa: $(DIST_DSC)
+	# TODO: change this from raspberrystem-test ppa to an official one
+	# (to add this repo on raspberrypi type: sudo add-apt-repository ppa:r-jon-s/ppa)
+	dput ppa:r-jon-s/ppa dist/$(NAME)_$(VER)_source.changes
+
+upload-cheeseshop: $(PY_SOURCES)
+	# update the package's registration on PyPI (in case any metadata's changed)
+	$(PYTHON) $(PYFLAGS) setup.py register
+    
 source: $(DIST_TAR) $(DIST_ZIP)
 
 egg: $(DIST_EGG)
@@ -102,16 +117,19 @@ zip: $(DIST_ZIP)
 
 tar: $(DIST_TAR)
 
-deb: $(DIST_EGG) $(DIST_DEB) $(DIST_DSC) $(DIST_TAR) $(DIST_ZIP)
+deb: $(DIST_DSC) $(DIST_DEB)
+
+dist: $(DIST_EGG) $(DIST_DEB) $(DIST_DSC) $(DIST_TAR) $(DIST_ZIP)
 
 clean:
 	$(PYTHON) $(PYFLAGS) setup.py clean
 	$(MAKE) -f $(CURDIR)/debian/rules clean
-	rm -rf build/ dist-$(VER)/ $(NAME).egg-info/ $(NAME)-$(VER) 
+	rm -rf build/ dist/ $(NAME).egg-info/ $(NAME)-$(VER) 
 	rm -rf debian/python3-$(NAME) debian/python-$(NAME) 
 	rm -f debian/python*
 	rm -f ../$(NAME)_$(VER).orig.tar.gz ../$(NAME)_$(VER)_armhf.build ../$(NAME)_$(VER)_armhf.changes ../$(NAME)_$(VER)_source.build
 	rm -f ../python-$(NAME)_$(VER)_armhf.deb ../python3-$(NAME)_$(VER)_armhf.deb
+	rm -f ../$(NAME)_$(VER).dsc ../$(NAME)_$(VER).tar.gz ../$(NAME)_$(VER)_source.changes
 	find $(CURDIR) -name '*.pyc' -delete
 	rm -f debian/files
 	touch debian/files
@@ -133,8 +151,8 @@ $(DIST_DEB): $(PY_SOURCES) $(DEB_SOURCES)
 	rename -f 's/$(NAME)-(.*)\.tar\.gz/$(NAME)_$$1\.orig\.tar\.gz/' ../*
 	debuild -b -i -I -Idist -Ibuild -Idocs/_build -Icoverage -I__pycache__ -I.coverage -Itags -I*.pyc -I*.vim -I*.xcf -aarmhf -rfakeroot
 #	debuild -b -i -I -aarmhf -rfakeroot
-	mkdir -p dist-$(VER)/
-	for f in $(DIST_DEB); do cp ../$${f##*/} dist-$(VER)/; done
+	mkdir -p dist/
+	for f in $(DIST_DEB); do cp ../$${f##*/} dist/; done
 
 $(DIST_DSC): $(PY_SOURCES) $(DEB_SOURCES)
 	# build the source package in the parent directory then rename it to
@@ -143,8 +161,8 @@ $(DIST_DSC): $(PY_SOURCES) $(DEB_SOURCES)
 	rename -f 's/$(NAME)-(.*)\.tar\.gz/$(NAME)_$$1\.orig\.tar\.gz/' ../*
 	debuild -S -i -I -Idist -Ibuild -Idocs/_build -Icoverage -I__pycache__ -I.coverage -Itags -I*.pyc -I*.vim -I*.xcf -aarmhf -rfakeroot
 #	debuild -S -i -I -aarmhf -rfakeroot
-	mkdir -p dist-$(VER)/
-	for f in $(DIST_DSC); do cp ../$${f##*/} dist-$(VER)/; done
+	mkdir -p dist/
+	for f in $(DIST_DSC); do cp ../$${f##*/} dist/; done
 
 release: $(PY_SOURCES) $(DOC_SOURCES)
 	$(MAKE) clean
@@ -159,13 +177,6 @@ release: $(PY_SOURCES) $(DOC_SOURCES)
 	# commit the changes and add a new tag
 #	git commit debian/changelog -m "Updated changelog for release $(VER)"
 #	git tag -s release-$(VER) -m "Release $(VER)"
-	# update the package's registration on PyPI (in case any metadata's changed)
-	$(PYTHON) $(PYFLAGS) setup.py register
-	# TODO: send to deb repository
-
-upload:
-	# TODO
-
 
 #.PHONY: builddeb
 #builddeb:
@@ -197,7 +208,7 @@ pi-install.tar:
 # had to rename from "install" for deb package installer
 pi-install: pi-install.tar
 	scp $< $(PI):
-	sshpass '$(PIPASSWORD)' ssh $(PI) "\
+	sshpass -p '$(PIPASSWORD)' ssh $(PI) "\
 		rm -rf rsinstall; \
 		mkdir -p rsinstall; \
 		cd rsinstall; \

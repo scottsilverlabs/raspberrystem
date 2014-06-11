@@ -1,4 +1,4 @@
-raspberrystem (0.0.1) UNRELEASED; urgency=medium
+raspberrystem (0.0.1) unstable; urgency=medium
 
   [ Jon Snyder ]
   * Initial release. (Closes: #XXXXXX)
