@@ -53,7 +53,8 @@ class LEDMatrix:
     					)
 		self.fgsprite = LEDSprite(
 							height=num_cols*DIM_OF_MATRIX,
-							width=num_rows*DIM_OF_MATRIX
+							width=num_rows*DIM_OF_MATRIX,
+							color='-'
 						)
         
         # initialize spi
@@ -158,12 +159,9 @@ class LEDMatrix:
         self.angle = old_angle
         
     def point(self, x, y, color=0xF, background=False):
-        """Adds point to bitArray"""
+        """Adds point to bitArray and foreground or background sprite"""
         if color < 0x0 or color > 0xF:
             raise ValueError("Invalid Color, must be between 0x0-0xF")
-        bitPos = self._point_to_bitpos(x, y)
-        if bitPos is None: # out of bound
-        	return
         	
         if background:
         	self.bgsprite.set_pixel(x, y, color)
@@ -174,6 +172,9 @@ class LEDMatrix:
     		self.fgsprite.set_pixel(x, y, color)
     		
 		# set to display color
+        bitPos = self._point_to_bitpos(x, y)
+        if bitPos is None: # out of bound
+        	return  		
         self.bitarray[bitPos:bitPos+4] = color  # set 4 bits
             
             
@@ -227,7 +228,7 @@ class LEDMatrix:
         y_offset = y
         for y, line in enumerate(sprite.bitmap):
             for x, pixel in enumerate(line):
-                if pixel != '-':
+                if pixel != '-': # don't do anything if transparent
                     self.point(
                     	x + x_offset, 
                     	y + y_offset, 
@@ -235,7 +236,7 @@ class LEDMatrix:
                 		background=background
             		)
 	
-	def clear_sprite(self, sprite, x=0, y=0, background=True):
+	def clear_sprite(self, sprite, x=0, y=0, background=False):
 		"""Clears given sprite at given position
 			- subsitutes the pixels the sprite was covering with the background
 			- note assumes the sprite was already there
@@ -245,18 +246,25 @@ class LEDMatrix:
 		y_offset = y
 		for y, line in enumerate(sprite.bitmap):
 			for x, pixel in enumerate(line):
-				if pixel != '-':
+				if pixel != '-': # don't do anything if transparent
 					x = x + x_offset
 					y = y + y_offset
-					# set background to be displayed
-					self.point(x, y, int(self.bgsprite.get_pixel(x, y), 16))
-					# remove pixel from foreground
+					if background:
+						# if clearing background pixel set color to 0
+						# (this also sets background sprite to 0)
+						self.point(x, y, 0)
+					else:
+						# else set background to be displayed
+						self.point(x, y, int(self.bgsprite.get_pixel(x, y), 16))
+						# remove pixel from foreground by setting it to transparent
+						self.fgsprite.set_pixel(x, y, '-')
 
 	def update_sprite(self, sprite, before_pos, after_pos):
 		self.clear_sprite(sprite, *before_pos)
 		self.set_sprite(sprite, *after_pos)
 		
-	def update_background(self, x, y):
+		
+	def update_background(self, x=0, y=0):
 		"""Allows you to update the position of the background"""
 		self.set_sprite(self.bgsprite, x, y, background=True)
 		# TODO: crap this isn't going to work, we need to remember
@@ -266,7 +274,7 @@ class LEDSprite:
         - The text file must only contain hex numbers 0-9, a-f, A-F, or - (dash)
         - The hex number indicates pixel color and "-" indicates a transparent pixel
     """
-    def __init__(self, filename=None, height=0, width=0):
+    def __init__(self, filename=None, height=0, width=0, color='0'):
         self.filename = filename
         bitmap = []
         bitmap_width = 0  # keep track of width and height
@@ -288,7 +296,7 @@ class LEDSprite:
 		    f.close()
 	    # set custom height if given
 	    if height > 0 and width > 0 and filename is None:
-	    	bitmap =  [ [ '0' for i in range(width) ] for j in range(height) ]
+	    	bitmap =  [ [ color for i in range(width) ] for j in range(height) ]
     		bitmap_height = height
     		bitmap_width = width
     		
