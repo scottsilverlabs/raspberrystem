@@ -197,7 +197,7 @@ pi-install.tar:
 # had to rename from "install" for deb package installer
 pi-install: pi-install.tar
 	scp $< $(PI):
-	ssh $(PI) "\
+	sshpass '$(PIPASSWORD)' ssh $(PI) "\
 		rm -rf rsinstall; \
 		mkdir -p rsinstall; \
 		cd rsinstall; \
