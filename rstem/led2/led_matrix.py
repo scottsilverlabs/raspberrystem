@@ -4,7 +4,7 @@ import os
 import bitstring
 import re
 import time
-import scipy
+from scipy import misc
 import numpy
 import magic
 import led_server     # from the attiny48 controller
@@ -51,14 +51,14 @@ class LEDMatrix:
         self.zigzag = zigzag
          # sprite that indicates current background
         self.bgsprite = LEDSprite(
-    						height=num_cols*DIM_OF_MATRIX,
-    						width=num_rows*DIM_OF_MATRIX
-    					)
-		self.fgsprite = LEDSprite(
-							height=num_cols*DIM_OF_MATRIX,
-							width=num_rows*DIM_OF_MATRIX,
-							color='-'
-						)
+            height=num_rows*DIM_OF_MATRIX,
+            width=num_cols*DIM_OF_MATRIX
+        )
+        self.fgsprite = LEDSprite(
+            height=num_rows*DIM_OF_MATRIX,
+            width=num_cols*DIM_OF_MATRIX,
+            color='-'
+        )
         
         # initialize spi
         led_server.initSPI()
@@ -149,8 +149,10 @@ class LEDMatrix:
                 print("") # print newline
         
     def erase(self):
-        self.bitarray = \
-            bitstring.BitArray(length=(self.num_matrices*SIZE_OF_PIXEL*DIM_OF_MATRIX**2))
+        self.clear_background()
+        self.clear_foreground()
+#        self.bitarray = \
+#            bitstring.BitArray(length=(self.num_matrices*SIZE_OF_PIXEL*DIM_OF_MATRIX**2))
         self.show()
         
     def fill(self, color=0x0, background=False):
@@ -165,19 +167,19 @@ class LEDMatrix:
         """Adds point to bitArray and foreground or background sprite"""
         if color < 0x0 or color > 0xF:
             raise ValueError("Invalid Color, must be between 0x0-0xF")
-        	
+            
         if background:
-        	self.bgsprite.set_pixel(x, y, color)
-        	 # if foreground not transparent don't display it
-        	if self.fgsprite.get_pixel(x, y) != '-':
-        		return
-    	else:
-    		self.fgsprite.set_pixel(x, y, color)
-    		
-		# set to display color
+            self.bgsprite.set_pixel(x, y, color)
+             # if foreground not transparent don't display it
+            if self.fgsprite.get_pixel(x, y) != '-':
+                return
+        else:
+            self.fgsprite.set_pixel(x, y, color)
+            
+        # set to display color
         bitPos = self._point_to_bitpos(x, y)
         if bitPos is None: # out of bound
-        	return  		
+            return          
         self.bitarray[bitPos:bitPos+SIZE_OF_PIXEL] = color  # set 4 bits
             
             
@@ -233,46 +235,54 @@ class LEDMatrix:
             for x, pixel in enumerate(line):
                 if pixel != '-': # don't do anything if transparent
                     self.point(
-                    	x + x_offset, 
-                    	y + y_offset, 
-                		color=int(pixel, 16),
-                		background=background
-            		)
-	
-	def clear_sprite(self, sprite, x=0, y=0, background=False):
-		"""Clears given sprite at given position
-			- subsitutes the pixels the sprite was covering with the background
-			- note assumes the sprite was already there
-				- this function will clear the foreground the shape of the sprite
-		"""
-		x_offset = x
-		y_offset = y
-		for y, line in enumerate(sprite.bitmap):
-			for x, pixel in enumerate(line):
-				if pixel != '-': # don't do anything if transparent
-					x = x + x_offset
-					y = y + y_offset
-					if background:
-						# if clearing background pixel set color to 0
-						# (this also sets background sprite to 0)
-						self.point(x, y, 0)
-					else:
-						# else set background to be displayed
-						self.point(x, y, int(self.bgsprite.get_pixel(x, y), 16))
-						# remove pixel from foreground by setting it to transparent
-						self.fgsprite.set_pixel(x, y, '-')
+                        x + x_offset,
+                        y + y_offset,
+                        color=int(pixel, 16),
+                        background=background
+                    )
+    
+    def clear_sprite(self, sprite, x=0, y=0, background=False):
+        """Clears given sprite at given position
+            - subsitutes the pixels the sprite was covering with the background
+            - note assumes the sprite was already there
+                - this function will clear the foreground the shape of the sprite
+        """
+        x_offset = x
+        y_offset = y
+        for y, line in enumerate(sprite.bitmap):
+            for x, pixel in enumerate(line):
+                if pixel != '-': # don't do anything if transparent
+                    x = x + x_offset
+                    y = y + y_offset
+                    if background:
+                        # if clearing background pixel set color to 0
+                        # (this also sets background sprite to 0)
+                        self.point(x, y, 0, background=True)
+                    else:
+                        # else set background to be displayed
+                        self.point(x, y, int(self.bgsprite.get_pixel(x, y), 16))
+                        # remove pixel from foreground by setting it to transparent
+                        self.fgsprite.set_pixel(x, y, '-')
 
-	def update_sprite(self, sprite, before_pos, after_pos):
-		self.clear_sprite(sprite, *before_pos)
-		self.set_sprite(sprite, *after_pos)
-		
-		
-	def update_background(self, x=0, y=0, sprite=None):
-		"""Allows you to update the position of the background or set a new background"""
-		if sprite is None:
-			self.set_sprite(self.bgsprite, x, y, background=True)
-		else:
-			self.set_sprite(sprite, x, y, background=True)
+    def update_sprite(self, sprite, before_pos, after_pos):
+        self.clear_sprite(sprite, *before_pos)
+        self.set_sprite(sprite, *after_pos)
+        
+        
+    def update_background(self, sprite=None, x=0, y=0):
+        """Allows you to update the position of the background or set a new background"""
+        if sprite is None:
+            self.set_sprite(self.bgsprite, x, y, background=True)
+        else:
+            self.set_sprite(sprite, x, y, background=True)
+            
+    def clear_background(self):
+        """Removes the background, doesn't touch foreground"""
+        self.clear_sprite(self.bgsprite, background=True)
+        
+    def clear_foreground(self):
+        """Remove the foreground, doesn't touch the background"""
+        self.clear_sprite(self.fgsprite)
 
             
 class LEDSprite:
@@ -286,74 +296,74 @@ class LEDSprite:
         bitmap_width = 0  # keep track of width and height
         bitmap_height = 0
         if filename is not None:
-        	# get file type
-        	mime = magic.Magic(mime=True)
-        	filetype = mime.from_file(filename)
-        	image_file = (filetype.find("image") != -1)
-        	txt_file = (filetype == "text/plain")
-        	if image_file:
-        		if height <= 0 or width <= 0:
-        			raise ValueError("Must provide a height and width for image")
-    			# pixelize and resize image with scipy
-        		image = scipy.misc.imread(filename)
-        		con_image = scipy.misc.imresize(image, (width, height), interp='cubic')
-        		bitmap = [[hex(pixel*16/255)[2] for pixel in line] for line in con_image]
-        	elif txt_file:
-				f = open(filename, 'r')
-				for line in f:
-				    if not re.match(r'^[0-9a-fA-F\s-]+$', line):
-				        raise ValueError("Bitmap file contains invalid characters")
-				    # Determine if widths are consistent
-				    leds = line.split()
-				    if bitmap_width != 0:
-				        if len(leds) != bitmap_width:
-				            raise ValueError("Bitmap has different widths")
-				    else:
-				        bitmap_width = len(leds)
-				    bitmap.append(leds)
-				    bitmap_height += 1
-				f.close()
-			else:
-				raise ValueError("Unsupported filetype")
-	    # set custom height if given and not filename
-	    if height > 0 and width > 0 and filename is None:
-	    	bitmap = [[color for i in range(width)] for j in range(height)]
-    		bitmap_height = height
-    		bitmap_width = width
-    		
-	    self.bitmap = bitmap
-		self.height = bitmap_height
-		self.width = bitmap_width
-		
-	def set_pixel(self, x, y, color=0xF):
-		"""Sets given color to given x and y coordinate in sprite
-			- color can be a int or string of hex value
-			- return None if coordinate is not valid
-		"""
-		if x >= self.width or y >= self.height or x < 0 or y < 0:
-			return None
-		if type(color) is int:
-	        if color < 0x0 or color > 0xF:
-        		raise ValueError("Invalid color")
-			self.bitmap[y][x] = hex(color)[2]
-		elif type(color) is str:
-	        if not re.match(r'^[0-9a-fA-F-]$', color):
-	            raise ValueError("Not a valid color")
+            # get file type
+            mime = magic.Magic(mime=True)
+            filetype = mime.from_file(filename)
+            image_file = (filetype.find("image") != -1)
+            txt_file = (filetype == "text/plain")
+            if image_file:
+                if height <= 0 or width <= 0:
+                    raise ValueError("Must provide a height and width for image")
+                # pixelize and resize image with scipy
+                image = misc.imread(filename, flatten=1)
+                con_image = misc.imresize(image, (width, height), interp='cubic')
+                bitmap = [[hex(15 - pixel*15/255)[2] for pixel in line] for line in con_image]
+            elif txt_file:
+                f = open(filename, 'r')
+                for line in f:
+                    if not re.match(r'^[0-9a-fA-F\s-]+$', line):
+                        raise ValueError("Bitmap file contains invalid characters")
+                    # Determine if widths are consistent
+                    leds = line.split()
+                    if bitmap_width != 0:
+                        if len(leds) != bitmap_width:
+                            raise ValueError("Bitmap has different widths")
+                    else:
+                        bitmap_width = len(leds)
+                    bitmap.append(leds)
+                    bitmap_height += 1
+                f.close()
+            else:
+                raise ValueError("Unsupported filetype")
+        # set custom height if given and not filename
+        if height > 0 and width > 0 and filename is None:
+            bitmap = [[color for i in range(width)] for j in range(height)]
+            bitmap_height = height
+            bitmap_width = width
+            
+        self.bitmap = bitmap
+        self.height = bitmap_height
+        self.width = bitmap_width
+        
+    def set_pixel(self, x, y, color=0xF):
+        """Sets given color to given x and y coordinate in sprite
+            - color can be a int or string of hex value
+            - return None if coordinate is not valid
+        """
+        if x >= self.width or y >= self.height or x < 0 or y < 0:
+            return None
+        if type(color) is int:
+            if color < 0x0 or color > 0xF:
+                raise ValueError("Invalid color")
+            self.bitmap[y][x] = hex(color)[2]
+        elif type(color) is str:
+            if not re.match(r'^[0-9a-fA-F-]$', color):
+                raise ValueError("Not a valid color")
             self.bitmap[y][x] = color
-		else:
-			raise ValueError("Invalid color type")
-		return 1
-			
-	def get_pixel(self, x, y):
-		"""Returns string of color at given position or None
-		"""
-		if x >= self.width or y >= self.height or x < 0 or y < 0:
-			return None
-		return self.bitmap[y][x]
-		
-		
-	def save_to_file(self, filename):
-		pass
-		# TODO: ???
+        else:
+            raise ValueError("Invalid color type")
+        return 1
+            
+    def get_pixel(self, x, y):
+        """Returns string of color at given position or None
+        """
+        if x >= self.width or y >= self.height or x < 0 or y < 0:
+            return None
+        return self.bitmap[y][x]
+        
+        
+    def save_to_file(self, filename):
+        pass
+        # TODO: ???
             
             
