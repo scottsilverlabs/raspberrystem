@@ -3,6 +3,7 @@
 import os
 import bitstring
 import re
+import time
 import led_server     # from the attiny48 controller
 
 SIZE_OF_PIXEL = 4     # 4 bits to represent color
@@ -45,6 +46,16 @@ class LEDMatrix:
         self.num_matrices = num_rows*num_cols
         self.angle = angle  # rotation of x y coordinates
         self.zigzag = zigzag
+         # sprite that indicates current background
+        self.bgsprite = LEDSprite(
+    						height=num_cols*DIM_OF_MATRIX,
+    						width=num_rows*DIM_OF_MATRIX
+    					)
+		self.fgsprite = LEDSprite(
+							height=num_cols*DIM_OF_MATRIX,
+							width=num_rows*DIM_OF_MATRIX,
+							color='-'
+						)
         
         # initialize spi
         led_server.initSPI()
@@ -139,29 +150,39 @@ class LEDMatrix:
             bitstring.BitArray(length=(self.num_matrices*SIZE_OF_PIXEL*DIM_OF_MATRIX**2))
         self.show()
         
-    def fill(self, color=0x0):
+    def fill(self, color=0x0, background=False):
         old_angle = self.angle
         self.angle = 0    # switch to standard coordinates temporarily
         for x in range(self._get_width()):
             for y in range(self._get_height()):
-                self.point(x, y, color)
+                self.point(x, y, color, background)
         self.angle = old_angle
         
-    def point(self, x, y, color=0xF):
-        """Adds point to bitArray"""
+    def point(self, x, y, color=0xF, background=False):
+        """Adds point to bitArray and foreground or background sprite"""
         if color < 0x0 or color > 0xF:
-            raise ValueError("Invalid Color")
-            return
+            raise ValueError("Invalid Color, must be between 0x0-0xF")
+        	
+        if background:
+        	self.bgsprite.set_pixel(x, y, color)
+        	 # if foreground not transparent don't display it
+        	if self.fgsprite.get_pixel(x, y) != '-':
+        		return
+    	else:
+    		self.fgsprite.set_pixel(x, y, color)
+    		
+		# set to display color
         bitPos = self._point_to_bitpos(x, y)
-        if bitPos is not None:
-            self.bitarray[bitPos:bitPos+4] = color  # set 4 bits
+        if bitPos is None: # out of bound
+        	return  		
+        self.bitarray[bitPos:bitPos+4] = color  # set 4 bits
             
             
     def _sign(self, n):
         return 1 if n >= 0 else -1
             
             
-    def line(self, point_a, point_b, color=0xF):
+    def line(self, point_a, point_b, color=0xF, background=False):
         """Create a line from point_a to point_b"""       
         if color < 0x0 or color > 0xF:
             raise ValueError("Invalid color")
@@ -178,7 +199,9 @@ class LEDMatrix:
                 self.point(
                     start_x + x_offset,
                     start_y + step*(x_offset*height/width),
-                    color=color)
+                    color=color,
+                    background=background
+                )
         else:
             start_point = point_a if y_diff < 0 else point_b
             start_x, start_y = start_point
@@ -186,51 +209,129 @@ class LEDMatrix:
                 self.point(
                     start_x + step*(y_offset*width/height),
                     start_y + y_offset,
-                    color=color)
+                    color=color,
+                    background=background
+                )
     
     
-    def rect(self, start, dimensions, color=0xF):
+    def rect(self, start, dimensions, color=0xF, background=False):
         x, y = start
         width, height = dimensions
-        self.line((x, y), (x, y + height), color=color)
-        self.line((x, y + height), (x + width, y + height), color=color)
-        self.line((x + width, y + height), (x + width, y), color=color)
-        self.line((x + width, y), (x, y), color=color)
+        self.line((x, y), (x, y + height), color, background)
+        self.line((x, y + height), (x + width, y + height), color, background)
+        self.line((x + width, y + height), (x + width, y), color, background)
+        self.line((x + width, y), (x, y), color, background)
         
-    def bitmap(self, bitmap, x_offset=0, y_offset=0):
-        """Sets given bitmap with top left corner at given position"""
-        for y, line in enumerate(bitmap.bitmap):
+    def set_sprite(self, sprite, x=0, y=0, background=False):
+        """Sets given sprite with top left corner at given position"""
+        x_offset = x
+        y_offset = y
+        for y, line in enumerate(sprite.bitmap):
             for x, pixel in enumerate(line):
-                if pixel != '-':
-                    self.point(x + x_offset, y + y_offset, color=int(pixel, 16))
+                if pixel != '-': # don't do anything if transparent
+                    self.point(
+                    	x + x_offset, 
+                    	y + y_offset, 
+                		color=int(pixel, 16),
+                		background=background
+            		)
+	
+	def clear_sprite(self, sprite, x=0, y=0, background=False):
+		"""Clears given sprite at given position
+			- subsitutes the pixels the sprite was covering with the background
+			- note assumes the sprite was already there
+				- this function will clear the foreground the shape of the sprite
+		"""
+		x_offset = x
+		y_offset = y
+		for y, line in enumerate(sprite.bitmap):
+			for x, pixel in enumerate(line):
+				if pixel != '-': # don't do anything if transparent
+					x = x + x_offset
+					y = y + y_offset
+					if background:
+						# if clearing background pixel set color to 0
+						# (this also sets background sprite to 0)
+						self.point(x, y, 0)
+					else:
+						# else set background to be displayed
+						self.point(x, y, int(self.bgsprite.get_pixel(x, y), 16))
+						# remove pixel from foreground by setting it to transparent
+						self.fgsprite.set_pixel(x, y, '-')
 
-
+	def update_sprite(self, sprite, before_pos, after_pos):
+		self.clear_sprite(sprite, *before_pos)
+		self.set_sprite(sprite, *after_pos)
+		
+		
+	def update_background(self, x=0, y=0):
+		"""Allows you to update the position of the background"""
+		self.set_sprite(self.bgsprite, x, y, background=True)
+		# TODO: crap this isn't going to work, we need to remember
             
-class Bitmap:
-    """Allows the creation of a LED Bitmap that is defined in a text file.
+class LEDSprite:
+    """Allows the creation of a LED Sprite that is defined in a text file.
         - The text file must only contain hex numbers 0-9, a-f, A-F, or - (dash)
         - The hex number indicates pixel color and "-" indicates a transparent pixel
     """
-    def __init__(self, filename):
+    def __init__(self, filename=None, height=0, width=0, color='0'):
         self.filename = filename
         bitmap = []
-        bitmapWidth = 0  # keep track of width
-        f = open(filename, 'r')
-        
-        for line in f:
-            if not re.match(r'^[0-9a-fA-F\s-]+$', line):
-                raise Exception("Bitmap file contains invalid characters")
-            # Determine if widths are consistent
-            leds = line.split()
-            if bitmapWidth != 0:
-                if len(leds) != bitmapWidth:
-                    raise Exception("Bitmap has different widths")
-            else:
-                bitmapWidth = len(leds)
-            bitmap.append(leds)
-        f.close()
-        self.bitmap = bitmap
-            
-            
+        bitmap_width = 0  # keep track of width and height
+        bitmap_height = 0
+        if filename is not None:
+		    f = open(filename, 'r')
+		    for line in f:
+		        if not re.match(r'^[0-9a-fA-F\s-]+$', line):
+		            raise Exception("Bitmap file contains invalid characters")
+		        # Determine if widths are consistent
+		        leds = line.split()
+		        if bitmap_width != 0:
+		            if len(leds) != bitmap_width:
+		                raise Exception("Bitmap has different widths")
+		        else:
+		            bitmap_width = len(leds)
+		        bitmap.append(leds)
+		        bitmap_height += 1
+		    f.close()
+	    # set custom height if given
+	    if height > 0 and width > 0 and filename is None:
+	    	bitmap =  [ [ color for i in range(width) ] for j in range(height) ]
+    		bitmap_height = height
+    		bitmap_width = width
+    		
+	    self.bitmap = bitmap
+		self.height = bitmap_height
+		self.width = bitmap_width
+		
+	def set_pixel(self, x, y, color=0xF):
+		"""Sets given color to given x and y coordinate in sprite
+			- color can be a int or string of hex value
+			- return None if coordinate is not valid
+		"""
+		if x >= self.width or y >= self.height or x < 0 or y < 0:
+			return None
+		if type(color) is int:
+	        if color < 0x0 or color > 0xF:
+        		raise ValueError("Invalid color")
+			self.bitmap[y][x] = hex(color)[2]
+		elif type(color) is str:
+	        if not re.match(r'^[0-9a-fA-F-]$', color):
+	            raise ValueError("Not a valid color")
+            self.bitmap[y][x] = color
+		else:
+			raise ValueError("Invalid color type")
+		return 1
+			
+	def get_pixel(self, x, y):
+		"""Returns string of color at given position or None
+		"""
+		if x >= self.width or y >= self.height or x < 0 or y < 0:
+			return None
+		return self.bitmap[y][x]
+		
+	def save_to_file(self, filename):
+		pass
+		# TODO: ???
             
             
