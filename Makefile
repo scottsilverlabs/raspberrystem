@@ -3,6 +3,7 @@
 #
 # Builds all software needed on target.  Optionally installs them.
 #
+SHELL = /bin/bash
 export PRE_MAK=$(CURDIR)/make/prerules.mak
 export POST_MAK=$(CURDIR)/make/postrules.mak
 include $(PRE_MAK)
@@ -59,7 +60,7 @@ DIST_DSC=dist/$(NAME)_$(VER).tar.gz \
 	dist/$(NAME)_$(VER).dsc \
 	dist/$(NAME)_$(VER)_source.changes
 
-.PHONY: all install test doc source egg zip tar deb dist clean release upload-all upload-ppa upload-cheeseshop pi-install projects cellapps
+.PHONY: all install test doc source egg zip tar deb dist clean release upload-all upload-ppa upload-cheeseshop pi-install projects cellapps upload-check
 
 all:
 	@echo "make install - Install on local system"
@@ -79,6 +80,8 @@ all:
 	@echo "make upload-all - Upload the new release to all repositories"
 	@echo "make upload-ppa - Upload the new release to ppa"
 	@echo "make upload-cheeseshop - Upload the new release to cheeseshop"
+	
+
 
 install:
 	sudo $(PYTHON) $(PYFLAGS) ./setup.py install --root $(DESTDIR)
@@ -96,6 +99,16 @@ cellapps:
 test:
     # TODO
     
+upload-check:
+	# Check that we are in correct branch....
+	@if ! git branch | grep -q "* rel/$(VER)"; then \
+		echo "Not in the expected branch rel/$(VER)."; \
+		echo "Either change your branch to rel/$(VER) or update the version number in ./setup.py"; \
+		exit 2; \
+	else \
+		echo "In correct branch."; \
+	fi 
+    
 upload-all:
 	$(MAKE) upload-ppa
 	$(MAKE) upload-cheeseshop
@@ -103,10 +116,12 @@ upload-all:
 upload-ppa: $(DIST_DSC)
 	# TODO: change this from raspberrystem-test ppa to an official one
 	# (to add this repo on raspberrypi type: sudo add-apt-repository ppa:r-jon-s/ppa)
+	$(MAKE) upload-check
 	dput ppa:r-jon-s/ppa dist/$(NAME)_$(VER)_source.changes
 
 upload-cheeseshop: $(PY_SOURCES)
 	# update the package's registration on PyPI (in case any metadata's changed)
+	$(MAKE) upload-check
 	$(PYTHON) $(PYFLAGS) setup.py register
     
 source: $(DIST_TAR) $(DIST_ZIP)
