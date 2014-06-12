@@ -61,11 +61,11 @@ DIST_DSC=dist/$(NAME)_$(VER).tar.gz \
 	dist/$(NAME)_$(VER)_source.changes
 	
 # files needed to be sent over to pi for local installation
-PI_TAR_FILES=rstem cellapps misc projects Makefile MANIFEST.in setup.py README.md
+PI_TAR_FILES=rstem cellapps misc projects Makefile MANIFEST.in setup.py README.md make
 
 .PHONY: all install test doc source egg zip tar deb dist clean release upload-all upload-ppa upload-cheeseshop pi-install projects cellapps upload-check
 
-all:
+all::
 	@echo "make install - Install on local system"
 	@echo "TODO: make pi-install - Install onto remote Raspberry Pi"
 	@echo "make projects - Install projects to home folder"
@@ -148,7 +148,7 @@ deb: $(DIST_DSC) $(DIST_DEB)
 
 dist: $(DIST_EGG) $(DIST_DEB) $(DIST_DSC) $(DIST_TAR) $(DIST_ZIP)
 
-clean:
+clean::
 	$(PYTHON) $(PYFLAGS) setup.py clean
 	$(MAKE) -f $(CURDIR)/debian/rules clean
 	rm -rf build/ dist/ $(NAME).egg-info/ $(NAME)-$(VER) 
@@ -200,12 +200,11 @@ pi-install.tar: $(PI_TAR_FILES)
 pi-install: pi-install.tar
 	sshpass -p "$(PIPASSWORD)" scp $< $(PI):
 	sshpass -p "$(PIPASSWORD)" ssh $(PI) " \
-		echo "look ma im on the pi!"; \
 		rm -rf rsinstall; \
 		mkdir -p rsinstall; \
 		cd rsinstall; \
 		tar -xvf ../$<; \
-		sudo $(PYTHON) $(PYFLAGS) setup.py install; \
+		$(MAKE) install; \
 		"
 
-#include $(POST_MAK)
+include $(POST_MAK)
