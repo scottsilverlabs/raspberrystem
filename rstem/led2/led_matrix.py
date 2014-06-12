@@ -284,6 +284,21 @@ class LEDMatrix:
         """Remove the foreground, doesn't touch the background"""
         self.clear_sprite(self.fgsprite)
 
+class LEDMessage(LEDSprite):
+    def __init__(self, message, char_spacing=1):
+        if not re.match(r'^[A-Za-z0-9\s]+$', message):
+            raise ValueError("Message contains invalid characters. Only A-Z, a-z, 0-9, and space")
+        text = []
+        for char in message:
+            if char.isdigit():
+                text.append(LEDSprite("font/number/" + char))
+            elif: char.isupper():
+                text.append(LEDSprite("font/upper/" + char))
+            else:
+                text.append(LEDSprite("font/lower/" + char))
+            # add character space
+            text.append(LEDSprite(height=7, width=char_spacing, color='-'))
+        
             
 class LEDSprite:
     """Allows the creation of a LED Sprite that is defined in a text file.
