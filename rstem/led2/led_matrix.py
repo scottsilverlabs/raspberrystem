@@ -175,7 +175,7 @@ class LEDMatrix:
         bitPos = self._point_to_bitpos(x, y)
         if bitPos is None: # out of bound
         	return  		
-        self.bitarray[bitPos:bitPos+4] = color  # set 4 bits
+        self.bitarray[bitPos:bitPos+SIZE_OF_PIXEL] = color  # set 4 bits
             
             
     def _sign(self, n):
@@ -264,10 +264,13 @@ class LEDMatrix:
 		self.set_sprite(sprite, *after_pos)
 		
 		
-	def update_background(self, x=0, y=0):
-		"""Allows you to update the position of the background"""
-		self.set_sprite(self.bgsprite, x, y, background=True)
-		# TODO: crap this isn't going to work, we need to remember
+	def update_background(self, x=0, y=0, sprite=None):
+		"""Allows you to update the position of the background or set a new background"""
+		if sprite is None:
+			self.set_sprite(self.bgsprite, x, y, background=True)
+		else:
+			self.set_sprite(sprite, x, y, background=True)
+
             
 class LEDSprite:
     """Allows the creation of a LED Sprite that is defined in a text file.
@@ -283,12 +286,12 @@ class LEDSprite:
 		    f = open(filename, 'r')
 		    for line in f:
 		        if not re.match(r'^[0-9a-fA-F\s-]+$', line):
-		            raise Exception("Bitmap file contains invalid characters")
+		            raise ValueError("Bitmap file contains invalid characters")
 		        # Determine if widths are consistent
 		        leds = line.split()
 		        if bitmap_width != 0:
 		            if len(leds) != bitmap_width:
-		                raise Exception("Bitmap has different widths")
+		                raise ValueError("Bitmap has different widths")
 		        else:
 		            bitmap_width = len(leds)
 		        bitmap.append(leds)
@@ -296,7 +299,7 @@ class LEDSprite:
 		    f.close()
 	    # set custom height if given
 	    if height > 0 and width > 0 and filename is None:
-	    	bitmap =  [ [ color for i in range(width) ] for j in range(height) ]
+	    	bitmap = [[color for i in range(width)] for j in range(height)]
     		bitmap_height = height
     		bitmap_width = width
     		
