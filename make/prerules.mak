@@ -4,6 +4,9 @@ PI=pi@192.168.1.11
 # ssh password on raspberrypi
 PIPASSWORD=raspberry
 
+# Flags to compile c python wrappers
+CFLAGS=-shared -I/usr/include/python2.3/ -lpython2.3
+
 #
 # Directory rules
 #
@@ -46,6 +49,7 @@ PIPASSWORD=raspberry
 ifeq ($(COMPILEONPI), 1)
 	scp $^ $(PI):/tmp
 	sshpass -p '$(PIPASSWORD)' ssh $(PI) "\
+		echo "look ma I'm on the pi!!"; \
 		mkdir -p /tmp/rs; \
 		cd /tmp/rs; \
 		mv ../$^ .; \

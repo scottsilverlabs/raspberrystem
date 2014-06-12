@@ -59,6 +59,9 @@ DIST_DEB=dist/python-$(NAME)_$(VER)_armhf.deb \
 DIST_DSC=dist/$(NAME)_$(VER).tar.gz \
 	dist/$(NAME)_$(VER).dsc \
 	dist/$(NAME)_$(VER)_source.changes
+	
+# files needed to be sent over to pi for local installation
+PI_TAR_FILES=rstem cellapps misc projects Makefile MANIFEST.in setup.py README.md
 
 .PHONY: all install test doc source egg zip tar deb dist clean release upload-all upload-ppa upload-cheeseshop pi-install projects cellapps upload-check
 
@@ -123,6 +126,15 @@ upload-cheeseshop: $(PY_SOURCES)
 	# update the package's registration on PyPI (in case any metadata's changed)
 	$(MAKE) upload-check
 	$(PYTHON) $(PYFLAGS) setup.py register
+
+release: $(PY_SOURCES) $(DOC_SOURCES)
+	$(MAKE) clean
+	$(MAKE) upload-check
+	# update the debian changelog with new release information
+	dch --newversion $(VER) --controlmaint
+	# commit the changes and add a new tag
+	git commit debian/changelog -m "Updated changelog for release $(VER)"
+	git tag -s release-$(VER) -m "Release $(VER)"
     
 source: $(DIST_TAR) $(DIST_ZIP)
 
@@ -179,57 +191,21 @@ $(DIST_DSC): $(PY_SOURCES) $(DEB_SOURCES)
 	mkdir -p dist/
 	for f in $(DIST_DSC); do cp ../$${f##*/} dist/; done
 
-release: $(PY_SOURCES) $(DOC_SOURCES)
-	$(MAKE) clean
-	# make sure we are on a master branch
-	test -z "$(shell git branch | grep -q '* master')"
-	# create release branch
-#	git branch rel/$(VER)
-	# checkout release branch
-#	git checkout rel/$(VER)
-	# update the debian changelog with new release information
-	dch --newversion $(VER) --controlmaint
-	# commit the changes and add a new tag
-#	git commit debian/changelog -m "Updated changelog for release $(VER)"
-#	git tag -s release-$(VER) -m "Release $(VER)"
-
-#.PHONY: builddeb
-#builddeb:
-
-#	# build the source package in the current directory
-#	# then rename it to project_version.orig.tar.gz
-#	sudo ./setup.py sdist --dist-dir=./ 
-#	rename -f 's/$(PROJECT)-(.*)\.tar\.gz/$(PROJECT)_$$1\.orig\.tar\.gz/' ./*
-#	# build the package
-#	sudo dpkg-buildpackage -i -I -rfakeroot
-
-
-# create .deb file
-#.PHONY: deb
-#deb:
-#	@read -p "Enter Version Number (M.N.0):" version; \
-#	rm -r ./raspberrystem_$$version; \
-#	mkdir -p ./raspberrystem_$$version; \
-#	cp -r ./* ./raspberrystem_$$version/; \
-#	cd ./raspberrystem_$$version; \
-#	./setup.py sdist --dist-dir=/
-#	dpkg-buildpackage -b
 	
 
-pi-install.tar: 
-	tar cvf $@ $(shell $(MAKE) targets)
+pi-install.tar: $(PI_TAR_FILES)
+	tar -cvf $@ $(PI_TAR_FILES)
 	
 
-# had to rename from "install" for deb package installer
 pi-install: pi-install.tar
-	scp $< $(PI):
-	sshpass -p '$(PIPASSWORD)' ssh $(PI) "\
+	sshpass -p "$(PIPASSWORD)" scp $< $(PI):
+	sshpass -p "$(PIPASSWORD)" ssh $(PI) " \
+		echo "look ma im on the pi!"; \
 		rm -rf rsinstall; \
 		mkdir -p rsinstall; \
 		cd rsinstall; \
-		tar xvf ../$<; \
-		find . -name *.sbin -exec sudo chown root {} \\; ; \
-		find . -name *.sbin -exec sudo chmod 4755 {} \\; ; \
+		tar -xvf ../$<; \
+		sudo $(PYTHON) $(PYFLAGS) setup.py install; \
 		"
 
 #include $(POST_MAK)
