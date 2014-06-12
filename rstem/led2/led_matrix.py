@@ -4,6 +4,9 @@ import os
 import bitstring
 import re
 import time
+import scipy
+import numpy
+import magic
 import led_server     # from the attiny48 controller
 
 SIZE_OF_PIXEL = 4     # 4 bits to represent color
@@ -283,21 +286,36 @@ class LEDSprite:
         bitmap_width = 0  # keep track of width and height
         bitmap_height = 0
         if filename is not None:
-		    f = open(filename, 'r')
-		    for line in f:
-		        if not re.match(r'^[0-9a-fA-F\s-]+$', line):
-		            raise ValueError("Bitmap file contains invalid characters")
-		        # Determine if widths are consistent
-		        leds = line.split()
-		        if bitmap_width != 0:
-		            if len(leds) != bitmap_width:
-		                raise ValueError("Bitmap has different widths")
-		        else:
-		            bitmap_width = len(leds)
-		        bitmap.append(leds)
-		        bitmap_height += 1
-		    f.close()
-	    # set custom height if given
+        	# get file type
+        	mime = magic.Magic(mime=True)
+        	filetype = mime.from_file(filename)
+        	image_file = (filetype.find("image") != -1)
+        	txt_file = (filetype == "text/plain")
+        	if image_file:
+        		if height <= 0 or width <= 0:
+        			raise ValueError("Must provide a height and width for image")
+    			# pixelize and resize image with scipy
+        		image = scipy.misc.imread(filename)
+        		con_image = scipy.misc.imresize(image, (width, height), interp='cubic')
+        		bitmap = [[hex(pixel*16/255)[2] for pixel in line] for line in con_image]
+        	elif txt_file:
+				f = open(filename, 'r')
+				for line in f:
+				    if not re.match(r'^[0-9a-fA-F\s-]+$', line):
+				        raise ValueError("Bitmap file contains invalid characters")
+				    # Determine if widths are consistent
+				    leds = line.split()
+				    if bitmap_width != 0:
+				        if len(leds) != bitmap_width:
+				            raise ValueError("Bitmap has different widths")
+				    else:
+				        bitmap_width = len(leds)
+				    bitmap.append(leds)
+				    bitmap_height += 1
+				f.close()
+			else:
+				raise ValueError("Unsupported filetype")
+	    # set custom height if given and not filename
 	    if height > 0 and width > 0 and filename is None:
 	    	bitmap = [[color for i in range(width)] for j in range(height)]
     		bitmap_height = height
@@ -332,6 +350,7 @@ class LEDSprite:
 		if x >= self.width or y >= self.height or x < 0 or y < 0:
 			return None
 		return self.bitmap[y][x]
+		
 		
 	def save_to_file(self, filename):
 		pass
