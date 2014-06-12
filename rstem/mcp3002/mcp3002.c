@@ -111,12 +111,85 @@ static PyObject *readChannel(PyObject *self, PyObject *args){
 	return Py_BuildValue("d", val);
 }
 
-static PyMethodDef spiMethods[] = {
+static PyMethodDef mcp3002_methods[] = {
 	{"read", readChannel, METH_VARARGS},
 	{"initSPI", initSPI, METH_VARARGS},
-	{"closeSPI", closeSPI, METH_VARARGS}
+	{"closeSPI", closeSPI, METH_VARARGS},
+	{NULL, NULL}
 };
 
-void initmcp3002() {
-	(void) Py_InitModule("mcp3002", spiMethods);
+struct module_state {
+    PyObject *error;
+};
+
+#if PY_MAJOR_VERSION >= 3
+#define GETSTATE(m) ((struct module_state*)PyModule_GetState(m))
+#else
+#define GETSTATE(m) (&_state)
+static struct module_state _state;
+#endif
+
+static PyObject *
+error_out(PyObject *m) {
+    struct module_state *st = GETSTATE(m);
+    PyErr_SetString(st->error, "something bad happened");
+    return NULL;
+}
+
+#if PY_MAJOR_VERSION >= 3
+
+static int mcp3002_traverse(PyObject *m, visitproc visit, void *arg) {
+    Py_VISIT(GETSTATE(m)->error);
+    return 0;
+}
+
+static int mcp3002_clear(PyObject *m) {
+    Py_CLEAR(GETSTATE(m)->error);
+    return 0;
+}
+
+
+static struct PyModuleDef moduledef = {
+        PyModuleDef_HEAD_INIT,
+        "mcp3002",
+        NULL,
+        sizeof(struct module_state),
+        mcp3002_methods,
+        NULL,
+        mcp3002_traverse,
+        mcp3002_clear,
+        NULL
+};
+
+#define INITERROR return NULL
+
+PyObject *
+PyInit_mcp3002(void)
+
+#else
+#define INITERROR return
+
+void
+initmcp3002(void)
+#endif
+{
+#if PY_MAJOR_VERSION >= 3
+    PyObject *module = PyModule_Create(&moduledef);
+#else
+    PyObject *module = Py_InitModule("mcp3002", mcp3002_methods);
+#endif
+
+    if (module == NULL)
+        INITERROR;
+    struct module_state *st = GETSTATE(module);
+
+    st->error = PyErr_NewException("mcp3002.Error", NULL, NULL);
+    if (st->error == NULL) {
+        Py_DECREF(module);
+        INITERROR;
+    }
+
+#if PY_MAJOR_VERSION >= 3
+    return module;
+#endif
 }
