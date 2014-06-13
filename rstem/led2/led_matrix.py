@@ -70,7 +70,7 @@ class LEDMatrix:
         return self.num_rows*DIM_OF_MATRIX
         
     def _convert_to_std_angle(self, x, y):
-        # convert coordinate system to standard angle=0 coordinates
+        """Returns converted coordinate system to standard angle=0 coordinates"""
         if self.angle == 90:
             oldx = x
             x = y
@@ -147,6 +147,7 @@ class LEDMatrix:
         
         
     def show(self):
+        """Flushes current display setup to the led matrix"""
         led_server.flush(self._bitarray_to_bytearray())  # give frame buffer to led_server
         if not __debug__:
             for y in range(self._get_height()):
@@ -156,13 +157,13 @@ class LEDMatrix:
                 print("") # print newline
         
     def reset(self):
+        """Completly clears all display setup and erases the led matrix"""
         self.clear_background()
         self.clear_foreground()
-#        self.bitarray = \
-#            bitstring.BitArray(length=(self.num_matrices*SIZE_OF_PIXEL*DIM_OF_MATRIX**2))
         self.show()
         
-    def fill(self, color=0x0, background=False):
+    def fill(self, color=0xF, background=False):
+        """Sets entire display to be filled with given color"""
         old_angle = self.angle
         self.angle = 0    # switch to standard coordinates temporarily
         for x in range(self._get_width()):
@@ -227,6 +228,7 @@ class LEDMatrix:
     
     
     def rect(self, start, dimensions, color=0xF, background=False):
+        """Creates a rectangle from start point using given dimensions"""
         x, y = start
         width, height = dimensions
         self.line((x, y), (x, y + height), color, background)
@@ -234,9 +236,16 @@ class LEDMatrix:
         self.line((x + width, y + height), (x + width, y), color, background)
         self.line((x + width, y), (x, y), color, background)
         
-    def text(self, string, x=0, y=0, background=False, scrolling=False):
-        text = LEDMessage(string)
+    def text(self, text, x=0, y=0, background=False, scrolling=False):
+        """Sets given string to be displayed on LED Matrix
+            - returns the LEDMessage sprite object used to create text
+        """
+        if type(text) == str:
+            text = LEDMessage(text)
+        elif type(text) != LEDMessage and type(text) != LEDSprite:
+            raise ValueError("Invalid text")
         self.set_sprite(text, x, y, background)
+        # TODO: remove scrolling, let it be a user program
         if scrolling:
             while 1:
                 if (x + text.width) < 0: # reset x
@@ -244,17 +253,31 @@ class LEDMatrix:
                 self.update_sprite(text, (x,y), (x-1,y))
                 self.show()
                 x -= 1
+        return text
+        
         
     def set_sprite(self, sprite, x=0, y=0, background=False):
         """Sets given sprite with top left corner at given position"""
         x_offset = x
         y_offset = y
         for y, line in enumerate(sprite.bitmap):
+            y = y + y_offset
+            if y < 0:
+                continue
+            # stop if we go lower than physical display
+            if not self._in_matrix(0,y):
+                break
             for x, pixel in enumerate(line):
+                x = x + x_offset
+                if x < 0:
+                    continue
+                # stop if we go to far to the right of physical display
+                if not self._in_matrix(x,0):
+                    break
                 if pixel != '-':
                     self.point(
-                        x + x_offset,
-                        y + y_offset,
+                        x,
+                        y,
                         color=int(pixel, 16),
                         background=background
                     )
@@ -268,21 +291,31 @@ class LEDMatrix:
         x_offset = x
         y_offset = y
         for y, line in enumerate(sprite.bitmap):
+            y = y + y_offset
+            # keep jumping till we get on the display
+            if y < 0:
+                continue
+            # stop if we go lower than physical display
+            if not self._in_matrix(0,y):
+                break
             for x, pixel in enumerate(line):
-#                print self.bgsprite.get_pixel(x,y), x, y
+                x = x + x_offset
+                if x < 0:  # TODO: make more efficient?
+                    continue
+                # stop if we go to far to the right of physical display
+                if not self._in_matrix(x,0):
+                    break
                 if pixel != '-':
-                    x = x + x_offset
-                    y = y + y_offset
-                    if self._in_matrix(x, y):
-                        if background:
-                            # if clearing background pixel set color to 0
-                            # (this also sets background sprite to 0)
-                            self.point(x, y, 0, background=True)
-                        else:
-                            # else set background to be displayed
-                            self.point(x, y, int(self.bgsprite.get_pixel(x, y), 16))
-                            # remove pixel from foreground by setting it to transparent
-                            self.fgsprite.set_pixel(x, y, '-')
+                    if background:
+                        # if clearing background pixel set color to 0
+                        # (this also sets background sprite to 0)
+                        self.point(x, y, 0, background=True)
+                    else:
+                        # else set background to be displayed
+                        self.point(x, y, int(self.bgsprite.get_pixel(x, y), 16))
+                        # remove pixel from foreground by setting it to transparent
+                        self.fgsprite.set_pixel(x, y, '-')
+            
 
     def update_sprite(self, sprite, before_pos, after_pos):
         self.clear_sprite(sprite, *before_pos)
@@ -358,8 +391,8 @@ class LEDSprite(object):
         self.width = bitmap_width
         
     def append(self, sprite):
-        """Appends given sprite to the right of self
-            - height of given sprite must be <= to self otherwise will be truncated
+        """Appends given sprite to the right of itself
+            - height of given sprite must be <= to itself otherwise will be truncated
         """
         for i, line in enumerate(self.bitmap):
             if i >= sprite.height:
@@ -421,6 +454,11 @@ def _char_to_sprite(char, font_location, space_size=(7,5)):
 class LEDMessage(LEDSprite):
     
     def __init__(self, message, char_spacing=1, font_location="font"):
+        """Creates a text sprite of the given string
+            - This object can be used the same way a sprite is used
+            char_spacing = number pixels between characters
+            font_location = location of folder where font bitmaps are located
+        """
         message = message.strip()
         if len(message) == 0:
             super(LEDSprite, self).__init__()
