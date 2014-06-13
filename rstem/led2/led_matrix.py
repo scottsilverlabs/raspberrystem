@@ -284,23 +284,10 @@ class LEDMatrix:
         """Remove the foreground, doesn't touch the background"""
         self.clear_sprite(self.fgsprite)
 
-class LEDMessage(LEDSprite):
-    def __init__(self, message, char_spacing=1):
-        if not re.match(r'^[A-Za-z0-9\s]+$', message):
-            raise ValueError("Message contains invalid characters. Only A-Z, a-z, 0-9, and space")
-        text = []
-        for char in message:
-            if char.isdigit():
-                text.append(LEDSprite("font/number/" + char))
-            elif: char.isupper():
-                text.append(LEDSprite("font/upper/" + char))
-            else:
-                text.append(LEDSprite("font/lower/" + char))
-            # add character space
-            text.append(LEDSprite(height=7, width=char_spacing, color='-'))
+
         
             
-class LEDSprite:
+class LEDSprite(object):
     """Allows the creation of a LED Sprite that is defined in a text file.
         - The text file must only contain hex numbers 0-9, a-f, A-F, or - (dash)
         - The hex number indicates pixel color and "-" indicates a transparent pixel
@@ -341,7 +328,7 @@ class LEDSprite:
             else:
                 raise ValueError("Unsupported filetype")
         # set custom height if given and not filename
-        if height > 0 and width > 0 and filename is None:
+        if filename is None:
             bitmap = [[color for i in range(width)] for j in range(height)]
             bitmap_height = height
             bitmap_width = width
@@ -349,6 +336,20 @@ class LEDSprite:
         self.bitmap = bitmap
         self.height = bitmap_height
         self.width = bitmap_width
+        
+    def append(self, sprite):
+        """Appends given sprite to the right of self
+            - height of given sprite must be <= to self otherwise will be truncated
+        """
+        for i, line in enumerate(self.bitmap):
+            if i >= sprite.width:
+                # fill in with transparent pixels
+                tran_line = ['-' for j in range(sprite.width)]
+                self.bitmap[i] = sum([line, tran_line], [])
+            else:
+                self.bitmap[i] = sum([line, sprite.bitmap[i]], [])
+        # update size
+        self.width += sprite.width
         
     def set_pixel(self, x, y, color=0xF):
         """Sets given color to given x and y coordinate in sprite
@@ -380,5 +381,52 @@ class LEDSprite:
     def save_to_file(self, filename):
         pass
         # TODO: ???
+        
+        
+def _char_to_sprite(char, space_size=(7,5)):
+    if not (type(char) == 'str' and len(t) == 1):
+        raise ValueError("Not a character")
+    if char.isdigit():
+        return LEDSprite("font/number/" + char)
+    elif char.isupper():
+        return LEDSprite("font/upper/" + char)
+    elif char.islower():
+        return LEDSprite("font/lower/" + char)
+    elif char.isspace():
+        return LEDSprite(height=space_size[0], width=space_size[1], color='-')
+    else:
+        raise ValueError("Invalid character")
+     
+        
+class LEDMessage(LEDSprite):
+    
+    def __init__(self, message, char_spacing=1):
+        message = message.strip()
+        if len(message) == 0:
+            super(LEDSprite, self).__init__()
+            return
+        if not re.match(r'^[A-Za-z0-9\s]+$', message):
+            raise ValueError("Message contains invalid characters. Only A-Z, a-z, 0-9, and space")
+        # start with first character as intial sprite object
+        init_sprite = _char_to_sprite(message[0])
+        bitmap = init_sprite.bitmap
+        # get general height and width of characters
+        height = init_sprite.height
+        width = init_sprite.width
+        
+        # append other characters to initial sprite
+        for i, char in enumerate(message[1:]):
+            i = i+1  # offset index
+            sprite = _char_to_sprite(char, space_size=(height, width))
+            if sprite.height != height:
+                raise ValueError("Height of character sprites must all be the same.")
+            # append
+            init_sprite.append(sprite)
+            # add character spacing
+            if i != len(message):
+                init_sprite.append( \
+                    LEDSprite(height=height, width=char_spacing, color='-'))
+        
+        self = init_sprite
             
             
