@@ -1,58 +1,47 @@
 #!/usr/bin/env python3
-import wx
+#TODO Copyright/License
+#TODO Buttons
 
-class ComputerologyIde(wx.Frame):
-    def __init__(self, parent, id, title):
-        wx.Frame.__init__(self, parent, id, title, wx.DefaultPosition, wx.Size(350, 250))
+from gi.repository import Gtk, GtkSource
+class IDE(Gtk.Window):
+    def __init__(self):
+        Gtk.Window.__init__(self, title="Raspberry IDEa")
+        self.set_size_request(400, 400)
+        self.connect("delete-event", Gtk.main_quit)
 
-        toolbar = wx.ToolBar(self, -1, style=wx.TB_HORIZONTAL | wx.NO_BORDER)
-        toolbar.SetToolBitmapSize((64, 64))
-        img = wx.Image('icons/stop.png', wx.BITMAP_TYPE_PNG).ConvertToBitmap()
-        stop_button = toolbar.AddSimpleTool(wx.ID_ANY, img, 'foo', '')
-        toolbar.AddSeparator()
-        img = wx.Image('icons/play.png', wx.BITMAP_TYPE_PNG).ConvertToBitmap()
-        play_button = toolbar.AddSimpleTool(wx.ID_ANY, img, 'Exit', '')
-        toolbar.Realize()
+        self.grid = Gtk.Grid()
+        self.add(self.grid)
 
-        self.splitter = wx.SplitterWindow(self, -1)
-        panel1 = wx.Panel(self.splitter, -1)
-        txt = wx.TextCtrl(panel1, style=wx.TE_MULTILINE)
-        bsizer = wx.BoxSizer()
-        bsizer.Add(txt, 1, wx.EXPAND)
-        panel1.SetSizer(bsizer)
-        panel1.SetBackgroundColour(wx.LIGHT_GREY)
-        panel2 = wx.Panel(self.splitter, -1)
-        wx.StaticText(panel2, -1,
-                    "Whether you think that you can, or that you can't, you are usually right."
-                    "\n\n Henry Ford",
-            (100,100), style=wx.ALIGN_CENTRE)
-        panel2.SetBackgroundColour(wx.WHITE)
-        self.splitter.SplitVertically(panel1, panel2)
-        vbox = wx.BoxSizer(wx.VERTICAL)
-        vbox.Add(toolbar, 0, wx.EXPAND, border=5)
-        vbox.Add(self.splitter, 1, wx.EXPAND)
+        self.toolbar = Gtk.Toolbar();
+        self.grid.attach(self.toolbar, 0, 0, 3, 1)
 
-        self.splitter.SetSashGravity(0.5)
-        self.SetAutoLayout(True)
-        self.SetSizer(vbox)
-        self.statusbar = self.CreateStatusBar()
-        self.Layout()
+        self.rbutton = Gtk.ToolButton.new_from_stock(Gtk.STOCK_MEDIA_PLAY)
+        self.rbutton.connect("clicked", self.run)
+        self.toolbar.insert(self.rbutton, 0)
 
-        self.Bind(wx.EVT_TOOL, self.OnStop, id=stop_button.GetId())
-        self.Bind(wx.EVT_TOOL, self.OnPlay, id=play_button.GetId())
+        self.sbutton = Gtk.ToolButton.new_from_stock(Gtk.STOCK_MEDIA_STOP)
+        self.sbutton.connect("clicked", self.stop)
+        self.toolbar.insert(self.sbutton, 1)
 
-    def OnStop(self, event):
-        self.statusbar.SetStatusText('New Command')
+        self.code = GtkSource.View()
+        self.codebuffer = self.code.get_buffer()
+        self.codebuffer.set_highlight_syntax(True)
+        lm = GtkSource.LanguageManager()
+        self.codebuffer.set_language(lm.get_language("python"))
 
-    def OnPlay(self, event):
-        self.Close()
+        self.scrolledwindow = Gtk.ScrolledWindow()
+        self.scrolledwindow.set_vexpand(True)
+        self.scrolledwindow.set_hexpand(True)
+        self.grid.attach(self.scrolledwindow, 0, 1, 3, 1)
+        self.scrolledwindow.add_with_viewport(self.code)      
+        self.scrolledwindow.show_all()
 
-class MyApp(wx.App):
-    def OnInit(self):
-        frame = ComputerologyIde(None, -1, 'toolbar.py')
-        frame.Show(True)
-        return True
+    def run(self, widget):
+        print("Run")
 
-if __name__ == "__main__":
-    MyApp().MainLoop()
+    def stop(self, widget):
+        print("Stop")
 
+win = IDE()
+win.show_all()
+Gtk.main()
