@@ -1,4 +1,4 @@
-#!/Library/Frameworks/Python.framework/Versions/2.7/bin/python-32
+#!/usr/bin/env python3
 import wx
 
 class ComputerologyIde(wx.Frame):
