@@ -342,7 +342,7 @@ class LEDSprite(object):
             - height of given sprite must be <= to self otherwise will be truncated
         """
         for i, line in enumerate(self.bitmap):
-            if i >= sprite.width:
+            if i >= sprite.height:
                 # fill in with transparent pixels
                 tran_line = ['-' for j in range(sprite.width)]
                 self.bitmap[i] = sum([line, tran_line], [])
@@ -384,7 +384,7 @@ class LEDSprite(object):
         
         
 def _char_to_sprite(char, space_size=(7,5)):
-    if not (type(char) == 'str' and len(t) == 1):
+    if not (type(char) == str and len(char) == 1):
         raise ValueError("Not a character")
     if char.isdigit():
         return LEDSprite("font/number/" + char)
@@ -414,19 +414,20 @@ class LEDMessage(LEDSprite):
         height = init_sprite.height
         width = init_sprite.width
         
-        # append other characters to initial sprite
-        for i, char in enumerate(message[1:]):
-            i = i+1  # offset index
-            sprite = _char_to_sprite(char, space_size=(height, width))
-            if sprite.height != height:
-                raise ValueError("Height of character sprites must all be the same.")
-            # append
-            init_sprite.append(sprite)
-            # add character spacing
-            if i != len(message):
-                init_sprite.append( \
-                    LEDSprite(height=height, width=char_spacing, color='-'))
+        if len(message) > 1:
+            # append other characters to initial sprite
+            for char in message[1:]:
+                # add character spacing
+                init_sprite.append(
+                        LEDSprite(height=height, width=char_spacing, color='-'))
+                sprite = _char_to_sprite(char, space_size=(height, width))
+                if sprite.height != height:
+                    raise ValueError("Height of character sprites must all be the same.")
+                # append
+                init_sprite.append(sprite)
         
-        self = init_sprite
+        self.bitmap = init_sprite.bitmap
+        self.height = init_sprite.height
+        self.width = init_sprite.width
             
             
