@@ -69,19 +69,7 @@ class LEDMatrix:
     def _get_height(self):
         return self.num_rows*DIM_OF_MATRIX
         
-    def _in_matrix(self, x, y):
-        return (y >= 0 and y < self._get_height() and x >= 0 and x < self._get_width())
-        
-    def _bitarray_to_bytearray(self):
-        """Convert bitarray into an bytearray python type that can be given to led_server"""     
-        return bytearray(self.bitarray.tobytes())
-        
-    def _num_pixels(self):
-        return self._get_height() * self._get_width()
-          
-    def _point_to_bitpos(self, x, y):
-        """Convert the (x,y) coordinates into the bit position in bitarray
-        Returns None if point not located on led matrix"""
+    def _convert_to_std_angle(self, x, y):
         # convert coordinate system to standard angle=0 coordinates
         if self.angle == 90:
             oldx = x
@@ -94,10 +82,29 @@ class LEDMatrix:
             oldy = y
             y = x
             x = (self._get_width() - 1) - oldy
+        return (x, y)
         
+    def _in_matrix(self, x, y):
+        x, y = self._convert_to_std_angle(x, y)
+        return (y >= 0 and y < self._get_height() and x >= 0 and x < self._get_width())
+        
+    def _bitarray_to_bytearray(self):
+        """Convert bitarray into an bytearray python type that can be given to led_server"""     
+        return bytearray(self.bitarray.tobytes())
+        
+    def _num_pixels(self):
+        return self._get_height() * self._get_width()
+        
+          
+    def _point_to_bitpos(self, x, y):
+        """Convert the (x,y) coordinates into the bit position in bitarray
+        Returns None if point not located on led matrix"""
         # do nothing if x and y out of bound
         if not self._in_matrix(x, y):
             return None
+        
+        # convert to standard angle=0 coordinates
+        x, y = self._convert_to_std_angle(x, y)
            
         # figure out what matrix we are dealing with
         mat_col = x/DIM_OF_MATRIX
@@ -148,7 +155,7 @@ class LEDMatrix:
                     print(self.bitarray[bitPos : bitPos+SIZE_OF_PIXEL].hex),
                 print("") # print newline
         
-    def erase(self):
+    def reset(self):
         self.clear_background()
         self.clear_foreground()
 #        self.bitarray = \
@@ -227,13 +234,24 @@ class LEDMatrix:
         self.line((x + width, y + height), (x + width, y), color, background)
         self.line((x + width, y), (x, y), color, background)
         
+    def text(self, string, x=0, y=0, background=False, scrolling=False):
+        text = LEDMessage(string)
+        self.set_sprite(text, x, y, background)
+        if scrolling:
+            while 1:
+                if (x + text.width) < 0: # reset x
+                    x = self._get_width()
+                self.update_sprite(text, (x,y), (x-1,y))
+                self.show()
+                x -= 1
+        
     def set_sprite(self, sprite, x=0, y=0, background=False):
         """Sets given sprite with top left corner at given position"""
         x_offset = x
         y_offset = y
         for y, line in enumerate(sprite.bitmap):
             for x, pixel in enumerate(line):
-                if pixel != '-': # don't do anything if transparent
+                if pixel != '-':
                     self.point(
                         x + x_offset,
                         y + y_offset,
@@ -251,18 +269,20 @@ class LEDMatrix:
         y_offset = y
         for y, line in enumerate(sprite.bitmap):
             for x, pixel in enumerate(line):
-                if pixel != '-': # don't do anything if transparent
+#                print self.bgsprite.get_pixel(x,y), x, y
+                if pixel != '-':
                     x = x + x_offset
                     y = y + y_offset
-                    if background:
-                        # if clearing background pixel set color to 0
-                        # (this also sets background sprite to 0)
-                        self.point(x, y, 0, background=True)
-                    else:
-                        # else set background to be displayed
-                        self.point(x, y, int(self.bgsprite.get_pixel(x, y), 16))
-                        # remove pixel from foreground by setting it to transparent
-                        self.fgsprite.set_pixel(x, y, '-')
+                    if self._in_matrix(x, y):
+                        if background:
+                            # if clearing background pixel set color to 0
+                            # (this also sets background sprite to 0)
+                            self.point(x, y, 0, background=True)
+                        else:
+                            # else set background to be displayed
+                            self.point(x, y, int(self.bgsprite.get_pixel(x, y), 16))
+                            # remove pixel from foreground by setting it to transparent
+                            self.fgsprite.set_pixel(x, y, '-')
 
     def update_sprite(self, sprite, before_pos, after_pos):
         self.clear_sprite(sprite, *before_pos)
@@ -383,15 +403,15 @@ class LEDSprite(object):
         # TODO: ???
         
         
-def _char_to_sprite(char, space_size=(7,5)):
+def _char_to_sprite(char, font_location, space_size=(7,5)):
     if not (type(char) == str and len(char) == 1):
         raise ValueError("Not a character")
     if char.isdigit():
-        return LEDSprite("font/number/" + char)
+        return LEDSprite(font_location + "/number/" + char)
     elif char.isupper():
-        return LEDSprite("font/upper/" + char)
+        return LEDSprite(font_location + "/upper/" + char)
     elif char.islower():
-        return LEDSprite("font/lower/" + char)
+        return LEDSprite(font_location + "/lower/" + char)
     elif char.isspace():
         return LEDSprite(height=space_size[0], width=space_size[1], color='-')
     else:
@@ -400,7 +420,7 @@ def _char_to_sprite(char, space_size=(7,5)):
         
 class LEDMessage(LEDSprite):
     
-    def __init__(self, message, char_spacing=1):
+    def __init__(self, message, char_spacing=1, font_location="font"):
         message = message.strip()
         if len(message) == 0:
             super(LEDSprite, self).__init__()
@@ -408,7 +428,7 @@ class LEDMessage(LEDSprite):
         if not re.match(r'^[A-Za-z0-9\s]+$', message):
             raise ValueError("Message contains invalid characters. Only A-Z, a-z, 0-9, and space")
         # start with first character as intial sprite object
-        init_sprite = _char_to_sprite(message[0])
+        init_sprite = _char_to_sprite(message[0], font_location)
         bitmap = init_sprite.bitmap
         # get general height and width of characters
         height = init_sprite.height
@@ -420,7 +440,7 @@ class LEDMessage(LEDSprite):
                 # add character spacing
                 init_sprite.append(
                         LEDSprite(height=height, width=char_spacing, color='-'))
-                sprite = _char_to_sprite(char, space_size=(height, width))
+                sprite = _char_to_sprite(char, font_location, space_size=(height, width))
                 if sprite.height != height:
                     raise ValueError("Height of character sprites must all be the same.")
                 # append
