@@ -36,12 +36,12 @@ class LEDMatrix:
         num_cols = number of led matrices set up horizontally
         angle = orientation of x and y coordinates
                 - supports angle = 0, 90, 180, and 270
-        zigzag = True if matrices set up in zigzag fashion instead of 
+        zigzag = True if matrices set up in zigzag fashion instead of
                     left to right on each rowm
         """
         if num_rows <= 0 or num_cols <= 0:
-            raise ValueError("Invalid arguments in LedDraw initialization") 
-        # create a bitset of all 0's 
+            raise ValueError("Invalid arguments in LedDraw initialization")
+        # create a bitset of all 0's
         self.bitarray = \
             bitstring.BitArray(length=(num_rows*num_cols*SIZE_OF_PIXEL*(DIM_OF_MATRIX**2)))
         self.num_rows = num_rows
@@ -59,16 +59,16 @@ class LEDMatrix:
             width=num_cols*DIM_OF_MATRIX,
             color='-'
         )
-        
+
         # initialize spi
         led_server.initSPI()
-        
+
     def _get_width(self):
         return self.num_cols*DIM_OF_MATRIX
-        
+
     def _get_height(self):
         return self.num_rows*DIM_OF_MATRIX
-        
+
     def _convert_to_std_angle(self, x, y):
         """Returns converted coordinate system to standard angle=0 coordinates"""
         if self.angle == 90:
@@ -83,58 +83,58 @@ class LEDMatrix:
             y = x
             x = (self._get_width() - 1) - oldy
         return (x, y)
-        
+
     def _in_matrix(self, x, y):
         x, y = self._convert_to_std_angle(x, y)
         return (y >= 0 and y < self._get_height() and x >= 0 and x < self._get_width())
-        
+
     def _bitarray_to_bytearray(self):
-        """Convert bitarray into an bytearray python type that can be given to led_server"""     
+        """Convert bitarray into an bytearray python type that can be given to led_server"""
         return bytearray(self.bitarray.tobytes())
-        
+
     def _num_pixels(self):
         return self._get_height() * self._get_width()
-        
-          
+
+
     def _point_to_bitpos(self, x, y):
         """Convert the (x,y) coordinates into the bit position in bitarray
         Returns None if point not located on led matrix"""
         # do nothing if x and y out of bound
         if not self._in_matrix(x, y):
             return None
-        
+
         # convert to standard angle=0 coordinates
         x, y = self._convert_to_std_angle(x, y)
-           
+
         # figure out what matrix we are dealing with
         mat_col = x/DIM_OF_MATRIX
         mat_row = y/DIM_OF_MATRIX
-        
+
         # subtract off above matrix row and column so we can treat y relative to matrix row
         y = (y - mat_row*DIM_OF_MATRIX)
-        
+
         # if on odd matrix row and zigzag enabled, we need to flip x and y coords
         # (this allows us to treat x,y,mat_row,and mat_col as if zigzag == False)
         if mat_row % 2 == 1 and self.zigzag:
             x = (DIM_OF_MATRIX*self.num_cols - 1) - x
             y = (DIM_OF_MATRIX - 1) - y
             mat_col = x/DIM_OF_MATRIX    # update mat_col to new matrix element
-            
+
         # subtract off left matrix columns so we can treat x relative to matrix element
         x = (x - mat_col*DIM_OF_MATRIX)
-        
+
         # get bitPos relative to matrix element
         bitPosCol = x*DIM_OF_MATRIX*SIZE_OF_PIXEL
         bitPosColOffset = (DIM_OF_MATRIX - 1 - y)*SIZE_OF_PIXEL
         bitPos = bitPosCol + bitPosColOffset
-        
+
         # switch matrix element to be flipped version (needed for led_server)
         mat_index = mat_row*self.num_cols + mat_col  # original index
         mat_index = (self.num_matrices - 1) - mat_index  # swapped index
-        
+
         # convert bitPos to absolute index of entire matrix
         bitPos = mat_index*(DIM_OF_MATRIX**2)*SIZE_OF_PIXEL + bitPos
-        
+
         # swap nibble (low to high, high to low) (needed for led_server)
         if bitPos % 8 == 0: # beginning of byte
             bitPos += 4
@@ -142,10 +142,10 @@ class LEDMatrix:
             bitPos -= 4
         else:
             assert False, "bitPos is not nibble aligned"
-            
+
         return bitPos
-        
-        
+
+
     def show(self):
         """Flushes current display setup to the led matrix"""
         led_server.flush(self._bitarray_to_bytearray())  # give frame buffer to led_server
@@ -155,13 +155,13 @@ class LEDMatrix:
                     bitPos = self._point_to_bitpos(x,y)
                     print(self.bitarray[bitPos : bitPos+SIZE_OF_PIXEL].hex),
                 print("") # print newline
-        
+
     def reset(self):
         """Completly clears all display setup and erases the led matrix"""
         self.clear_background()
         self.clear_foreground()
         self.show()
-        
+
     def fill(self, color=0xF, background=False):
         """Sets entire display to be filled with given color"""
         old_angle = self.angle
@@ -170,12 +170,12 @@ class LEDMatrix:
             for y in range(self._get_height()):
                 self.point(x, y, color, background)
         self.angle = old_angle
-        
+
     def point(self, x, y, color=0xF, background=False):
         """Adds point to bitArray and foreground or background sprite"""
         if color < 0x0 or color > 0xF:
             raise ValueError("Invalid Color, must be between 0x0-0xF")
-            
+
         if background:
             self.bgsprite.set_pixel(x, y, color)
              # if foreground not transparent don't display it
@@ -183,23 +183,23 @@ class LEDMatrix:
                 return
         else:
             self.fgsprite.set_pixel(x, y, color)
-            
+
         # set to display color
         bitPos = self._point_to_bitpos(x, y)
         if bitPos is None: # out of bound
-            return          
+            return
         self.bitarray[bitPos:bitPos+SIZE_OF_PIXEL] = color  # set 4 bits
-            
-            
+
+
     def _sign(self, n):
         return 1 if n >= 0 else -1
-            
-            
+
+
     def line(self, point_a, point_b, color=0xF, background=False):
-        """Create a line from point_a to point_b"""       
+        """Create a line from point_a to point_b"""
         if color < 0x0 or color > 0xF:
             raise ValueError("Invalid color")
-            
+
         x_diff = point_a[0] - point_b[0]
         y_diff = point_a[1] - point_b[1]
         step = self._sign(x_diff) * self._sign(y_diff)
@@ -225,8 +225,8 @@ class LEDMatrix:
                     color=color,
                     background=background
                 )
-    
-    
+
+
     def rect(self, start, dimensions, color=0xF, background=False):
         """Creates a rectangle from start point using given dimensions"""
         x, y = start
@@ -235,7 +235,7 @@ class LEDMatrix:
         self.line((x, y + height), (x + width, y + height), color, background)
         self.line((x + width, y + height), (x + width, y), color, background)
         self.line((x + width, y), (x, y), color, background)
-        
+
     def text(self, text, x=0, y=0, background=False, scrolling=False):
         """Sets given string to be displayed on LED Matrix
             - returns the LEDMessage sprite object used to create text
@@ -254,8 +254,8 @@ class LEDMatrix:
                 self.show()
                 x -= 1
         return text
-        
-        
+
+
     def set_sprite(self, sprite, x=0, y=0, background=False):
         """Sets given sprite with top left corner at given position"""
         x_offset = x
@@ -281,7 +281,7 @@ class LEDMatrix:
                         color=int(pixel, 16),
                         background=background
                     )
-    
+
     def clear_sprite(self, sprite, x=0, y=0, background=False):
         """Clears given sprite at given position
             - subsitutes the pixels the sprite was covering with the background
@@ -315,31 +315,31 @@ class LEDMatrix:
                         self.point(x, y, int(self.bgsprite.get_pixel(x, y), 16))
                         # remove pixel from foreground by setting it to transparent
                         self.fgsprite.set_pixel(x, y, '-')
-            
+
 
     def update_sprite(self, sprite, before_pos, after_pos):
         self.clear_sprite(sprite, *before_pos)
         self.set_sprite(sprite, *after_pos)
-        
-        
+
+
     def update_background(self, sprite=None, x=0, y=0):
         """Allows you to update the position of the background or set a new background"""
         if sprite is None:
             self.set_sprite(self.bgsprite, x, y, background=True)
         else:
             self.set_sprite(sprite, x, y, background=True)
-            
+
     def clear_background(self):
         """Removes the background, doesn't touch foreground"""
         self.clear_sprite(self.bgsprite, background=True)
-        
+
     def clear_foreground(self):
         """Remove the foreground, doesn't touch the background"""
         self.clear_sprite(self.fgsprite)
 
 
-        
-            
+
+
 class LEDSprite(object):
     """Allows the creation of a LED Sprite that is defined in a text file.
         - The text file must only contain hex numbers 0-9, a-f, A-F, or - (dash)
@@ -385,11 +385,11 @@ class LEDSprite(object):
             bitmap = [[color for i in range(width)] for j in range(height)]
             bitmap_height = height
             bitmap_width = width
-            
+
         self.bitmap = bitmap
         self.height = bitmap_height
         self.width = bitmap_width
-        
+
     def append(self, sprite):
         """Appends given sprite to the right of itself
             - height of given sprite must be <= to itself otherwise will be truncated
@@ -403,7 +403,7 @@ class LEDSprite(object):
                 self.bitmap[i] = sum([line, sprite.bitmap[i]], [])
         # update size
         self.width += sprite.width
-        
+
     def set_pixel(self, x, y, color=0xF):
         """Sets given color to given x and y coordinate in sprite
             - color can be a int or string of hex value
@@ -422,20 +422,20 @@ class LEDSprite(object):
         else:
             raise ValueError("Invalid color type")
         return 1
-            
+
     def get_pixel(self, x, y):
         """Returns string of color at given position or None
         """
         if x >= self.width or y >= self.height or x < 0 or y < 0:
             return None
         return self.bitmap[y][x]
-        
-        
+
+
     def save_to_file(self, filename):
         pass
         # TODO: ???
-        
-        
+
+
 def _char_to_sprite(char, font_location, space_size=(7,5)):
     if not (type(char) == str and len(char) == 1):
         raise ValueError("Not a character")
@@ -449,10 +449,10 @@ def _char_to_sprite(char, font_location, space_size=(7,5)):
         return LEDSprite(height=space_size[0], width=space_size[1], color='-')
     else:
         raise ValueError("Invalid character")
-     
-        
+
+
 class LEDMessage(LEDSprite):
-    
+
     def __init__(self, message, char_spacing=1, font_location="font"):
         """Creates a text sprite of the given string
             - This object can be used the same way a sprite is used
@@ -471,7 +471,7 @@ class LEDMessage(LEDSprite):
         # get general height and width of characters
         height = init_sprite.height
         width = init_sprite.width
-        
+
         if len(message) > 1:
             # append other characters to initial sprite
             for char in message[1:]:
@@ -483,9 +483,7 @@ class LEDMessage(LEDSprite):
                     raise ValueError("Height of character sprites must all be the same.")
                 # append
                 init_sprite.append(sprite)
-        
+
         self.bitmap = init_sprite.bitmap
         self.height = init_sprite.height
         self.width = init_sprite.width
-            
-            
