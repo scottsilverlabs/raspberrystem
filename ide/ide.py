@@ -100,7 +100,7 @@ class IDE(Gtk.Window):
         self.outputscroller.add_with_viewport(self.output)
         self.outputscroller.show_all()
         self.codesplit.pack2(self.outputscroller, True, True)
-        self.codesplit.set_position(300)
+        self.codesplit.set_position(310)
 
         self.webscroller = Gtk.ScrolledWindow()
         self.webscroller.set_vexpand(True)
@@ -112,10 +112,19 @@ class IDE(Gtk.Window):
         self.webscroller.add_with_viewport(self.browser)
         self.browser.load_uri("http://google.com")
 
+    def log(self, message):
+        self.outputbuffer.insert(self.outputbuffer.get_end_iter(), message)
+        curr = self.outputscroller.get_vadjustment()
+        adj = Gtk.Adjustment.new(curr.get_upper(), curr.get_lower(), 
+            curr.get_upper(), curr.get_step_increment(), 
+            curr.get_page_increment(), curr.get_page_size()
+        )
+        self.outputscroller.set_vadjustment(adj)
+
     def printLoop(self):
         while self.currProc is not None and self.currProc.isalive():
             output = self.currProc.read_nonblocking(2048).decode("utf-8")
-            self.outputbuffer.insert(self.outputbuffer.get_end_iter(), output)
+            self.log(output)
         self.currProc = None
 
     def run(self, widget):
@@ -126,7 +135,9 @@ class IDE(Gtk.Window):
                 self.save()
             self.currProc = spawn(self.currFile)
             t = threading.Thread(target=self.printLoop)
-            t.start()
+            try:
+                t.start()
+            except: pass
             self.code.set_editable(True)
 
     def stop(self, widget):
@@ -149,7 +160,7 @@ class IDE(Gtk.Window):
         chmod(self.currFile, 555)
         f.write(self.codebuffer.get_text(self.codebuffer.get_start_iter(), self.codebuffer.get_end_iter(), True))
         f.close()
-        self.outputbuffer.insert(self.outputbuffer.get_end_iter(), "File saved\n")
+        self.log("File saved\n")
 
     def newFile(self, widget):
         dialog = NewFileDialog(self)
