@@ -17,9 +17,12 @@
 #Depends on python3-gi, gir1.2-gtksource-3.0, and gir1.2-webkit-3.0
 
 from gi.repository import Gtk, GtkSource, WebKit
+from os import path
+
+projectDir = path.expanduser("~/Projects")
 
 class IDE(Gtk.Window):
-    
+    currFile = None
     def __init__(self):
         Gtk.Window.__init__(self, title="Raspberry IDEa")
         self.set_size_request(400, 400)
@@ -31,13 +34,21 @@ class IDE(Gtk.Window):
         self.toolbar = Gtk.Toolbar();
         self.grid.attach(self.toolbar, 0, 0, 3, 1)
 
-        self.rbutton = Gtk.ToolButton.new_from_stock(Gtk.STOCK_MEDIA_PLAY)
+        self.rbutton = Gtk.ToolButton.new_from_stock(Gtk.STOCK_MEDIA_PLAY) #Run
         self.rbutton.connect("clicked", self.run)
         self.toolbar.insert(self.rbutton, 0)
 
-        self.sbutton = Gtk.ToolButton.new_from_stock(Gtk.STOCK_MEDIA_STOP)
+        self.sbutton = Gtk.ToolButton.new_from_stock(Gtk.STOCK_MEDIA_STOP) #Stop
         self.sbutton.connect("clicked", self.stop)
         self.toolbar.insert(self.sbutton, 1)
+
+        self.nbutton = Gtk.ToolButton.new_from_stock(Gtk.STOCK_EDIT) #New
+        self.nbutton.connect("clicked", self.newFile)
+        self.toolbar.insert(self.nbutton, 2)
+
+        self.obutton = Gtk.ToolButton.new_from_stock(Gtk.STOCK_DIRECTORY) #Open
+        self.obutton.connect("clicked", self.openFile)
+        self.toolbar.insert(self.obutton, 3)
 
         self.mainholder = Gtk.Paned()
         self.grid.attach(self.mainholder, 0, 1, 1, 1)
@@ -86,6 +97,24 @@ class IDE(Gtk.Window):
     def stop(self, widget):
         print("Stop")
 
+    def newFile(self, widget):
+        print("New")
+
+    def openFile(self, widget):
+        dialog = Gtk.FileChooserDialog("Select Project", self,
+            Gtk.FileChooserAction.OPEN,
+            (Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
+             Gtk.STOCK_OPEN, Gtk.ResponseType.OK))
+        filter_py = Gtk.FileFilter()
+        filter_py.set_name("Python files")
+        filter_py.add_mime_type("text/x-python")
+        dialog.add_filter(filter_py)
+        dialog.set_current_folder_uri("file://"+projectDir)
+        response = dialog.run()
+        if response == Gtk.ResponseType.OK:
+            print("Open clicked")
+            print("File selected: " + dialog.get_filename())
+        dialog.destroy()
 
 win = IDE()
 win.show_all()
