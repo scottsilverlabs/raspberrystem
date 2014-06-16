@@ -21,8 +21,24 @@ from os import path
 
 projectDir = path.expanduser("~/Projects")
 
+class NewFileDialog(Gtk.Dialog):
+    def __init__(self, parent):
+        Gtk.Dialog.__init__(self, "New File Name", parent, 0,
+            (Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
+             Gtk.STOCK_OK, Gtk.ResponseType.OK))
+        self.set_default_size(150, 100)
+        self.entry = Gtk.Entry()
+        box = self.get_content_area()
+        box.add(self.entry)
+        self.show_all()
+
+    def text(self):
+        return self.entry.get_text()
+
 class IDE(Gtk.Window):
+
     currFile = None
+
     def __init__(self):
         Gtk.Window.__init__(self, title="Raspberry IDEa")
         self.set_size_request(400, 400)
@@ -62,7 +78,7 @@ class IDE(Gtk.Window):
         self.code.set_tab_width(4)
         self.codebuffer.set_highlight_syntax(True)
         lm = GtkSource.LanguageManager()
-        self.codebuffer.set_language(lm.get_language("python"))
+        self.codebuffer.set_language(lm.get_language("python3"))
 
         self.codescroller = Gtk.ScrolledWindow()
         self.codescroller.set_vexpand(True)
@@ -73,6 +89,7 @@ class IDE(Gtk.Window):
 
         self.outputbuffer = GtkSource.Buffer()
         self.output = GtkSource.View.new_with_buffer(self.outputbuffer)
+        self.output.set_editable(False)
         self.outputscroller = Gtk.ScrolledWindow()
         self.outputscroller.set_vexpand(True)
         self.outputscroller.set_hexpand(True)
@@ -92,13 +109,23 @@ class IDE(Gtk.Window):
         self.browser.load_uri("http://google.com")
 
     def run(self, widget):
-        print("Run")
+        self.code.set_editable(False)
 
     def stop(self, widget):
-        print("Stop")
+        self.code.set_editable(True)
+
+    def save(self, widget):
+        f = open(self.currFile, "w")
+        f.write(self.codebuffer.get_text(self.codebuffer.get_start_iter(), self.codebuffer.get_end_iter()))
+        f.close()
+        self.outputbuffer.do_insert_text(self.outputbuffer.get_end_iter(), "File saved", 10)
 
     def newFile(self, widget):
-        print("New")
+        dialog = NewFileDialog(self)
+        response = dialog.run()
+        if response == Gtk.ResponseType.OK:
+            print(dialog.text())
+        dialog.destroy()
 
     def openFile(self, widget):
         dialog = Gtk.FileChooserDialog("Select Project", self,
@@ -112,8 +139,11 @@ class IDE(Gtk.Window):
         dialog.set_current_folder_uri("file://"+projectDir)
         response = dialog.run()
         if response == Gtk.ResponseType.OK:
-            print("Open clicked")
-            print("File selected: " + dialog.get_filename())
+            self.currFile = dialog.get_filename()
+            f = open(self.currFile, "r")
+            text = f.read()
+            f.close()
+            self.codebuffer.set_text(text)
         dialog.destroy()
 
 win = IDE()
