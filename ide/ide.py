@@ -20,8 +20,10 @@ from gi.repository import Gtk, GtkSource, WebKit
 from os import path, mkdir, chmod
 from pexpect import spawn
 import threading
+import json
 
-projectDir = path.expanduser("~/Projects/")
+projectDir = path.expanduser("~/raspberryidea/")
+settings = {"Theme" : None, "Browser Homepage" : "http://google.com", "Tab Width" : 4}
 
 class NewFileDialog(Gtk.Dialog):
     def __init__(self, parent):
@@ -45,7 +47,7 @@ class IDE(Gtk.Window):
     def __init__(self):
         Gtk.Window.__init__(self, title="Raspberry IDEa")
         self.set_size_request(400, 400)
-        self.connect("delete-event", Gtk.main_quit)
+        self.connect("delete-event", self.exit)
 
         self.grid = Gtk.Grid()
         self.add(self.grid)
@@ -75,12 +77,15 @@ class IDE(Gtk.Window):
         self.mainholder.pack1(self.codesplit, True, True)
 
         self.codebuffer = GtkSource.Buffer()
-        self.codebuffer.set_text("#!/usr/bin/env python3\nfrom time import sleep\nprint('a')\nsleep(2)\nprint('b')")  
+        self.codebuffer.set_highlight_syntax(True)
+        self.codebuffer.set_text("#!/usr/bin/env python3\n")
+        theme = GtkSource.StyleScheme().get_style("cobalt")
+        self.codebuffer.set_style_scheme(theme)
         self.code = GtkSource.View.new_with_buffer(self.codebuffer)
         self.code.set_auto_indent(True)
         self.code.set_show_line_numbers(True)
-        self.code.set_tab_width(4)
-        self.codebuffer.set_highlight_syntax(True)
+        self.code.set_tab_width(settings["Tab Width"])
+        self.code.set_indent_width(-1) #Sets it to tab width
         lm = GtkSource.LanguageManager()
         self.codebuffer.set_language(lm.get_language("python3"))
 
@@ -92,6 +97,7 @@ class IDE(Gtk.Window):
         self.codesplit.pack1(self.codescroller, True, True)
 
         self.outputbuffer = GtkSource.Buffer()
+        self.outputbuffer.set_style_scheme(self.codebuffer.get_style_scheme())
         self.output = GtkSource.View.new_with_buffer(self.outputbuffer)
         self.output.set_editable(False)
         self.outputscroller = Gtk.ScrolledWindow()
@@ -100,7 +106,7 @@ class IDE(Gtk.Window):
         self.outputscroller.add_with_viewport(self.output)
         self.outputscroller.show_all()
         self.codesplit.pack2(self.outputscroller, True, True)
-        self.codesplit.set_position(310)
+        self.codesplit.set_position(306)
 
         self.webscroller = Gtk.ScrolledWindow()
         self.webscroller.set_vexpand(True)
@@ -110,7 +116,11 @@ class IDE(Gtk.Window):
 
         self.browser = WebKit.WebView()
         self.webscroller.add_with_viewport(self.browser)
-        self.browser.load_uri("http://google.com")
+        self.browser.load_uri(settings["Browser Homepage"])
+
+    def exit(self, widget, event):
+        self.save()
+        Gtk.main_quit()
 
     def log(self, message):
         self.outputbuffer.insert(self.outputbuffer.get_end_iter(), message)
@@ -122,9 +132,13 @@ class IDE(Gtk.Window):
         self.outputscroller.set_vadjustment(adj)
 
     def printLoop(self):
-        while self.currProc is not None and self.currProc.isalive():
-            output = self.currProc.read_nonblocking(2048).decode("utf-8")
-            self.log(output)
+        self.currProc = spawn(self.currFile)
+        try:
+            while self.currProc is not None and self.currProc.isalive():
+                    output = self.currProc.read_nonblocking(2048).decode("utf-8")
+                    if output != "^C":
+                        self.log(output)
+        except: pass
         self.currProc = None
 
     def run(self, widget):
@@ -133,11 +147,8 @@ class IDE(Gtk.Window):
             self.save()
             while self.currFile is None:
                 self.save()
-            self.currProc = spawn(self.currFile)
             t = threading.Thread(target=self.printLoop)
-            try:
-                t.start()
-            except: pass
+            t.start()
             self.code.set_editable(True)
 
     def stop(self, widget):
@@ -145,7 +156,6 @@ class IDE(Gtk.Window):
             print("Proc is none")
             self.code.set_editable(True)
             self.currProc.sendcontrol('c');
-            self.currProc = None
 
     def save(self):
         if self.currFile is None:
@@ -160,7 +170,6 @@ class IDE(Gtk.Window):
         chmod(self.currFile, 555)
         f.write(self.codebuffer.get_text(self.codebuffer.get_start_iter(), self.codebuffer.get_end_iter(), True))
         f.close()
-        self.log("File saved\n")
 
     def newFile(self, widget):
         dialog = NewFileDialog(self)
@@ -195,6 +204,13 @@ class IDE(Gtk.Window):
 
 if not path.isdir(projectDir):
     mkdir(projectDir)
+if not path.exists(projectDir+"settings.conf"):
+    f = open(projectDir+"settings.conf", "w")
+    f.write(json.dumps(settings, sort_keys=True, indent=4))
+    f.close()
+f = open(projectDir+"settings.conf", "r")
+settings = json.loads(f.read())
+f.close()
 win = IDE()
 win.show_all()
 Gtk.main()
