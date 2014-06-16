@@ -14,16 +14,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-#Depends on python3-gi, gir1.2-gtksource-3.0, and gir1.2-webkit-3.0
+#Depends on python3-gi, gir1.2-gtksource-3.0, gir1.2-webkit-3.0, and python3-pexpect
 
 from gi.repository import Gtk, GtkSource, WebKit
-from os import path
+from os import path, mkdir, chmod
+from pexpect import spawn
+import threading
 
 projectDir = path.expanduser("~/Projects/")
 
 class NewFileDialog(Gtk.Dialog):
     def __init__(self, parent):
-        Gtk.Dialog.__init__(self, "New File Name", parent, 0,
+        Gtk.Dialog.__init__(self, "Save File", parent, 0,
             (Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
              Gtk.STOCK_OK, Gtk.ResponseType.OK))
         self.set_default_size(150, 100)
@@ -38,6 +40,7 @@ class NewFileDialog(Gtk.Dialog):
 class IDE(Gtk.Window):
 
     currFile = None
+    currProc = None
 
     def __init__(self):
         Gtk.Window.__init__(self, title="Raspberry IDEa")
@@ -72,6 +75,7 @@ class IDE(Gtk.Window):
         self.mainholder.pack1(self.codesplit, True, True)
 
         self.codebuffer = GtkSource.Buffer()
+        self.codebuffer.set_text("#!/usr/bin/env python3\nfrom time import sleep\nprint('a')\nsleep(2)\nprint('b')")  
         self.code = GtkSource.View.new_with_buffer(self.codebuffer)
         self.code.set_auto_indent(True)
         self.code.set_show_line_numbers(True)
@@ -108,27 +112,53 @@ class IDE(Gtk.Window):
         self.webscroller.add_with_viewport(self.browser)
         self.browser.load_uri("http://google.com")
 
+    def printLoop(self):
+        while self.currProc is not None and self.currProc.isalive():
+            output = self.currProc.read_nonblocking(2048).decode("utf-8")
+            self.outputbuffer.insert(self.outputbuffer.get_end_iter(), output)
+        self.currProc = None
+
     def run(self, widget):
-        self.code.set_editable(False)
-        self.save(None)
+        if self.currProc is None:
+            self.code.set_editable(False)
+            self.save()
+            while self.currFile is None:
+                self.save()
+            self.currProc = spawn(self.currFile)
+            t = threading.Thread(target=self.printLoop)
+            t.start()
+            self.code.set_editable(True)
 
     def stop(self, widget):
-        self.code.set_editable(True)
+        if self.currProc is not None:
+            print("Proc is none")
+            self.code.set_editable(True)
+            self.currProc.sendcontrol('c');
+            self.currProc = None
 
-    def save(self, widget):
+    def save(self):
+        if self.currFile is None:
+            dialog = NewFileDialog(self)
+            response = dialog.run()
+            if response == Gtk.ResponseType.OK:
+                self.currFile = projectDir+dialog.text().replace(' ','_')+".py"
+            else:
+                return
+            dialog.destroy()
         f = open(self.currFile, "w")
+        chmod(self.currFile, 555)
         f.write(self.codebuffer.get_text(self.codebuffer.get_start_iter(), self.codebuffer.get_end_iter(), True))
         f.close()
-        self.outputbuffer.do_insert_text(self.outputbuffer.get_end_iter(), "File saved", 10)
+        self.outputbuffer.insert(self.outputbuffer.get_end_iter(), "File saved\n")
 
     def newFile(self, widget):
         dialog = NewFileDialog(self)
         response = dialog.run()
         if response == Gtk.ResponseType.OK:
             if self.currFile is not None:
-                self.save(None)
-            self.currFile = projectDir+dialog.text().replace(' ','_')+".py"
-            self.codebuffer.set_text("#!/usr/bin/env python3\n")
+                self.save()
+                self.currFile = projectDir+dialog.text().replace(' ','_')+".py"
+                self.codebuffer.set_text("#!/usr/bin/env python3\n")                
         dialog.destroy()
 
     def openFile(self, widget):
@@ -143,6 +173,8 @@ class IDE(Gtk.Window):
         dialog.set_current_folder_uri("file://"+projectDir)
         response = dialog.run()
         if response == Gtk.ResponseType.OK:
+            if self.currFile is not None:
+                self.save()
             self.currFile = dialog.get_filename()
             f = open(self.currFile, "r")
             text = f.read()
@@ -150,6 +182,8 @@ class IDE(Gtk.Window):
             self.codebuffer.set_text(text)
         dialog.destroy()
 
+if not path.isdir(projectDir):
+    mkdir(projectDir)
 win = IDE()
 win.show_all()
 Gtk.main()
