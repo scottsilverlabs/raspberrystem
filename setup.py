@@ -18,6 +18,7 @@
 import os
 import sys
 from setuptools import setup, find_packages
+from distutils.command.install import install as _install
 
 # check python version is good
 if sys.version_info[0] == 2:
@@ -35,6 +36,15 @@ else:
 # string in below ...
 def read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
+
+def _post_install(dir):
+    from subprocess import call
+    call("./postinstall")
+
+class install(_install):
+    def run(self):
+        _install.run(self)
+        self.execute(_post_install, (self.install_lib,), msg="Running post install task...")
 
 setup(
     name = "raspberrystem",
@@ -61,6 +71,5 @@ setup(
     install_requires=[
         'bitstring',
     ],
+    cmdclass={'install': install},  # overload install command
 )
-
-# TODO: register python package to https://pypi.python.org/pypi

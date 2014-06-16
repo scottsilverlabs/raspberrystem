@@ -4,8 +4,12 @@ PI=pi@192.168.1.11
 # ssh password on raspberrypi
 PIPASSWORD=raspberry
 
+#TODO: get proper cflags from Joe
 # Flags to compile c python wrappers
-CFLAGS=-shared -I/usr/include/python2.3/ -lpython2.3
+
+CFLAGSTEMP=
+CFLAGS2=-shared -I/usr/include/python2.3/ -lpython2.3
+CFLAGS3=-shared -I/usr/include/python3/ -lpython3
 
 #
 # Directory rules
@@ -40,25 +44,19 @@ CFLAGS=-shared -I/usr/include/python2.3/ -lpython2.3
 %.target:
 	@echo $(RELDIR)/$*
 
-# TODO: add correct CFLAGS for c->python wrappers
 
 #
 # Per file build rules
 #
 %: %.c
-ifeq ($(COMPILEONPI), 1)
 	scp $^ $(PI):/tmp
-	sshpass -p '$(PIPASSWORD)' ssh $(PI) "\
-		echo "look ma I'm on the pi!!"; \
+	ssh $(PI) "\
 		mkdir -p /tmp/rs; \
 		cd /tmp/rs; \
 		mv ../$^ .; \
-		gcc $(CFLAGS) $^ -o $@; \
+		gcc $(CFLAGSTEMP) $^ -o $@; \
 		mv $@ ..; \
 		cd ..; \
 		rm -r /tmp/rs; \
 		"
-	scp $(PI):/tmp/$@ $@
-else
-	gcc $(CFLAGS) $^ -o $@
-endif
+	sshpass -p '$(PIPASSWORD)' scp $(PI):/tmp/$@ $@

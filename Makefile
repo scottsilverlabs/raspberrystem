@@ -16,6 +16,7 @@ DIRS+=cellapps
 DIRS+=projects
 DIRS+=misc
 
+# TODO: make user choose python 2 or 3
 PYTHON=python
 PYFLAGS=
 DESTDIR=/
@@ -59,18 +60,21 @@ DIST_DEB=dist/python-$(NAME)_$(VER)_armhf.deb \
 DIST_DSC=dist/$(NAME)_$(VER).tar.gz \
 	dist/$(NAME)_$(VER).dsc \
 	dist/$(NAME)_$(VER)_source.changes
-	
+
 # files needed to be sent over to pi for local installation
 PI_TAR_FILES=rstem cellapps misc projects Makefile MANIFEST.in setup.py README.md make
 
-.PHONY: all install test doc source egg zip tar deb dist clean release upload-all upload-ppa upload-cheeseshop pi-install projects cellapps upload-check
+.PHONY: all install test doc source egg zip tar deb dist clean release upload-all upload-ppa upload-cheeseshop pi-install projects cellapps upload-check help
 
 all::
-	@echo "make install - Install on local system"
-	@echo "TODO: make pi-install - Install onto remote Raspberry Pi"
+
+help:
+	@echo "make - Compile sources"
+	@echo "make install - Install onto remote Raspberry Pi"
+	@echo "make local-install - Install onto local machine"
 	@echo "make projects - Install projects to home folder"
 	@echo "make cellapps - Install cellapps to home folder"
-#	@echo "make test - Run tests"
+	@echo "make test - Run tests"
 #	@echo "make doc - Generate HTML and PDF documentation"
 	@echo "make source - Create source package"
 	@echo "make egg - Generate a PyPI egg package"
@@ -83,14 +87,15 @@ all::
 	@echo "make upload-all - Upload the new release to all repositories"
 	@echo "make upload-ppa - Upload the new release to ppa"
 	@echo "make upload-cheeseshop - Upload the new release to cheeseshop"
-	
 
 
-install:
-	sudo $(PYTHON) $(PYFLAGS) ./setup.py install --root $(DESTDIR)
+
+local-install:
+	$(MAKE)
+	$(PYTHON) $(PYFLAGS) ./setup.py install --user
 	$(MAKE) projects
 	$(MAKE) cellapps
-	
+
 projects:
 	mkdir -p $(PROJECTSDIR)
 	cp -r ./projects $(PROJECTSDIR)
@@ -101,7 +106,7 @@ cellapps:
 
 test:
     # TODO
-    
+
 upload-check:
 	# Check that we are in correct branch....
 	@if ! git branch | grep -q "* rel/$(VER)"; then \
@@ -110,19 +115,21 @@ upload-check:
 		exit 2; \
 	else \
 		echo "In correct branch."; \
-	fi 
-    
+	fi
+
 upload-all:
 	$(MAKE) upload-ppa
 	$(MAKE) upload-cheeseshop
-	
+
 upload-ppa: $(DIST_DSC)
+	$(MAKE)
 	# TODO: change this from raspberrystem-test ppa to an official one
 	# (to add this repo on raspberrypi type: sudo add-apt-repository ppa:r-jon-s/ppa)
 	$(MAKE) upload-check
 	dput ppa:r-jon-s/ppa dist/$(NAME)_$(VER)_source.changes
 
 upload-cheeseshop: $(PY_SOURCES)
+	$(MAKE)
 	# update the package's registration on PyPI (in case any metadata's changed)
 	$(MAKE) upload-check
 	$(PYTHON) $(PYFLAGS) setup.py register
@@ -135,7 +142,7 @@ release: $(PY_SOURCES) $(DOC_SOURCES)
 	# commit the changes and add a new tag
 	git commit debian/changelog -m "Updated changelog for release $(VER)"
 	git tag -s release-$(VER) -m "Release $(VER)"
-    
+
 source: $(DIST_TAR) $(DIST_ZIP)
 
 egg: $(DIST_EGG)
@@ -151,8 +158,8 @@ dist: $(DIST_EGG) $(DIST_DEB) $(DIST_DSC) $(DIST_TAR) $(DIST_ZIP)
 clean::
 	$(PYTHON) $(PYFLAGS) setup.py clean
 	$(MAKE) -f $(CURDIR)/debian/rules clean
-	rm -rf build/ dist/ $(NAME).egg-info/ $(NAME)-$(VER) 
-	rm -rf debian/python3-$(NAME) debian/python-$(NAME) 
+	rm -rf build/ dist/ $(NAME).egg-info/ $(NAME)-$(VER)
+	rm -rf debian/python3-$(NAME) debian/python-$(NAME)
 	rm -f debian/python*
 	rm -f ../$(NAME)_$(VER).orig.tar.gz ../$(NAME)_$(VER)_armhf.build ../$(NAME)_$(VER)_armhf.changes ../$(NAME)_$(VER)_source.build
 	rm -f ../python-$(NAME)_$(VER)_armhf.deb ../python3-$(NAME)_$(VER)_armhf.deb
@@ -172,34 +179,35 @@ $(DIST_EGG): $(PY_SOURCES)
 	$(PYTHON) $(PYFLAGS) setup.py bdist_egg
 
 $(DIST_DEB): $(PY_SOURCES) $(DEB_SOURCES)
+	$(MAKE)
 	# build the binary package in the parent directory then rename it to
 	# project_version.orig.tar.gz
 	$(PYTHON) $(PYFLAGS) setup.py sdist --dist-dir=../
 	rename -f 's/$(NAME)-(.*)\.tar\.gz/$(NAME)_$$1\.orig\.tar\.gz/' ../*
 	debuild -b -i -I -Idist -Ibuild -Idocs/_build -Icoverage -I__pycache__ -I.coverage -Itags -I*.pyc -I*.vim -I*.xcf -aarmhf -rfakeroot
-#	debuild -b -i -I -aarmhf -rfakeroot
 	mkdir -p dist/
 	for f in $(DIST_DEB); do cp ../$${f##*/} dist/; done
 
 $(DIST_DSC): $(PY_SOURCES) $(DEB_SOURCES)
+	$(MAKE)
 	# build the source package in the parent directory then rename it to
 	# project_version.orig.tar.gz
 	$(PYTHON) $(PYFLAGS) setup.py sdist --dist-dir=../
 	rename -f 's/$(NAME)-(.*)\.tar\.gz/$(NAME)_$$1\.orig\.tar\.gz/' ../*
 	debuild -S -i -I -Idist -Ibuild -Idocs/_build -Icoverage -I__pycache__ -I.coverage -Itags -I*.pyc -I*.vim -I*.xcf -aarmhf -rfakeroot
-#	debuild -S -i -I -aarmhf -rfakeroot
 	mkdir -p dist/
 	for f in $(DIST_DSC); do cp ../$${f##*/} dist/; done
 
-	
 
-pi-install.tar: $(PI_TAR_FILES)
-	tar -cvf $@ $(PI_TAR_FILES)
-	
 
-pi-install: pi-install.tar
-	sshpass -p "$(PIPASSWORD)" scp $< $(PI):
-	sshpass -p "$(PIPASSWORD)" ssh $(PI) " \
+pi-install.tar:
+	$(MAKE)
+	tar -cvf $@ $(shell $(MAKE) targets)
+
+install: pi-install.tar
+	# TODO: test if sshpass installed
+	scp $< $(PI):
+	ssh $(PI) " \
 		rm -rf rsinstall; \
 		mkdir -p rsinstall; \
 		cd rsinstall; \
