@@ -64,7 +64,13 @@ DIST_DSC=dist/$(NAME)_$(VER).tar.gz \
 # files needed to be sent over to pi for local installation
 PI_TAR_FILES=rstem cellapps misc projects Makefile MANIFEST.in setup.py README.md make
 
-.PHONY: all install test doc source egg zip tar deb dist clean release upload-all upload-ppa upload-cheeseshop pi-install projects cellapps upload-check help
+.PHONY: all install test doc source egg zip tar deb dist clean release upload-all \
+	upload-ppa upload-cheeseshop pi-install projects cellapps upload-check help \
+	clean-dist clean-all
+
+.PHONY: clean-c
+clean-c:
+	find $(CURDIR) -name '*.pyc' -delete
 
 all::
 
@@ -82,7 +88,9 @@ help:
 	@echo "make tar - Generate a source tar package"
 	@echo "make deb - Generate Debian packages"
 	@echo "make dist - Generate all packages"
-	@echo "make clean - Get rid of all generated files"
+	@echo "make clean-all - Clean all files"
+	@echo "make clean - Get rid of all compiled files"
+	@echo "make clean-dist - Get rid of all package files."
 	@echo "make release - Create and tag a new release"
 	@echo "make upload-all - Upload the new release to all repositories"
 	@echo "make upload-ppa - Upload the new release to ppa"
@@ -122,7 +130,6 @@ upload-all:
 	$(MAKE) upload-cheeseshop
 
 upload-ppa: $(DIST_DSC)
-	$(MAKE)
 	# TODO: change this from raspberrystem-test ppa to an official one
 	# (to add this repo on raspberrypi type: sudo add-apt-repository ppa:r-jon-s/ppa)
 	$(MAKE) upload-check
@@ -155,7 +162,10 @@ deb: $(DIST_DSC) $(DIST_DEB)
 
 dist: $(DIST_EGG) $(DIST_DEB) $(DIST_DSC) $(DIST_TAR) $(DIST_ZIP)
 
-clean::
+clean-all:
+	$(MAKE) clean clean-dist
+
+clean-dist:
 	$(PYTHON) $(PYFLAGS) setup.py clean
 	$(MAKE) -f $(CURDIR)/debian/rules clean
 	rm -rf build/ dist/ $(NAME).egg-info/ $(NAME)-$(VER)
