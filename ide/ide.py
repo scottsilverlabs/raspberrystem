@@ -19,7 +19,7 @@
 from gi.repository import Gtk, GtkSource, WebKit
 from os import path
 
-projectDir = path.expanduser("~/Projects")
+projectDir = path.expanduser("~/Projects/")
 
 class NewFileDialog(Gtk.Dialog):
     def __init__(self, parent):
@@ -110,6 +110,7 @@ class IDE(Gtk.Window):
 
     def run(self, widget):
         self.code.set_editable(False)
+        self.save(None)
 
     def stop(self, widget):
         self.code.set_editable(True)
@@ -124,7 +125,10 @@ class IDE(Gtk.Window):
         dialog = NewFileDialog(self)
         response = dialog.run()
         if response == Gtk.ResponseType.OK:
-            print(dialog.text())
+            if self.currFile is not None:
+                self.save(None)
+            self.currFile = projectDir+dialog.text().replace(' ','_')+".py"
+            self.codebuffer.set_text("#!/usr/bin/env python3\n")
         dialog.destroy()
 
     def openFile(self, widget):
