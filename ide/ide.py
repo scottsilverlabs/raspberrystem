@@ -117,7 +117,7 @@ class IDE(Gtk.Window):
 
     def save(self, widget):
         f = open(self.currFile, "w")
-        f.write(self.codebuffer.get_text(self.codebuffer.get_start_iter(), self.codebuffer.get_end_iter()))
+        f.write(self.codebuffer.get_text(self.codebuffer.get_start_iter(), self.codebuffer.get_end_iter(), True))
         f.close()
         self.outputbuffer.do_insert_text(self.outputbuffer.get_end_iter(), "File saved", 10)
 
