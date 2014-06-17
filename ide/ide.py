@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python2.7
 #
 # Copyright (c) 2014, Scott Silver Labs, LLC.
 #
@@ -16,10 +16,9 @@
 #
 #Depends on python3-gi, gir1.2-gtksource-3.0, gir1.2-webkit-3.0, and pexpect from pip-python3
 
-from gi.repository import Gtk, GtkSource, WebKit
+from gi.repository import Gtk, GtkSource, WebKit, GLib, Gio, GObject
 from os import path, mkdir, chmod
 from pexpect import spawn
-import threading
 import json
 
 projectDir = path.expanduser("~/raspberryidea/")
@@ -40,10 +39,8 @@ class NewFileDialog(Gtk.Dialog):
         return self.entry.get_text()
 
 class IDE(Gtk.Window):
-
     currFile = None
     currProc = None
-
     def __init__(self):
         Gtk.Window.__init__(self, title="Raspberry IDEa")
         self.set_size_request(400, 400)
@@ -132,24 +129,28 @@ class IDE(Gtk.Window):
         #To be called from the print loop and pyflakes
         print(errString)
 
-    def printLoop(self):
+    def printLoop(self, a, b, c): #To be honest, no idea what a, b, and c are supposed to be
+        print(a)
+        print(b)
+        print(c)
         print("Thread spun")
         self.currProc = spawn(self.currFile)
         try:
             while self.currProc is not None and self.currProc.isalive():
-                    output = self.currProc.read_nonblocking(2048).decode("utf-8")
-                    if output != "^C":
-                        self.log(output)
-                        print(output)
+                output = self.currProc.read_nonblocking(100).decode("utf-8")
+                if output != "^C":
+                    self.log(output)
+                    print(output)
         except Exception as e: 
             print(e)
             pass
-        print("Done")
         self.currProc = None
         self.code.set_editable(True)
         self.rbutton.set_stock_id(Gtk.STOCK_MEDIA_PLAY)
+        print("Thread done")
 
     def run(self, widget):
+        print("Run hit")
         print(self.currProc)
         if self.currProc is None:
             print("Running")
@@ -158,8 +159,9 @@ class IDE(Gtk.Window):
             self.rbutton.set_stock_id(Gtk.STOCK_MEDIA_STOP)
             while self.currFile is None:
                 self.save()
-            t = threading.Thread(target=self.printLoop)
-            t.start()
+            print("Starting thread")
+            Gio.io_scheduler_push_job(self.printLoop, None, GLib.PRIORITY_DEFAULT, None)
+            print("Done starting")
         else:
             print("Proc is none")
             self.code.set_editable(True)
@@ -220,6 +222,7 @@ if not path.exists(projectDir+"settings.conf"):
 f = open(projectDir+"settings.conf", "r")
 settings = json.loads(f.read())
 f.close()
+GObject.threads_init()
 win = IDE()
 win.show_all()
 Gtk.main()
