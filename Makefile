@@ -68,9 +68,6 @@ PI_TAR_FILES=rstem cellapps misc projects Makefile MANIFEST.in setup.py README.m
 	upload-ppa upload-cheeseshop pi-install projects cellapps upload-check help \
 	clean-dist clean-all
 
-.PHONY: clean-c
-clean-c:
-	find $(CURDIR) -name '*.pyc' -delete
 
 all::
 
@@ -216,8 +213,8 @@ pi-install.tar:
 
 install: pi-install.tar
 	# TODO: test if sshpass installed
-	scp $< $(PI):
-	ssh $(PI) " \
+	$(SSHPASS) scp $(SSHFLAGS) $< $(PI):
+	$(SSHPASS) ssh $(SSHFLAGS) $(PI) " \
 		rm -rf rsinstall; \
 		mkdir -p rsinstall; \
 		cd rsinstall; \
