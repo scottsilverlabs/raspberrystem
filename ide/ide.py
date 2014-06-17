@@ -98,8 +98,9 @@ class IDE(Gtk.Window):
         self.outputscroller.set_hexpand(True)
         self.outputscroller.add_with_viewport(self.output)
         self.outputscroller.show_all()
+        self.outputscroller.connect("size-allocate", self.outputScroll)
         codesplit.pack2(self.outputscroller, True, True)
-        codesplit.set_position(306)
+        codesplit.set_position(305)
 
         webscroller = Gtk.ScrolledWindow()
         webscroller.set_vexpand(True)
@@ -115,14 +116,13 @@ class IDE(Gtk.Window):
         self.save()
         Gtk.main_quit()
 
+    def outputScroll(self, widget, edata):
+        adj = self.outputscroller.get_vadjustment()
+        adj.set_value(adj.get_upper() - adj.get_page_size())
+
+    first = True
     def log(self, message):
         self.outputbuffer.insert(self.outputbuffer.get_end_iter(), message)
-        curr = self.outputscroller.get_vadjustment()
-        adj = Gtk.Adjustment.new(curr.get_upper(), curr.get_lower(), 
-            curr.get_upper(), curr.get_step_increment(), 
-            curr.get_page_increment(), curr.get_page_size()
-        )
-        self.outputscroller.set_vadjustment(adj)
 
     def errorEval(self, errString):
         #Parse output, find errors, underline in red giving error message.
@@ -143,8 +143,6 @@ class IDE(Gtk.Window):
         self.rbutton.set_stock_id(Gtk.STOCK_MEDIA_PLAY)
 
     def run(self, widget):
-        print("Run hit")
-        print(self.currProc)
         if self.currProc is None:
             self.code.set_editable(False)
             self.save()
