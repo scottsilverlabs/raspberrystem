@@ -141,7 +141,12 @@ class IDE(Gtk.Window):
                 if j == "^":
                     break
                 charNum += 1
-            print(err + " at line " + str(line) + " character " + str(charNum))
+            print(err + " at line " + str(line) + " character " + str(charNum+1))
+            errMark = GtkSource.Mark.new(str(line) + " " + str(charNum), "error")
+            place = self.outputbuffer.get_start_iter()
+            place.forward_lines(line-1)
+            place.forward_char(charNum)
+            self.outputbuffer.add_mark(errMark, place)
 
     def printLoop(self, a, b, c): #To be honest, no idea what a, b, and c are supposed to be
         self.currProc = spawn(self.currFile)
