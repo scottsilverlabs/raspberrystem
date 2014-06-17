@@ -19,11 +19,12 @@
 from gi.repository import Gtk, GtkSource, WebKit, GLib, Gio, GObject
 from os import path, mkdir, chmod
 from pexpect import spawn
-import json
+import json, re
 
 projectDir = path.expanduser("~/raspberryidea/")
 settings = {"Theme ID" : "cobalt", "Browser Homepage" : "http://google.com", "Tab Width" : 4}
 
+#File name chooser popup
 class NewFileDialog(Gtk.Dialog):
     def __init__(self, parent):
         Gtk.Dialog.__init__(self, "Save File", parent, 0,
@@ -41,6 +42,8 @@ class NewFileDialog(Gtk.Dialog):
 class IDE(Gtk.Window):
     currFile = None
     currProc = None
+
+    #Create the main GUI
     def __init__(self):
         Gtk.Window.__init__(self, title="Raspberry IDEa")
         self.set_size_request(400, 400)
@@ -100,7 +103,7 @@ class IDE(Gtk.Window):
         self.outputscroller.show_all()
         self.outputscroller.connect("size-allocate", self.outputScroll)
         codesplit.pack2(self.outputscroller, True, True)
-        codesplit.set_position(305)
+        codesplit.set_position(260)
 
         webscroller = Gtk.ScrolledWindow()
         webscroller.set_vexpand(True)
@@ -116,32 +119,48 @@ class IDE(Gtk.Window):
         self.save()
         Gtk.main_quit()
 
+    #Called when self.outputscroller changes in size
     def outputScroll(self, widget, edata):
         adj = self.outputscroller.get_vadjustment()
         adj.set_value(adj.get_upper() - adj.get_page_size())
 
-    first = True
     def log(self, message):
         self.outputbuffer.insert(self.outputbuffer.get_end_iter(), message)
 
+    #Parses output sent by the print loop and highlights errors
     def errorEval(self, errString):
-        #Parse output, find errors, underline in red giving error message.
-        #To be called from the print loop and pyflakes
-        print(errString)
+        errRegex = re.compile("\s+File \""+self.currFile+"\", line \d+.+Error:.+\r", flags=re.M|re.S)
+        res = re.findall(errRegex, errString)
+        for i in res:
+            broken = i[:-1].split("\r\n")
+            line = broken[0].split(" ")
+            line = int(line[len(line)-1])
+            err = broken[3].split(": ")[1].capitalize()
+            charNum = 0
+            for j in broken[2]:
+                if j == "^":
+                    break
+                charNum += 1
+            print(err + " at line " + str(line) + " character " + str(charNum))
 
     def printLoop(self, a, b, c): #To be honest, no idea what a, b, and c are supposed to be
         self.currProc = spawn(self.currFile)
+        self.outputbuffer.set_text("")
+        out = ""
         try:
             while self.currProc is not None and self.currProc.isalive():
-                output = self.currProc.read_nonblocking(100).decode("utf-8")
+                output = self.currProc.read_nonblocking(512).decode("utf-8")
                 if output != "^C":
                     self.log(output)
-        except Exception as e: 
+                    out += output
+        except Exception: 
             pass
+        self.errorEval(out)
         self.currProc = None
         self.code.set_editable(True)
         self.rbutton.set_stock_id(Gtk.STOCK_MEDIA_PLAY)
 
+    #Called when the run button is pressed
     def run(self, widget):
         if self.currProc is None:
             self.code.set_editable(False)
