@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-#Depends on python3-gi, gir1.2-gtksource-3.0, gir1.2-webkit-3.0, and python3-pexpect
+#Depends on python3-gi, gir1.2-gtksource-3.0, gir1.2-webkit-3.0, and pexpect from pip-python3
 
 from gi.repository import Gtk, GtkSource, WebKit
 from os import path, mkdir, chmod
@@ -59,17 +59,13 @@ class IDE(Gtk.Window):
         self.rbutton.connect("clicked", self.run)
         self.toolbar.insert(self.rbutton, 0)
 
-        self.sbutton = Gtk.ToolButton.new_from_stock(Gtk.STOCK_MEDIA_STOP) #Stop
-        self.sbutton.connect("clicked", self.stop)
-        self.toolbar.insert(self.sbutton, 1)
-
         self.nbutton = Gtk.ToolButton.new_from_stock(Gtk.STOCK_EDIT) #New
         self.nbutton.connect("clicked", self.newFile)
-        self.toolbar.insert(self.nbutton, 2)
+        self.toolbar.insert(self.nbutton, 1)
 
         self.obutton = Gtk.ToolButton.new_from_stock(Gtk.STOCK_DIRECTORY) #Open
         self.obutton.connect("clicked", self.openFile)
-        self.toolbar.insert(self.obutton, 3)
+        self.toolbar.insert(self.obutton, 2)
 
         self.mainholder = Gtk.Paned()
         self.grid.attach(self.mainholder, 0, 1, 1, 1)
@@ -131,31 +127,44 @@ class IDE(Gtk.Window):
         )
         self.outputscroller.set_vadjustment(adj)
 
+    def errorEval(self, errString):
+        #Parse output, find errors, underline in red giving error message.
+        #To be called from the print loop and pyflakes
+        print(errString)
+
     def printLoop(self):
+        print("Thread spun")
         self.currProc = spawn(self.currFile)
         try:
             while self.currProc is not None and self.currProc.isalive():
                     output = self.currProc.read_nonblocking(2048).decode("utf-8")
                     if output != "^C":
                         self.log(output)
-        except: pass
+                        print(output)
+        except Exception as e: 
+            print(e)
+            pass
+        print("Done")
         self.currProc = None
+        self.code.set_editable(True)
+        self.rbutton.set_stock_id(Gtk.STOCK_MEDIA_PLAY)
 
     def run(self, widget):
+        print(self.currProc)
         if self.currProc is None:
+            print("Running")
             self.code.set_editable(False)
             self.save()
+            self.rbutton.set_stock_id(Gtk.STOCK_MEDIA_STOP)
             while self.currFile is None:
                 self.save()
             t = threading.Thread(target=self.printLoop)
             t.start()
-            self.code.set_editable(True)
-
-    def stop(self, widget):
-        if self.currProc is not None:
+        else:
             print("Proc is none")
             self.code.set_editable(True)
             self.currProc.sendcontrol('c');
+            self.rbutton.set_stock_id(Gtk.STOCK_MEDIA_PLAY)
 
     def save(self):
         if self.currFile is None:
