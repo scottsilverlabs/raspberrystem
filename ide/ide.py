@@ -130,40 +130,29 @@ class IDE(Gtk.Window):
         print(errString)
 
     def printLoop(self, a, b, c): #To be honest, no idea what a, b, and c are supposed to be
-        print(a)
-        print(b)
-        print(c)
-        print("Thread spun")
         self.currProc = spawn(self.currFile)
         try:
             while self.currProc is not None and self.currProc.isalive():
                 output = self.currProc.read_nonblocking(100).decode("utf-8")
                 if output != "^C":
                     self.log(output)
-                    print(output)
         except Exception as e: 
-            print(e)
             pass
         self.currProc = None
         self.code.set_editable(True)
         self.rbutton.set_stock_id(Gtk.STOCK_MEDIA_PLAY)
-        print("Thread done")
 
     def run(self, widget):
         print("Run hit")
         print(self.currProc)
         if self.currProc is None:
-            print("Running")
             self.code.set_editable(False)
             self.save()
             self.rbutton.set_stock_id(Gtk.STOCK_MEDIA_STOP)
             while self.currFile is None:
                 self.save()
-            print("Starting thread")
             Gio.io_scheduler_push_job(self.printLoop, None, GLib.PRIORITY_DEFAULT, None)
-            print("Done starting")
         else:
-            print("Proc is none")
             self.code.set_editable(True)
             self.currProc.sendcontrol('c');
             self.rbutton.set_stock_id(Gtk.STOCK_MEDIA_PLAY)
