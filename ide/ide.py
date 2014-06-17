@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python3
 #
 # Copyright (c) 2014, Scott Silver Labs, LLC.
 #
@@ -15,8 +15,9 @@
 # limitations under the License.
 #
 #Depends on python3-gi, gir1.2-gtksource-3.0, gir1.2-webkit-3.0, and pexpect from pip-python3
+#TODO add icons in left gutter to indicate errors
 
-from gi.repository import Gtk, GtkSource, WebKit, GLib, Gio, GObject
+from gi.repository import Gtk, Gdk, GtkSource, WebKit, GLib, Gio, GObject
 from os import path, mkdir, chmod
 from pexpect import spawn
 import json, re
@@ -29,7 +30,7 @@ class NewFileDialog(Gtk.Dialog):
     def __init__(self, parent):
         Gtk.Dialog.__init__(self, "Save File", parent, 0,
             (Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
-             Gtk.STOCK_OK, Gtk.ResponseType.OK))
+            Gtk.STOCK_OK, Gtk.ResponseType.OK))
         self.set_default_size(150, 100)
         self.entry = Gtk.Entry()
         box = self.get_content_area()
@@ -77,13 +78,18 @@ class IDE(Gtk.Window):
         self.codebuffer.set_text("#!/usr/bin/env python3\n")
         theme = GtkSource.StyleSchemeManager.new().get_scheme(settings["Theme ID"])
         self.codebuffer.set_style_scheme(theme)
+        lm = GtkSource.LanguageManager()
+        self.codebuffer.set_language(lm.get_language("python3"))
         self.code = GtkSource.View.new_with_buffer(self.codebuffer)
         self.code.set_auto_indent(True)
         self.code.set_show_line_numbers(True)
         self.code.set_tab_width(settings["Tab Width"])
         self.code.set_indent_width(-1) #Sets it to tab width
-        lm = GtkSource.LanguageManager()
-        self.codebuffer.set_language(lm.get_language("python3"))
+        markattr = GtkSource.MarkAttributes.new()
+        errorcolor = Gdk.RGBA()
+        errorcolor.parse("#fee")
+        markattr.set_background(errorcolor)
+        self.code.set_mark_attributes("error", markattr, 0.5)
 
         codescroller = Gtk.ScrolledWindow()
         codescroller.set_vexpand(True)
@@ -145,7 +151,7 @@ class IDE(Gtk.Window):
             errMark = GtkSource.Mark.new(str(line) + " " + str(charNum), "error")
             place = self.outputbuffer.get_start_iter()
             place.forward_lines(line-1)
-            place.forward_char(charNum)
+            place.forward_chars(charNum)
             self.outputbuffer.add_mark(errMark, place)
 
     def printLoop(self, a, b, c): #To be honest, no idea what a, b, and c are supposed to be
