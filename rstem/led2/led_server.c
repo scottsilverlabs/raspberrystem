@@ -5,12 +5,25 @@
 #include <sys/ioctl.h>
 #include <linux/spi/spidev.h>
 
-#define SPI_DEV "/dev/spidev0.0"
+#define DIM_OF_MATRIX 8
+#define SIZE_OF_PIXEL 4
 
 int spi;
 unsigned char spiMode;
 unsigned char bitsPerTrans;
 unsigned int spiSpeed;
+
+int main(){
+    // testing purpose TODO remove
+}
+
+struct dualPixel {
+    unsigned int firstPixel:4
+    unsigned int secondPixel:4
+};
+
+struct dualPixel* frameBuffer;
+int frameBufferSize;
 
 int startSPI(unsigned int speed, int mode){
 	char *sMode;
@@ -64,6 +77,58 @@ int writeBytes(int dev, unsigned char* val, int len) {
 	int ret = ioctl(dev, SPI_IOC_MESSAGE(1), &tr);
 return ret;
 }
+
+
+
+int point(int x, int y, int color) {
+
+}
+
+int line(int x1, int y1, int x2, int y2, int color){
+
+}
+
+int initLED(int num_rows, int num_cols, int zigzag){
+
+}
+
+static PyObject *PyInitLED(PyObject *self, PyObject *args){
+    int num_rows, num_cols, zigzag;
+	if(!PyArg_ParseTuple(args, "iii", &num_rows, &num_cols, &zigzag)){
+		PyErr_SetString(PyExc_TypeError, "Not ints!");
+		return NULL;
+	}
+	if(initLED(num_rows, num_cols, zigzag) < 0){
+	    PyErr_SetString(PyExc_RuntimeError, "Something bad happned...");
+	}
+	return Py_BuildValue("i", 1);
+}
+
+static PyObject *PyLine(PyObject *self, PyObject *args){
+    int x1, y1, x2, y2, color;
+	if(!PyArg_ParseTuple(args, "iiiii", &x1, &y1, &x2, &y2 &color)){
+		PyErr_SetString(PyExc_TypeError, "Not ints!");
+		return NULL;
+	}
+	if(line(x1, y1, x2, y2, color) < 0){
+	    PyErr_SetString(PyExc_RuntimeError, "Something bad happned...");
+	}
+	return Py_BuildValue("i", 1);
+}
+
+static PyObject *PyPoint(PyObject *self, PyObject *args){
+    int x, y, color;
+	if(!PyArg_ParseTuple(args, "iii", &x, &y, &color)){
+		PyErr_SetString(PyExc_TypeError, "Not ints!");
+		return NULL;
+	}
+	if(point(x,y,color) < 0){
+	    PyErr_SetString(PyExc_RuntimeError, "Something bad happned...");
+	}
+	return Py_BuildValue("i", 1);
+}
+
+
 static PyObject *initSPI(PyObject *self, PyObject *args){
 	unsigned int speed;
 	int mode;
@@ -73,6 +138,11 @@ static PyObject *initSPI(PyObject *self, PyObject *args){
 	}
 	return Py_BuildValue("i",startSPI(speed, mode));
 }
+
+static PyObject *PyFlush(PyObject *self, PyObject *args){
+    return Py_BuildValue("i", writeBytes(spi, (unsigned char*) frameBuffer, frameBufferSize));
+}
+
 static PyObject *flush(PyObject *self, PyObject *args){
 	PyObject* seq;
 	unsigned char *data;
@@ -87,13 +157,19 @@ static PyObject *flush(PyObject *self, PyObject *args){
 	data = PyByteArray_AsString(seq);
 return Py_BuildValue("i",writeBytes(spi, data, size));
 }
+
 static PyObject *closeSPI(PyObject *self, PyObject *args){
 	return Py_BuildValue("i", close(spi));
 }
+
 static PyMethodDef led_server_methods[] = {
 	{"flush", flush, METH_VARARGS},
+    {"flush2", PyFlush, METH_NOARGS},
 	{"initSPI", initSPI, METH_VARARGS},
 	{"closeSPI", closeSPI, METH_NOARGS},
+	{"point", PyPoint, METH_VARARGS},
+	{"line", PyLine, METH_VARARGS},
+	{"initLED", PyInitLED, METH_VARARGS},
 	{NULL, NULL}
 };
 
