@@ -46,28 +46,28 @@ class IDE(Gtk.Window):
         self.set_size_request(400, 400)
         self.connect("delete-event", self.exit)
 
-        self.grid = Gtk.Grid()
-        self.add(self.grid)
+        grid = Gtk.Grid()
+        self.add(grid)
 
-        self.toolbar = Gtk.Toolbar();
-        self.grid.attach(self.toolbar, 0, 0, 3, 1)
+        toolbar = Gtk.Toolbar();
+        grid.attach(toolbar, 0, 0, 3, 1)
 
         self.rbutton = Gtk.ToolButton.new_from_stock(Gtk.STOCK_MEDIA_PLAY) #Run
         self.rbutton.connect("clicked", self.run)
-        self.toolbar.insert(self.rbutton, 0)
+        toolbar.insert(self.rbutton, 0)
 
-        self.nbutton = Gtk.ToolButton.new_from_stock(Gtk.STOCK_EDIT) #New
-        self.nbutton.connect("clicked", self.newFile)
-        self.toolbar.insert(self.nbutton, 1)
+        nbutton = Gtk.ToolButton.new_from_stock(Gtk.STOCK_EDIT) #New
+        nbutton.connect("clicked", self.newFile)
+        toolbar.insert(nbutton, 1)
 
-        self.obutton = Gtk.ToolButton.new_from_stock(Gtk.STOCK_DIRECTORY) #Open
-        self.obutton.connect("clicked", self.openFile)
-        self.toolbar.insert(self.obutton, 2)
+        obutton = Gtk.ToolButton.new_from_stock(Gtk.STOCK_DIRECTORY) #Open
+        obutton.connect("clicked", self.openFile)
+        toolbar.insert(obutton, 2)
 
-        self.mainholder = Gtk.Paned()
-        self.grid.attach(self.mainholder, 0, 1, 1, 1)
-        self.codesplit = Gtk.Paned.new(Gtk.Orientation.VERTICAL)
-        self.mainholder.pack1(self.codesplit, True, True)
+        mainholder = Gtk.Paned()
+        grid.attach(mainholder, 0, 1, 1, 1)
+        codesplit = Gtk.Paned.new(Gtk.Orientation.VERTICAL)
+        mainholder.pack1(codesplit, True, True)
 
         self.codebuffer = GtkSource.Buffer()
         self.codebuffer.set_highlight_syntax(True)
@@ -82,12 +82,12 @@ class IDE(Gtk.Window):
         lm = GtkSource.LanguageManager()
         self.codebuffer.set_language(lm.get_language("python3"))
 
-        self.codescroller = Gtk.ScrolledWindow()
-        self.codescroller.set_vexpand(True)
-        self.codescroller.set_hexpand(True)
-        self.codescroller.add_with_viewport(self.code)      
-        self.codescroller.show_all()
-        self.codesplit.pack1(self.codescroller, True, True)
+        codescroller = Gtk.ScrolledWindow()
+        codescroller.set_vexpand(True)
+        codescroller.set_hexpand(True)
+        codescroller.add_with_viewport(self.code)      
+        codescroller.show_all()
+        codesplit.pack1(codescroller, True, True)
 
         self.outputbuffer = GtkSource.Buffer()
         self.outputbuffer.set_style_scheme(self.codebuffer.get_style_scheme())
@@ -98,17 +98,17 @@ class IDE(Gtk.Window):
         self.outputscroller.set_hexpand(True)
         self.outputscroller.add_with_viewport(self.output)
         self.outputscroller.show_all()
-        self.codesplit.pack2(self.outputscroller, True, True)
-        self.codesplit.set_position(306)
+        codesplit.pack2(self.outputscroller, True, True)
+        codesplit.set_position(306)
 
-        self.webscroller = Gtk.ScrolledWindow()
-        self.webscroller.set_vexpand(True)
-        self.webscroller.set_hexpand(True)
-        self.mainholder.pack2(self.webscroller, True, True)
-        self.mainholder.set_position(200)
+        webscroller = Gtk.ScrolledWindow()
+        webscroller.set_vexpand(True)
+        webscroller.set_hexpand(True)
+        mainholder.pack2(webscroller, True, True)
+        mainholder.set_position(200)
 
         self.browser = WebKit.WebView()
-        self.webscroller.add_with_viewport(self.browser)
+        webscroller.add_with_viewport(self.browser)
         self.browser.load_uri(settings["Browser Homepage"])
 
     def exit(self, widget, event):
