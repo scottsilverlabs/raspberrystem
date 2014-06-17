@@ -78,7 +78,7 @@ class LEDMatrix:
             width=num_cols*DIM_OF_MATRIX
         )
         # initialize spi
-        led_server.initSPI()
+        led_server.initSPI(5000000, 0)
 
 
     def _convert_to_std_angle(self, x, y):
@@ -160,16 +160,6 @@ class LEDMatrix:
 
     def show(self):
         """Flushes current display setup to the led matrix"""
-        convert
-        for y in self.height:
-            for x in self.width:
-                bitPos = self._point_to_bitpos(x,y)
-                if bitPos is None:
-                    raise Exception("Index out of bounds.")
-                color = self.display_sprite.get_pixel(x,y)
-                if color > 0xF: # ignore if transparent?
-                    self.bitarray[bitPos:bitPos+SIZE_OF_PIXEL] = color
-
         led_server.flush(self._bitarray_to_bytearray())  # give frame buffer to led_server
         # TODO: make more proper debug statement
         if not __debug__:
@@ -203,10 +193,14 @@ class LEDMatrix:
         color = _convert_color(color)
         if y is None:
             x, y = x
-        if not self._in_matrix(x,y):
-            return # do nothing
-        x, y = self._convert_to_std_angle(x,y)
-        self.display_sprite.set_pixel((x,y), color)
+        bitPos = self._point_to_bitpos(x,y)
+        if bitPos is None:
+            raise Exception("Index out of bounds.")
+        if color <= 0xF: # ignore if transparent?
+            self.bitarray[bitPos:bitPos+SIZE_OF_PIXEL] = color
+
+        # x, y = self._convert_to_std_angle(x,y)
+        # self.display_sprite.set_pixel((x,y), color)
 
     def _sign(self, n):
         return 1 if n >= 0 else -1
