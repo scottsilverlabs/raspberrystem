@@ -23,7 +23,7 @@ import threading
 import json
 
 projectDir = path.expanduser("~/raspberryidea/")
-settings = {"Theme" : None, "Browser Homepage" : "http://google.com", "Tab Width" : 4}
+settings = {"Theme ID" : "cobalt", "Browser Homepage" : "http://google.com", "Tab Width" : 4}
 
 class NewFileDialog(Gtk.Dialog):
     def __init__(self, parent):
@@ -79,7 +79,7 @@ class IDE(Gtk.Window):
         self.codebuffer = GtkSource.Buffer()
         self.codebuffer.set_highlight_syntax(True)
         self.codebuffer.set_text("#!/usr/bin/env python3\n")
-        theme = GtkSource.StyleScheme().get_style("cobalt")
+        theme = GtkSource.StyleSchemeManager.new().get_scheme(settings["Theme ID"])
         self.codebuffer.set_style_scheme(theme)
         self.code = GtkSource.View.new_with_buffer(self.codebuffer)
         self.code.set_auto_indent(True)
