@@ -17,7 +17,7 @@
 #Depends on python3-gi, gir1.2-gtksource-3.0, gir1.2-webkit-3.0, and pexpect from pip-3
 #TODO add icons in left gutter to indicate errors
 
-from gi.repository import Gtk, Gdk, GtkSource, WebKit, GLib, Gio, GObject, Pango
+from gi.repository import Gtk, Gdk, GtkSource, WebKit, GLib, Gio, GObject
 from os import path, mkdir, chmod
 from pexpect import spawn
 import json, re
@@ -41,11 +41,13 @@ class NewFileDialog(Gtk.Dialog):
         return self.entry.get_text()
 
 class IDE(Gtk.Window):
-    currFile = None
-    currProc = None
 
     #Create the main GUI
     def __init__(self):
+        self.currFile = None
+        self.currProc = None
+        self.errorTags = []
+
         Gtk.Window.__init__(self, title="Raspberry IDEa")
         self.set_size_request(400, 400)
         self.connect("delete-event", self.exit)
@@ -129,11 +131,6 @@ class IDE(Gtk.Window):
     def log(self, message):
         self.outputbuffer.insert(self.outputbuffer.get_end_iter(), message)
 
-    #Activated by tag interaction
-    def tagEvent(self, tag, sourceview, event, position):
-        print(tag)
-        self.tagtable.remove(tag)
-
     #Parses output sent by the print loop and highlights errors
     def errorEval(self, errString):
         errRegex = re.compile("\s+File \""+self.currFile+"\", line \d+.+Error:.+\r", flags=re.M|re.S)
@@ -146,15 +143,16 @@ class IDE(Gtk.Window):
             end = self.codebuffer.get_iter_at_line(line-1)
             end.forward_line()
             text = start.get_text(end)
-            print(text)
             start.forward_chars(len(text)-len(text.strip())-1)
             tag = self.codebuffer.create_tag(None, background="Red")
-            tag.connect("event", self.tagEvent)
+            self.errorTags.append(tag)
             self.codebuffer.apply_tag(tag, start, end)
 
     def printLoop(self, a, b, c): #To be honest, no idea what a, b, and c are supposed to be
         self.currProc = spawn(self.currFile)
         self.outputbuffer.set_text("")
+        for tag in self.errorTags:
+            self.tagtable.remove(tag)
         out = ""
         try:
             while self.currProc is not None and self.currProc.isalive():
