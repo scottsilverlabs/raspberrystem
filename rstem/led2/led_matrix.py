@@ -63,8 +63,8 @@ class LEDMatrix:
         if num_rows <= 0 or num_cols <= 0:
             raise ValueError("Invalid arguments in LedDraw initialization")
         # create a bitset of all 0's
-        self.bitarray = \
-            bitstring.BitArray(length=(num_rows*num_cols*SIZE_OF_PIXEL*(DIM_OF_MATRIX**2)))
+        # self.bitarray = \
+        #     bitstring.BitArray(length=(num_rows*num_cols*SIZE_OF_PIXEL*(DIM_OF_MATRIX**2)))
         self.num_rows = num_rows
         self.num_cols = num_cols
         self.num_matrices = num_rows*num_cols
@@ -73,94 +73,97 @@ class LEDMatrix:
         self.angle = angle  # rotation of x y coordinates
         self.zigzag = zigzag
          # sprite that indicates current background
-        self.display_sprite = LEDSprite(
-            height=num_rows*DIM_OF_MATRIX,
-            width=num_cols*DIM_OF_MATRIX
-        )
+        # self.display_sprite = LEDSprite(
+        #     height=num_rows*DIM_OF_MATRIX,
+        #     width=num_cols*DIM_OF_MATRIX
+        # )
         # initialize spi
         led_server.initSPI(5000000, 0)
+        led_server.initLED(num_rows, num_cols, zigzag, angle)
 
 
-    def _convert_to_std_angle(self, x, y):
-        """Returns converted coordinate system to standard angle=0 coordinates"""
-        if self.angle == 90:
-            oldx = x
-            x = y
-            y = (self.height - 1) - oldx
-        elif self.angle == 180:
-            x = (self.width - 1) - x
-            y = (self.height - 1) - y
-        elif self.angle == 270:
-            oldy = y
-            y = x
-            x = (self.width - 1) - oldy
-        return (x, y)
+    #
+    # def _convert_to_std_angle(self, x, y):
+    #     """Returns converted coordinate system to standard angle=0 coordinates"""
+    #     if self.angle == 90:
+    #         oldx = x
+    #         x = y
+    #         y = (self.height - 1) - oldx
+    #     elif self.angle == 180:
+    #         x = (self.width - 1) - x
+    #         y = (self.height - 1) - y
+    #     elif self.angle == 270:
+    #         oldy = y
+    #         y = x
+    #         x = (self.width - 1) - oldy
+    #     return (x, y)
 
-    def _in_matrix(self, x, y):
-        x, y = self._convert_to_std_angle(x, y)
-        return (y >= 0 and y < self.height and x >= 0 and x < self.width)
+    # def _in_matrix(self, x, y):
+    #     x, y = self._convert_to_std_angle(x, y)
+    #     return (y >= 0 and y < self.height and x >= 0 and x < self.width)
 
-    def _bitarray_to_bytearray(self):
-        """Convert bitarray into an bytearray python type that can be given to led_server"""
-        return bytearray(self.bitarray.tobytes())
+    # def _bitarray_to_bytearray(self):
+    #     """Convert bitarray into an bytearray python type that can be given to led_server"""
+    #     return bytearray(self.bitarray.tobytes())
 
-    def _num_pixels(self):
-        return self.height * self.width
+    # def _num_pixels(self):
+    #     return self.height * self.width
 
 
-    def _point_to_bitpos(self, x, y):
-        """Convert the (x,y) coordinates into the bit position in bitarray
-        Returns None if point not located on led matrix"""
-        # do nothing if x and y out of bound
-        if not self._in_matrix(x, y):
-            return None
-
-        # convert to standard angle=0 coordinates
-        x, y = self._convert_to_std_angle(x, y)
-
-        # figure out what matrix we are dealing with
-        mat_col = x/DIM_OF_MATRIX
-        mat_row = y/DIM_OF_MATRIX
-
-        # subtract off above matrix row and column so we can treat y relative to matrix row
-        y = (y - mat_row*DIM_OF_MATRIX)
-
-        # if on odd matrix row and zigzag enabled, we need to flip x and y coords
-        # (this allows us to treat x,y,mat_row,and mat_col as if zigzag == False)
-        if mat_row % 2 == 1 and self.zigzag:
-            x = (DIM_OF_MATRIX*self.num_cols - 1) - x
-            y = (DIM_OF_MATRIX - 1) - y
-            mat_col = x/DIM_OF_MATRIX    # update mat_col to new matrix element
-
-        # subtract off left matrix columns so we can treat x relative to matrix element
-        x = (x - mat_col*DIM_OF_MATRIX)
-
-        # get bitPos relative to matrix element
-        bitPosCol = x*DIM_OF_MATRIX*SIZE_OF_PIXEL
-        bitPosColOffset = (DIM_OF_MATRIX - 1 - y)*SIZE_OF_PIXEL
-        bitPos = bitPosCol + bitPosColOffset
-
-        # switch matrix element to be flipped version (needed for led_server)
-        mat_index = mat_row*self.num_cols + mat_col  # original index
-        mat_index = (self.num_matrices - 1) - mat_index  # swapped index
-
-        # convert bitPos to absolute index of entire matrix
-        bitPos = mat_index*(DIM_OF_MATRIX**2)*SIZE_OF_PIXEL + bitPos
-
-        # swap nibble (low to high, high to low) (needed for led_server)
-        if bitPos % 8 == 0: # beginning of byte
-            bitPos += 4
-        elif bitPos % 8 == 4: # middle of byte
-            bitPos -= 4
-        else:
-            assert False, "bitPos is not nibble aligned"
-
-        return bitPos
+    # def _point_to_bitpos(self, x, y):
+    #     """Convert the (x,y) coordinates into the bit position in bitarray
+    #     Returns None if point not located on led matrix"""
+    #     # do nothing if x and y out of bound
+    #     if not self._in_matrix(x, y):
+    #         return None
+    #
+    #     # convert to standard angle=0 coordinates
+    #     x, y = self._convert_to_std_angle(x, y)
+    #
+    #     # figure out what matrix we are dealing with
+    #     mat_col = x/DIM_OF_MATRIX
+    #     mat_row = y/DIM_OF_MATRIX
+    #
+    #     # subtract off above matrix row and column so we can treat y relative to matrix row
+    #     y = (y - mat_row*DIM_OF_MATRIX)
+    #
+    #     # if on odd matrix row and zigzag enabled, we need to flip x and y coords
+    #     # (this allows us to treat x,y,mat_row,and mat_col as if zigzag == False)
+    #     if mat_row % 2 == 1 and self.zigzag:
+    #         x = (DIM_OF_MATRIX*self.num_cols - 1) - x
+    #         y = (DIM_OF_MATRIX - 1) - y
+    #         mat_col = x/DIM_OF_MATRIX    # update mat_col to new matrix element
+    #
+    #     # subtract off left matrix columns so we can treat x relative to matrix element
+    #     x = (x - mat_col*DIM_OF_MATRIX)
+    #
+    #     # get bitPos relative to matrix element
+    #     bitPosCol = x*DIM_OF_MATRIX*SIZE_OF_PIXEL
+    #     bitPosColOffset = (DIM_OF_MATRIX - 1 - y)*SIZE_OF_PIXEL
+    #     bitPos = bitPosCol + bitPosColOffset
+    #
+    #     # switch matrix element to be flipped version (needed for led_server)
+    #     mat_index = mat_row*self.num_cols + mat_col  # original index
+    #     mat_index = (self.num_matrices - 1) - mat_index  # swapped index
+    #
+    #     # convert bitPos to absolute index of entire matrix
+    #     bitPos = mat_index*(DIM_OF_MATRIX**2)*SIZE_OF_PIXEL + bitPos
+    #
+    #     # swap nibble (low to high, high to low) (needed for led_server)
+    #     if bitPos % 8 == 0: # beginning of byte
+    #         bitPos += 4
+    #     elif bitPos % 8 == 4: # middle of byte
+    #         bitPos -= 4
+    #     else:
+    #         assert False, "bitPos is not nibble aligned"
+    #
+    #     return bitPos
 
 
     def show(self):
         """Flushes current display setup to the led matrix"""
-        led_server.flush(self._bitarray_to_bytearray())  # give frame buffer to led_server
+        led_server.flush2()
+        # led_server.flush(self._bitarray_to_bytearray())  # give frame buffer to led_server
         # TODO: make more proper debug statement
         if not __debug__:
             for y in range(self.height):
@@ -179,13 +182,14 @@ class LEDMatrix:
         self.fill(color=0x0)
 
     def fill(self, color=0xF):
+        led_server.fill(_convert_color(color))
         """Sets entire display to be filled with given color"""
-        old_angle = self.angle
-        self.angle = 0    # switch to standard coordinates temporarily
-        for x in range(self.width):
-            for y in range(self.height):
-                self.point(x, y, color)
-        self.angle = old_angle
+        # old_angle = self.angle
+        # self.angle = 0    # switch to standard coordinates temporarily
+        # for x in range(self.width):
+        #     for y in range(self.height):
+        #         self.point(x, y, color)
+        # self.angle = old_angle
 
     def point(self, x, y=None, color=0xF):
         """Adds point to bitArray and foreground or background sprite"""

@@ -7,6 +7,24 @@
 
 #define DIM_OF_MATRIX 8
 #define SIZE_OF_PIXEL 4
+// number of bytes in a matrix
+#define NUM_BYTES_MATRIX ((DIM_OF_MATRIX*DIM_OF_MATRIX)/2)
+// number of bits in a matrix
+#define NUM_BITS_MATRIX (DIM_OF_MATRIX*DIM_OF_MATRIX*SIZE_OF_PIXEL)
+
+#define PIXEL_WIDTH (DIM_OF_MATRIX*led.num_cols)
+#define PIXEL_HEIGHT (DIM_OF_MATRIX*led.num_rows)
+
+#define MAT_ROW(x,y) ((y)/DIM_OF_MATRIX)
+#define MAT_COL(x,y) ((x)/DIM_OF_MATRIX)
+#define NUM_MATRICES (led.num_cols*led.num_rows)
+// index of matrix with order relative to the frameBuffer bitstream
+#define MAT_INDEX(x,y) ((NUM_MATRICES - 1) - (MAT_ROW(x,y)*led.num_cols + MAT_COL(x,y)))
+
+// tells you if (x,y) is in matrix (USING STD ANGLE only!)
+#define IN_MATRIX(x,y) ((x) >= 0 && (x) < PIXEL_WIDTH && (y) >= 0 && (y) < PIXEL_HEIGHT)
+
+#define FRAME_BUFFER_SIZE (NUM_BYTES_MATRIX*NUM_MATRICES)
 
 int spi;
 unsigned char spiMode;
@@ -17,13 +35,16 @@ int main(){
     // testing purpose TODO remove
 }
 
-struct dualPixel {
-    unsigned int firstPixel:4
-    unsigned int secondPixel:4
-};
+struct LEDMatrix {
+    unsigned char *frameBuffer;
+    int num_cols;
+    int num_rows;
+    int zigzag;
+    int angle;
+}
 
-struct dualPixel* frameBuffer;
-int frameBufferSize;
+struct LEDMatrix led;
+
 
 int startSPI(unsigned int speed, int mode){
 	char *sMode;
@@ -78,27 +99,99 @@ int writeBytes(int dev, unsigned char* val, int len) {
 return ret;
 }
 
+int fill(unsigned int color){
+    if (color > 0xF){
+        return -1;
+    }
+    color = ((color & 0xF) << 4) | (color & 0xF);
+    for (int i=0; i < FRAME_BUFFER_SIZE; i++){
+        led.frameBuffer[i] = color;
+    }
+    return 0;
+}
+
+void convert_to_std_angle(int *x, int *y){
+    if (led.angle == 90){
+        int oldx = *x;
+        *x = *y;
+        *y = (PIXEL_HEIGHT - 1) - oldx;
+    } else if (led.angle == 180){
+        *x = (PIXEL_WIDTH - 1) - *x;
+        *y = (PIXEL_HEIGHT - 1) - *y;
+    } else if (led.angle == 270){
+        int oldy = *y;
+        *y = *x;
+        *x = (PIXEL_WIDTH - 1) - oldy;
+    }
+}
 
 
-int point(int x, int y, int color) {
+int point_to_bitPos(int x, int y){
 
+    int mat_row = MAT_ROW(x,y);
+    // subtract off above matrix row and column so we can tread y relative to matrix row
+    y = (y - mat_row*DIM_OF_MATRIX)
+    // if on odd matrix row and zigzag enabled, we need to flip x and y coords
+    // (this allows us to treat x,y,mat_row,and mat_col as if zigzag == False)
+    if (mat_row % 2 == 1 && led.zigzag){
+        x = (DIM_OF_MATRIX*s_num_cols - 1) - x;
+        y = (DIM_OF_MATRIX - 1) - y;
+    }
+    // subtract off left matrix columns so we can treat x relative to matrix element
+    x = (x - MAT_COL*DIM_OF_MATRIX);
+
+    // get bitPos relative to matrix element
+    int bitPosCol = x*DIM_OF_MATRIX*SIZE_OF_PIXEL;
+    int bitPosColOffset = (DIM_OF_MATRIX - 1 - y)*SIZE_OF_PIXEL;
+    int bitPos = bitPosCol + bitPosColOffset;
+
+    // update bitPos to be absolute index of entire matrix
+    bitPos += MAT_INDEX(x,y)*NUM_BITS_MATRIX
+
+    return bitPos
+}
+
+int point(int x, int y, unsigned int color) {
+    convert_to_std_angle(&x,&y);
+    if (!IN_MATRIX(x,y)){
+        return 0;
+    }
+    if (color > 0xF){
+        return -1;
+    }
+    int bitPos = point_to_bitPos(x,y);
+    int bytePos = bitPos/8;
+    // swap nibble (low to height, hight to low)
+    if (bitPos % 8 == 0){
+        // put nibble on low side
+        led.frameBuffer[bytePos] = (led.frameBuffer[bytePos] & 0xF0) | (color & 0xF);
+    } else {
+        // put nibble on high side
+        led.frameBuffer[bytePos] = ((color & 0xF) << 4) | (led.frameBuffer[bytePos] & 0xF);
+    }
+    return 0;
 }
 
 int line(int x1, int y1, int x2, int y2, int color){
-
+    return 0;
 }
 
-int initLED(int num_rows, int num_cols, int zigzag){
-
+int initLED(int num_rows, int num_cols, int zigzag, int angle){
+    led.frameBuffer = (unsigned char *) malloc(num_cols*num_rows*NUM_BYTES_MATRIX);
+    led.num_rows = num_rows;
+    led.num_cols = num_cols;
+    led.zigzag = zigzag;
+    led.angle = angle;
+    return 0;
 }
 
 static PyObject *PyInitLED(PyObject *self, PyObject *args){
-    int num_rows, num_cols, zigzag;
-	if(!PyArg_ParseTuple(args, "iii", &num_rows, &num_cols, &zigzag)){
+    int num_rows, num_cols, zigzag, angle;
+	if(!PyArg_ParseTuple(args, "iiii", &num_rows, &num_cols, &zigzag, &angle)){
 		PyErr_SetString(PyExc_TypeError, "Not ints!");
 		return NULL;
 	}
-	if(initLED(num_rows, num_cols, zigzag) < 0){
+	if(initLED(num_rows, num_cols, zigzag, angle) < 0){
 	    PyErr_SetString(PyExc_RuntimeError, "Something bad happned...");
 	}
 	return Py_BuildValue("i", 1);
@@ -140,7 +233,7 @@ static PyObject *initSPI(PyObject *self, PyObject *args){
 }
 
 static PyObject *PyFlush(PyObject *self, PyObject *args){
-    return Py_BuildValue("i", writeBytes(spi, (unsigned char*) frameBuffer, frameBufferSize));
+    return Py_BuildValue("i", writeBytes(spi, led.frameBuffer, FRAME_BUFFER_SIZE));
 }
 
 static PyObject *flush(PyObject *self, PyObject *args){
