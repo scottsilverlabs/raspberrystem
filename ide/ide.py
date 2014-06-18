@@ -24,7 +24,12 @@ from time import time
 import json, re
 
 projectDir = path.expanduser("~/raspberryidea/")
-settings = {"Theme ID" : "cobalt", "Browser Homepage" : "http://google.com", "Tab Width" : 4}
+settings = {"Theme ID" : "cobalt",
+    "Browser Homepage" : "http://google.com",
+    "Tab Width" : 4,
+    "Undo Key" : "<Control>z",
+    "Redo Key" : "<Control>y"
+}
 
 #File name chooser popup
 class NewFileDialog(Gtk.Dialog):
@@ -51,6 +56,7 @@ class IDE(Gtk.Window):
         self.errorTags = []
 
         Gtk.Window.__init__(self, title="Raspberry IDEa")
+        self.connect('notify::is-active', self.focuschange)
         self.set_size_request(400, 400)
         self.connect("delete-event", self.exit)
 
@@ -123,8 +129,8 @@ class IDE(Gtk.Window):
 
         #Hotkeys
         Keybinder.init()
-        self.hotkey("<Control>u", self.codebuffer.redo)
-        self.connect('notify::is-active', self.focuschange)
+        self.hotkey(settings["Undo Key"], self.codebuffer.undo)
+        self.hotkey(settings["Redo Key"], self.codebuffer.redo)
 
     def focused(self):
         return self.props.is_active or int(time()) - self.loss < 2
