@@ -14,27 +14,49 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-#Depends on python3-gi, gir1.2-gtksource-3.0, gir1.2-webkit-3.0, libkeybinder, and pexpect from pip-3
-#TODO add icons in left gutter to indicate errors
+#Depends on python3-gi, gir1.2-gtksource-3.0, gir1.2-webkit-3.0, [gir1.2-keybinder-3.0], and pexpect from pip-3
+#TODO find gir1.2-keybinder alternative
+#TODO network check
 
-from gi.repository import Gtk, GtkSource, Keybinder, WebKit, GLib, Gio, GObject
+from gi.repository import Gtk, GtkSource, WebKit, GLib, Gio, GObject#, Keybinder
 from os import path, mkdir, chmod
 from pexpect import spawn
-from time import time
+#from time import time
 import json, re
 
 projectDir = path.expanduser("~/raspberryidea/")
-settings = {"Theme ID" : "cobalt",
+settings = {
+    "Theme ID" : "cobalt",
     "Browser Homepage" : "http://google.com",
     "Tab Width" : 4,
     "Undo Key" : "<Control>z",
     "Redo Key" : "<Control>y"
 }
 
-#File name chooser popup
-class NewFileDialog(Gtk.Dialog):
-    def __init__(self, parent):
-        Gtk.Dialog.__init__(self, "Save File", parent, 0,
+#Drop down menu selection chooser popup
+class MenuDialog(Gtk.Dialog):
+    def __init__(self, parent, name, inlist):
+        Gtk.Dialog.__init__(self, name, parent, 0, (Gtk.STOCK_OK, Gtk.ResponseType.OK))
+        self.set_default_size(150, 100)
+        self.menu = Gtk.ComboBox()
+        lstore = Gtk.ListStore(str)
+        self.names = inlist
+        for i in inlist:
+            lstore.append([i.capitalize().replace("-", " ")])
+        self.menu = Gtk.ComboBox.new_with_model_and_entry(lstore)
+        self.menu.set_entry_text_column(0)
+        box = self.get_content_area()
+        self.menu.show_all()
+        box.add(self.menu)
+        self.show_all()
+
+    def getSelection(self):
+        return self.names[self.menu.get_active()]
+
+#Text box popup
+class TextDialog(Gtk.Dialog):
+    def __init__(self, parent, name):
+        Gtk.Dialog.__init__(self, name, parent, 0,
             (Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
             Gtk.STOCK_OK, Gtk.ResponseType.OK))
         self.set_default_size(150, 100)
@@ -56,7 +78,7 @@ class IDE(Gtk.Window):
         self.errorTags = []
 
         Gtk.Window.__init__(self, title="Raspberry IDEa")
-        self.connect("notify::is-active", self.focuschange)
+        #self.connect("notify::is-active", self.focuschange)
         self.set_size_request(400, 400)
         self.connect("delete-event", self.exit)
 
@@ -67,16 +89,17 @@ class IDE(Gtk.Window):
         grid.attach(toolbar, 0, 0, 3, 1)
 
         self.rbutton = Gtk.ToolButton.new_from_stock(Gtk.STOCK_MEDIA_PLAY) #Run
-        self.rbutton.connect("clicked", self.run)
+        self.rbutton.connect("clicked", self.runScript)
         toolbar.insert(self.rbutton, 0)
-
         nbutton = Gtk.ToolButton.new_from_stock(Gtk.STOCK_EDIT) #New
         nbutton.connect("clicked", self.newFile)
         toolbar.insert(nbutton, 1)
-
         obutton = Gtk.ToolButton.new_from_stock(Gtk.STOCK_DIRECTORY) #Open
         obutton.connect("clicked", self.openFile)
         toolbar.insert(obutton, 2)
+        tbutton = Gtk.ToolButton.new_from_stock(Gtk.STOCK_PREFERENCES) #Open
+        tbutton.connect("clicked", self.selectTheme)
+        toolbar.insert(tbutton, 3)
 
         mainholder = Gtk.Paned()
         grid.attach(mainholder, 0, 1, 1, 1)
@@ -86,7 +109,8 @@ class IDE(Gtk.Window):
         self.codebuffer = GtkSource.Buffer()
         self.codebuffer.set_highlight_syntax(True)
         self.codebuffer.set_text("#!/usr/bin/env python3\n")
-        theme = GtkSource.StyleSchemeManager.new().get_scheme(settings["Theme ID"])
+        self.thememanager = GtkSource.StyleSchemeManager.new()
+        theme = self.thememanager.get_scheme(settings["Theme ID"])
         self.codebuffer.set_style_scheme(theme)
         lm = GtkSource.LanguageManager()
         self.codebuffer.set_language(lm.get_language("python3"))
@@ -128,33 +152,27 @@ class IDE(Gtk.Window):
         self.browser.load_uri(settings["Browser Homepage"])
 
         #Hotkeys
-        Keybinder.init()
-        self.hotkey(settings["Undo Key"], self.codebuffer.undo)
-        self.hotkey(settings["Redo Key"], self.codebuffer.redo)
+        #Keybinder.init()
+        #self.hotkey(settings["Undo Key"], self.codebuffer.undo)
+        #self.hotkey(settings["Redo Key"], self.codebuffer.redo)
 
-    def focused(self):
-        print(self.props.is_active)
-        print(int(time()) - self.loss)
-        return self.props.is_active or int(time()) - self.loss < 2
+    #def focused(self):
+    #    return self.props.is_active or int(time()) - self.loss < 2
 
-    def focuschange(self, widget, event):
-        if not self.props.is_active:
-            self.loss = int(time())
+    #def focuschange(self, widget, event):
+    #    if not self.props.is_active:
+    #        self.loss = int(time())
 
-    def runHotkey(self, key, method):
-        #print(method)
-        #print(self.focused)
-        if self.focused():
-            print("Performing method")
-            method()
+    #def runHotkey(self, key, method):
+    #    if self.focused():
+    #        print("Performing method")
+    #        method()
 
-    def hotkey(self, keystring, method):
-        print(keystring)
-        print(method)
-        Keybinder.bind(keystring, self.runHotkey, method)
+    #def hotkey(self, keystring, method):
+    #    Keybinder.bind(keystring, self.runHotkey, method)
 
-    def hotkeyTest(self, hotkey):
-        print(self.props.is_active)
+    #def hotkeyTest(self, hotkey):
+    #    print(self.props.is_active)
 
     def exit(self, widget, event):
         self.save()
@@ -206,7 +224,7 @@ class IDE(Gtk.Window):
         self.rbutton.set_stock_id(Gtk.STOCK_MEDIA_PLAY)
 
     #Called when the run button is pressed
-    def run(self, widget):
+    def runScript(self, widget):
         if self.currProc is None:
             self.code.set_editable(False)
             self.save()
@@ -219,9 +237,10 @@ class IDE(Gtk.Window):
             self.currProc.sendcontrol('c');
             self.rbutton.set_stock_id(Gtk.STOCK_MEDIA_PLAY)
 
+    #Initiates save dialog
     def save(self):
         if self.currFile is None:
-            dialog = NewFileDialog(self)
+            dialog = TextDialog(self, "Save Current File")
             response = dialog.run()
             if response == Gtk.ResponseType.OK:
                 self.currFile = projectDir+dialog.text().replace(' ','_')+".py"
@@ -234,7 +253,8 @@ class IDE(Gtk.Window):
         f.close()
 
     def newFile(self, widget):
-        dialog = NewFileDialog(self)
+        self.save()
+        dialog = TextDialog(self, "New File Name")
         response = dialog.run()
         if response == Gtk.ResponseType.OK:
             if self.currFile is not None:
@@ -262,6 +282,16 @@ class IDE(Gtk.Window):
             text = f.read()
             f.close()
             self.codebuffer.set_text(text)
+        dialog.destroy()
+
+    def selectTheme(self, widget):
+        ids = self.thememanager.get_scheme_ids()
+        dialog = MenuDialog(self, "Theme", ids)
+        dialog.run()
+        tid = dialog.getSelection()
+        theme = self.thememanager.get_scheme(tid)
+        self.codebuffer.set_style_scheme(theme)
+        self.outputbuffer.set_style_scheme(theme)
         dialog.destroy()
 
 if not path.isdir(projectDir):
