@@ -17,7 +17,7 @@
 #Depends on python3-gi, gir1.2-gtksource-3.0, gir1.2-webkit-3.0, libkeybinder, and pexpect from pip-3
 #TODO add icons in left gutter to indicate errors
 
-from gi.repository import Gtk, Keybinder, GtkSource, WebKit, GLib, Gio, GObject
+from gi.repository import Gtk, GtkSource, Keybinder, WebKit, GLib, Gio, GObject
 from os import path, mkdir, chmod
 from pexpect import spawn
 from time import time
@@ -56,7 +56,7 @@ class IDE(Gtk.Window):
         self.errorTags = []
 
         Gtk.Window.__init__(self, title="Raspberry IDEa")
-        self.connect('notify::is-active', self.focuschange)
+        self.connect("notify::is-active", self.focuschange)
         self.set_size_request(400, 400)
         self.connect("delete-event", self.exit)
 
@@ -133,10 +133,11 @@ class IDE(Gtk.Window):
         self.hotkey(settings["Redo Key"], self.codebuffer.redo)
 
     def focused(self):
+        print(self.props.is_active)
+        print(int(time()) - self.loss)
         return self.props.is_active or int(time()) - self.loss < 2
 
     def focuschange(self, widget, event):
-        print(self.props.is_active)
         if not self.props.is_active:
             self.loss = int(time())
 
