@@ -197,11 +197,12 @@ class LEDMatrix:
         color = _convert_color(color)
         if y is None:
             x, y = x
-        bitPos = self._point_to_bitpos(x,y)
-        if bitPos is None:
-            raise Exception("Index out of bounds.")
-        if color <= 0xF: # ignore if transparent?
-            self.bitarray[bitPos:bitPos+SIZE_OF_PIXEL] = color
+        led_server.point(x, y, color)
+        # bitPos = self._point_to_bitpos(x,y)
+        # if bitPos is None:
+        #     raise Exception("Index out of bounds.")
+        # if color <= 0xF: # ignore if transparent?
+        #     self.bitarray[bitPos:bitPos+SIZE_OF_PIXEL] = color
 
         # x, y = self._convert_to_std_angle(x,y)
         # self.display_sprite.set_pixel((x,y), color)
@@ -212,8 +213,8 @@ class LEDMatrix:
 
     def line(self, point_a, point_b, color=0xF):
         """Create a line from point_a to point_b"""
-        if color < 0x0 or color > 0xF:
-            raise ValueError("Invalid color")
+        # if color < 0x0 or color > 0xF:
+        #     raise ValueError("Invalid color")
 
         x_diff = point_a[0] - point_b[0]
         y_diff = point_a[1] - point_b[1]
@@ -224,10 +225,10 @@ class LEDMatrix:
             start_point = point_a if x_diff < 0 else point_b
             start_x, start_y = start_point
             for x_offset in range(width):
-                self.point(
+                led_server.point(
                     start_x + x_offset,
                     start_y + step*(x_offset*height/width),
-                    color=color
+                    _convert_color(color)
                 )
         else:
             start_point = point_a if y_diff < 0 else point_b
@@ -236,7 +237,7 @@ class LEDMatrix:
                 self.point(
                     start_x + step*(y_offset*width/height),
                     start_y + y_offset,
-                    color=color
+                    _convert_color(color)
                 )
 
 
@@ -272,10 +273,11 @@ class LEDMatrix:
 
     def sprite(self, sprite, (x,y)=(0,0)):
         """Sets given sprite with top left corner at given position"""
+        # TODO: better way with sprite croping
         x_offset = x
         y_offset = y
         for y, line in enumerate(sprite.bitmap):
-            y = y + y_offset
+            y = y + y_offset  #TODO: instead start at an index of y + y_offset
             if y < 0:
                 continue
             # stop if we go lower than physical display
@@ -288,11 +290,10 @@ class LEDMatrix:
                 # stop if we go too far to the right of physical display
                 if not self._in_matrix(x,0):
                     break
-                self.point(
+                led_server.point(
                     x,
                     y,
-                    color=color,
-                    background=background
+                    _convert_color(color)
                 )
 
 

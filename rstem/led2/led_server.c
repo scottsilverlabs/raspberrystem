@@ -105,7 +105,7 @@ int fill(unsigned int color){
     }
     color = ((color & 0xF) << 4) | (color & 0xF);
     for (int i=0; i < FRAME_BUFFER_SIZE; i++){
-        led.frameBuffer[i] = color;
+        led.frameBuffer[i] = (unsigned char *) color;
     }
     return 0;
 }
