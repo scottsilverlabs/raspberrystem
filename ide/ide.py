@@ -141,19 +141,16 @@ class IDE(Gtk.Window):
         for i in res:
             broken = i[:-1].split("\r\n")
             line = int(broken[0].split(", ")[1].split(" ")[1])
-            err = broken[3].split(": ")[1].capitalize()
+            #err = broken[3].split(": ")[1].capitalize()
             start = self.codebuffer.get_iter_at_line(line-1)
             end = self.codebuffer.get_iter_at_line(line-1)
             end.forward_line()
             text = start.get_text(end)
             print(text)
-            #start.forward_chars(len(text)-len(text.strip())-1)
+            start.forward_chars(len(text)-len(text.strip())-1)
             tag = self.codebuffer.create_tag(None, background="Red")
             tag.connect("event", self.tagEvent)
-            print(tag)
             self.codebuffer.apply_tag(tag, start, end)
-            print(err + " at line " + str(line-1))
-            print("Error text is "+str(start.get_text(end)))
 
     def printLoop(self, a, b, c): #To be honest, no idea what a, b, and c are supposed to be
         self.currProc = spawn(self.currFile)
