@@ -14,10 +14,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-#Depends on python3-gi, gir1.2-gtksource-3.0, gir1.2-webkit-3.0, and pexpect from pip-python3
+#Depends on python3-gi, gir1.2-gtksource-3.0, gir1.2-webkit-3.0, and pexpect from pip-3
 #TODO add icons in left gutter to indicate errors
 
-from gi.repository import Gtk, Gdk, GtkSource, WebKit, GLib, Gio, GObject
+from gi.repository import Gtk, Gdk, GtkSource, WebKit, GLib, Gio, GObject, Pango
 from os import path, mkdir, chmod
 from pexpect import spawn
 import json, re
@@ -80,16 +80,12 @@ class IDE(Gtk.Window):
         self.codebuffer.set_style_scheme(theme)
         lm = GtkSource.LanguageManager()
         self.codebuffer.set_language(lm.get_language("python3"))
+        self.tagtable = self.codebuffer.get_tag_table()
         self.code = GtkSource.View.new_with_buffer(self.codebuffer)
         self.code.set_auto_indent(True)
         self.code.set_show_line_numbers(True)
         self.code.set_tab_width(settings["Tab Width"])
         self.code.set_indent_width(-1) #Sets it to tab width
-        markattr = GtkSource.MarkAttributes.new()
-        errorcolor = Gdk.RGBA()
-        errorcolor.parse("#fee")
-        markattr.set_background(errorcolor)
-        self.code.set_mark_attributes("error", markattr, 0.5)
 
         codescroller = Gtk.ScrolledWindow()
         codescroller.set_vexpand(True)
@@ -133,26 +129,31 @@ class IDE(Gtk.Window):
     def log(self, message):
         self.outputbuffer.insert(self.outputbuffer.get_end_iter(), message)
 
+    #Activated by tag interaction
+    def tagEvent(self, tag, sourceview, event, position):
+        print(tag)
+        self.tagtable.remove(tag)
+
     #Parses output sent by the print loop and highlights errors
     def errorEval(self, errString):
         errRegex = re.compile("\s+File \""+self.currFile+"\", line \d+.+Error:.+\r", flags=re.M|re.S)
         res = re.findall(errRegex, errString)
         for i in res:
             broken = i[:-1].split("\r\n")
-            line = broken[0].split(" ")
-            line = int(line[len(line)-1])
+            line = int(broken[0].split(", ")[1].split(" ")[1])
             err = broken[3].split(": ")[1].capitalize()
-            charNum = 0
-            for j in broken[2]:
-                if j == "^":
-                    break
-                charNum += 1
-            print(err + " at line " + str(line) + " character " + str(charNum+1))
-            errMark = GtkSource.Mark.new(str(line) + " " + str(charNum), "error")
-            place = self.outputbuffer.get_start_iter()
-            place.forward_lines(line-1)
-            place.forward_chars(charNum)
-            self.outputbuffer.add_mark(errMark, place)
+            start = self.codebuffer.get_iter_at_line(line-1)
+            end = self.codebuffer.get_iter_at_line(line-1)
+            end.forward_line()
+            text = start.get_text(end)
+            print(text)
+            #start.forward_chars(len(text)-len(text.strip())-1)
+            tag = self.codebuffer.create_tag(None, background="Red")
+            tag.connect("event", self.tagEvent)
+            print(tag)
+            self.codebuffer.apply_tag(tag, start, end)
+            print(err + " at line " + str(line-1))
+            print("Error text is "+str(start.get_text(end)))
 
     def printLoop(self, a, b, c): #To be honest, no idea what a, b, and c are supposed to be
         self.currProc = spawn(self.currFile)
