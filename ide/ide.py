@@ -14,12 +14,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-#Depends on python3-gi, gir1.2-gtksource-3.0, gir1.2-webkit-3.0, and pexpect from pip-3
+#Depends on python3-gi, gir1.2-gtksource-3.0, gir1.2-webkit-3.0, libkeybinder, and pexpect from pip-3
 #TODO add icons in left gutter to indicate errors
 
-from gi.repository import Gtk, Gdk, GtkSource, WebKit, GLib, Gio, GObject
+from gi.repository import Gtk, Keybinder, GtkSource, WebKit, GLib, Gio, GObject
 from os import path, mkdir, chmod
 from pexpect import spawn
+from time import time
 import json, re
 
 projectDir = path.expanduser("~/raspberryidea/")
@@ -46,6 +47,7 @@ class IDE(Gtk.Window):
     def __init__(self):
         self.currFile = None
         self.currProc = None
+        self.loss = 0
         self.errorTags = []
 
         Gtk.Window.__init__(self, title="Raspberry IDEa")
@@ -119,6 +121,34 @@ class IDE(Gtk.Window):
         webscroller.add_with_viewport(self.browser)
         self.browser.load_uri(settings["Browser Homepage"])
 
+        #Hotkeys
+        Keybinder.init()
+        self.hotkey("<Control>u", self.codebuffer.redo)
+        self.connect('notify::is-active', self.focuschange)
+
+    def focused(self):
+        return self.props.is_active or int(time()) - self.loss < 2
+
+    def focuschange(self, widget, event):
+        print(self.props.is_active)
+        if not self.props.is_active:
+            self.loss = int(time())
+
+    def runHotkey(self, key, method):
+        #print(method)
+        #print(self.focused)
+        if self.focused():
+            print("Performing method")
+            method()
+
+    def hotkey(self, keystring, method):
+        print(keystring)
+        print(method)
+        Keybinder.bind(keystring, self.runHotkey, method)
+
+    def hotkeyTest(self, hotkey):
+        print(self.props.is_active)
+
     def exit(self, widget, event):
         self.save()
         Gtk.main_quit()
@@ -128,6 +158,7 @@ class IDE(Gtk.Window):
         adj = self.outputscroller.get_vadjustment()
         adj.set_value(adj.get_upper() - adj.get_page_size())
 
+    #Prints to the output window
     def log(self, message):
         self.outputbuffer.insert(self.outputbuffer.get_end_iter(), message)
 
