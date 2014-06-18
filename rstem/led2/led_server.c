@@ -41,7 +41,7 @@ struct LEDMatrix {
     int num_rows;
     int zigzag;
     int angle;
-}
+};
 
 struct LEDMatrix led;
 
@@ -104,8 +104,10 @@ int fill(unsigned int color){
         return -1;
     }
     color = ((color & 0xF) << 4) | (color & 0xF);
-    for (int i=0; i < FRAME_BUFFER_SIZE; i++){
-        led.frameBuffer[i] = (unsigned char *) color;
+    int i;
+    // TODO memsetle
+    for (i = 0; i < FRAME_BUFFER_SIZE; i++){
+        led.frameBuffer[i] = (unsigned char) color;
     }
     return 0;
 }
@@ -130,25 +132,27 @@ int point_to_bitPos(int x, int y){
 
     int mat_row = MAT_ROW(x,y);
     // subtract off above matrix row and column so we can tread y relative to matrix row
-    y = (y - mat_row*DIM_OF_MATRIX)
+    y = (y - mat_row*DIM_OF_MATRIX);
     // if on odd matrix row and zigzag enabled, we need to flip x and y coords
     // (this allows us to treat x,y,mat_row,and mat_col as if zigzag == False)
     if (mat_row % 2 == 1 && led.zigzag){
-        x = (DIM_OF_MATRIX*s_num_cols - 1) - x;
+        x = (DIM_OF_MATRIX*led.num_cols - 1) - x;
         y = (DIM_OF_MATRIX - 1) - y;
     }
     // subtract off left matrix columns so we can treat x relative to matrix element
-    x = (x - MAT_COL*DIM_OF_MATRIX);
+    x = (x - MAT_COL(x,y)*DIM_OF_MATRIX);
 
+
+    // x and y now relative to matrix element
     // get bitPos relative to matrix element
     int bitPosCol = x*DIM_OF_MATRIX*SIZE_OF_PIXEL;
     int bitPosColOffset = (DIM_OF_MATRIX - 1 - y)*SIZE_OF_PIXEL;
     int bitPos = bitPosCol + bitPosColOffset;
 
     // update bitPos to be absolute index of entire matrix
-    bitPos += MAT_INDEX(x,y)*NUM_BITS_MATRIX
+    bitPos += MAT_INDEX(x,y)*NUM_BITS_MATRIX;
 
-    return bitPos
+    return bitPos;
 }
 
 int point(int x, int y, unsigned int color) {
@@ -172,7 +176,7 @@ int point(int x, int y, unsigned int color) {
     return 0;
 }
 
-int line(int x1, int y1, int x2, int y2, int color){
+int line(int x1, int y1, int x2, int y2, unsigned int color){
     return 0;
 }
 
@@ -197,9 +201,22 @@ static PyObject *PyInitLED(PyObject *self, PyObject *args){
 	return Py_BuildValue("i", 1);
 }
 
+static PyObject *PyFill(PyObject *self, PyObject *args){
+    unsigned int color;
+    if(!PyArg_ParseTuple(args, "I", &color)){
+        PyErr_SetString(PyExc_TypeError, "Not an unsigned int!");
+        return NULL;
+    }
+    if(fill(color) < 0){
+        PyErr_SetString(PyExc_RuntimeError, "Something bad happned...");
+    }
+    return Py_BuildValue("i", 1);
+}
+
 static PyObject *PyLine(PyObject *self, PyObject *args){
-    int x1, y1, x2, y2, color;
-	if(!PyArg_ParseTuple(args, "iiiii", &x1, &y1, &x2, &y2 &color)){
+    int x1, y1, x2, y2;
+    unsigned int color;
+	if(!PyArg_ParseTuple(args, "iiiiI", &x1, &y1, &x2, &y2, &color)){
 		PyErr_SetString(PyExc_TypeError, "Not ints!");
 		return NULL;
 	}
@@ -263,6 +280,7 @@ static PyMethodDef led_server_methods[] = {
 	{"point", PyPoint, METH_VARARGS},
 	{"line", PyLine, METH_VARARGS},
 	{"initLED", PyInitLED, METH_VARARGS},
+    {"fill", PyFill, METH_VARARGS},
 	{NULL, NULL}
 };
 
