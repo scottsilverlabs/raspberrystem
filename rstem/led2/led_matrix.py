@@ -48,38 +48,40 @@ def _convert_color(color):
         return 0x10
     return int(color, 16)
 
+class LEDContainer:
+    def __init__(self, mat_list):
+        """Create a chain of led matrices set at particular offsets into the container.
+        The order of the led matrices in the list indicate the order they are
+        physically hooked up with the first one connected to Pi.
+        mat_list = list of tuple that contains led matrix and offset
+            ex: [(0,0,led1),(7,0,led2)]"""
+        self.frameBuffer = {}  # TODO: right now implementing as hash table, switch to array?
+        for matrix in mat_list:
+            x = matrix[0]
+            y = matrix[1]
+            led = matrix[2]
+
 
 class LEDMatrix:
 
-    def __init__(self, num_rows=1, num_cols=1, angle=0, zigzag=True):
-        """Initializes a matrix of led matrices
-        num_rows = number of led matrices set up vertically
-        num_cols = number of led matrices set up horizontally
-        angle = orientation of x and y coordinates
-                - supports angle = 0, 90, 180, and 270
-        zigzag = True if matrices set up in zigzag fashion instead of
-                    left to right on each rowm
+    def __init__(self, angle=0):
+        """Initializes a single led matrix element
+        angle = 0, 90, 180, or 270 (sets directions of coordinates)
+        (for now element matrix is only 8x8 and 4 bits for color)
         """
-        if num_rows <= 0 or num_cols <= 0:
-            raise ValueError("Invalid arguments in LedDraw initialization")
-        # create a bitset of all 0's
-        # self.bitarray = \
-        #     bitstring.BitArray(length=(num_rows*num_cols*SIZE_OF_PIXEL*(DIM_OF_MATRIX**2)))
-        self.num_rows = num_rows
-        self.num_cols = num_cols
-        self.num_matrices = num_rows*num_cols
-        self.width = num_cols*DIM_OF_MATRIX
-        self.height = num_rows*DIM_OF_MATRIX
         self.angle = angle  # rotation of x y coordinates
-        self.zigzag = zigzag
          # sprite that indicates current background
         # self.display_sprite = LEDSprite(
         #     height=num_rows*DIM_OF_MATRIX,
         #     width=num_cols*DIM_OF_MATRIX
         # )
         # initialize spi
-        led_server.initSPI(5000000, 0)
-        led_server.initLED(num_rows, num_cols, zigzag, angle)
+        # led_server.initSPI(5000000, 0)
+        # led_server.initLED(num_rows, num_cols, zigzag, angle)
+
+    def _flush(self, x_offset, y_offset, frameBuffer):
+        # TODO: iterate through matrix in particular way based off angle and given framebuffer
+        # for x for y hash framebuffer of (x + x_offset, y + y_offset)
 
 
     #

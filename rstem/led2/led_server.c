@@ -284,6 +284,9 @@ static PyMethodDef led_server_methods[] = {
 	{NULL, NULL}
 };
 
+
+// Python Setup Magic, don't touch! =====================
+
 struct module_state {
     PyObject *error;
 };
