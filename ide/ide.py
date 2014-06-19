@@ -15,13 +15,10 @@
 # limitations under the License.
 #
 #Depends on python3-gi, gir1.2-gtksource-3.0, gir1.2-webkit-3.0, [gir1.2-keybinder-3.0], and pexpect from pip-3
-#TODO find gir1.2-keybinder alternative
-#TODO network check
 
 from gi.repository import Gtk, GtkSource, WebKit, GLib, Gio, GObject#, Keybinder
 from os import path, mkdir, chmod
 from pexpect import spawn
-#from time import time
 import json, re
 
 projectDir = path.expanduser("~/raspberryidea/")
@@ -189,10 +186,12 @@ class IDE(Gtk.Window):
 
     #Parses output sent by the print loop and highlights errors
     def errorEval(self, errString):
-        errRegex = re.compile("\s+File \""+self.currFile+"\", line \d+.+Error:.+\r", flags=re.M|re.S)
+        errRegex = re.compile("\s+File \""+self.currFile+"\", line \d+.+\^.+Error:.+\r", flags=re.M|re.S)
         res = re.findall(errRegex, errString)
         for i in res:
             broken = i[:-1].split("\r\n")
+            print(broken[0])
+            print(broken[0].split(", "))
             line = int(broken[0].split(", ")[1].split(" ")[1])
             #err = broken[3].split(": ")[1].capitalize()
             start = self.codebuffer.get_iter_at_line(line-1)
@@ -204,11 +203,15 @@ class IDE(Gtk.Window):
             self.errorTags.append(tag)
             self.codebuffer.apply_tag(tag, start, end)
 
+    def removeError(self, tag, null):
+        if tag in self.errorTags:
+            self.tagtable.remove(tag)
+            self.errorTags.remove(tag)
+
     def printLoop(self, a, b, c): #To be honest, no idea what a, b, and c are supposed to be
         self.currProc = spawn(self.currFile)
         self.outputbuffer.set_text("")
-        for tag in self.errorTags:
-            self.tagtable.remove(tag)
+        self.tagtable.foreach(self.removeError, None)
         out = ""
         try:
             while self.currProc is not None and self.currProc.isalive():
@@ -222,7 +225,7 @@ class IDE(Gtk.Window):
         self.currProc = None
         self.code.set_editable(True)
         self.rbutton.set_stock_id(Gtk.STOCK_MEDIA_PLAY)
-
+    
     #Called when the run button is pressed
     def runScript(self, widget):
         if self.currProc is None:
