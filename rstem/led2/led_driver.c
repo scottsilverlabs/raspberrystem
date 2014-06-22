@@ -90,15 +90,13 @@ int writeBytes(int dev, unsigned char* val, int len) {
 // ========================================================
 
 int fill(unsigned int color){
-    // if (color > 0xF){
-    //     return -1;
-    // }
-    // color = ((color & 0xF) << 4) | (color & 0xF);
-    // int i;
-    // // TODO memsetle
-    // for (i = 0; i < FRAME_BUFFER_SIZE; i++){
-    //     led.frameBuffer[i] = (unsigned char) color;
-    // }
+    int y;
+    for (y = 0; y <= max_y; y++){
+        int x;
+        for (x = 0; x <= max_x; x++){
+            point(x, y, color);
+        }
+    }
     return 0;
 }
 
@@ -147,25 +145,6 @@ int fill(unsigned int color){
 
 int point(int x, int y, unsigned int color) {
     frameBuffer[y][x] = color;
-
-    // convert_to_std_angle(&x,&y);
-    // if (!IN_MATRIX(x,y)){
-    //     return 0;
-    // }
-    // if (color > 0xF){
-    //     return -1;
-    // }
-    // int bitPos = point_to_bitPos(x,y);
-    // int bytePos = bitPos/8;
-    // // swap nibble (low to height, hight to low)
-    // if (bitPos % 8 == 0){
-    //     // put nibble on low side
-    //     led.frameBuffer[bytePos] = (led.frameBuffer[bytePos] & 0xF0) | (color & 0xF);
-    // } else {
-    //     // put nibble on high side
-    //     led.frameBuffer[bytePos] = ((color & 0xF) << 4) | (led.frameBuffer[bytePos] & 0xF);
-    // }
-    // return 0;
 }
 
 int line(int x1, int y1, int x2, int y2, unsigned int color){
@@ -173,10 +152,7 @@ int line(int x1, int y1, int x2, int y2, unsigned int color){
     return 0;
 }
 
-int initLED(struct Matrix *list, int num_matrices_arg, int max_x_arg, int max_y_arg){
-    max_x = max_x_arg;
-    max_y = max_y_arg;
-    num_matrices = num_matrices_arg
+int initFrameBufferandBitStream(){
     LEDList = (struct Matrix *) malloc(num_matrices*sizeof(struct Matrix));
     if (list == 0){
         return -1;
@@ -217,6 +193,7 @@ int flush(){
     int bitStreamPos = 0;
     // loop through matrices in reverse order and append to bitstream
     for (matrix_i = (num_matrices - 1); matrix_i >= 0; matrix_i--){
+        // place colors in bitStream based off of the angle specified
         switch (LEDList[matrix_i].angle){
             case 0:
                 int x;
@@ -260,15 +237,34 @@ int flush(){
     }
 }
 
+// closes SPI port and frees all allocated memory
+int closeAndFree(){
+    int i;
+    if (frameBuffer){}
+        for (i = 0; i <= max_y; i++){
+            free(frameBuffer[i]);
+        }
+    }
+    free(frameBuffer);
+    if (LEDList){
+        free(LEDList);
+    }
+    if (bitStream){
+        free(bitStream);
+    }
+    close(spi);
+    return 0;
+}
+
 
 // Python Wrappers =================================================
 
-static PyObject *PyInitLED(PyObject *self, PyObject *args){
+static PyObject *pyInitLED(PyObject *self, PyObject *args){
     // TODO: no need to pass the LEDList over just set up the global variable here
     // RAWGGGGG!!!!
     PyObject *mat_list;  // the list object
-    // int num_cols; // columns in list
-    if (!PyArg_ParseTuple(args, "O!", &PyList_Type, &mat_list)){
+    // grab mat_list and global variables
+    if (!PyArg_ParseTuple(args, "O!i", &PyList_Type, &mat_list, &num_matrices, &max_x, &max_y)){
         PyErr_SetString(PyExc_TypeError, "Invalid arguments.");
         return NULL;
     }
@@ -289,7 +285,6 @@ static PyObject *PyInitLED(PyObject *self, PyObject *args){
     }
     // iterate through list object and place items in LEDList
     int i;
-    // int objects extracted from list
     PyObject *xOffsetObj;
     PyObject *yOffsetObj;
     PyObject *angleObj;
@@ -297,24 +292,18 @@ static PyObject *PyInitLED(PyObject *self, PyObject *args){
         xOffsetObj = PyList_GetItem(mat_list, i);
         yOffsetObj = PyList_GetItem(mat_list, i + 1);
         angleObj = PyList_GetItem(mat_list, i + 2);
-
+        if (!PyInt_Check(xOffsetObj) || !PyInt_Check(yOffsetObj) || !PyInt_Check(angleObj)){
+            PyErr_SetString(PyExc_TypeError, "Non-integer was in the list.")
+        }
+        LEDList[i].x_offset = PyInt_AsLong(xOffsetObj);
+        LEDList[i].y_offset = PyInt_AsLong(yOffsetObj);
+        LEDList[i].angle = PyInt_AsLong(angleObj);
     }
-
-
-    if (!Py)
-
-
-	if(!PyArg_ParseTuple(args, "iiii", &num_rows, &num_cols, &zigzag, &angle)){
-		PyErr_SetString(PyExc_TypeError, "Not ints!");
-		return NULL;
-	}
-	if(initLED(num_rows, num_cols, zigzag, angle) < 0){
-	    PyErr_SetString(PyExc_RuntimeError, "Something bad happned...");
-	}
-	return Py_BuildValue("i", 1);
+    // initialize the framebuffer and bitstream
+	return Py_BuildValue("i", initFrameBufferandBitStream());
 }
 
-static PyObject *PyFill(PyObject *self, PyObject *args){
+static PyObject *pyFill(PyObject *self, PyObject *args){
     unsigned int color;
     if(!PyArg_ParseTuple(args, "I", &color)){
         PyErr_SetString(PyExc_TypeError, "Not an unsigned int!");
@@ -326,7 +315,7 @@ static PyObject *PyFill(PyObject *self, PyObject *args){
     return Py_BuildValue("i", 1);
 }
 
-static PyObject *PyLine(PyObject *self, PyObject *args){
+static PyObject *pyLine(PyObject *self, PyObject *args){
     int x1, y1, x2, y2;
     unsigned int color;
 	if(!PyArg_ParseTuple(args, "iiiiI", &x1, &y1, &x2, &y2, &color)){
@@ -339,7 +328,7 @@ static PyObject *PyLine(PyObject *self, PyObject *args){
 	return Py_BuildValue("i", 1);
 }
 
-static PyObject *PyPoint(PyObject *self, PyObject *args){
+static PyObject *pyPoint(PyObject *self, PyObject *args){
     int x, y, color;
 	if(!PyArg_ParseTuple(args, "iii", &x, &y, &color)){
 		PyErr_SetString(PyExc_TypeError, "Not ints!");
@@ -352,7 +341,7 @@ static PyObject *PyPoint(PyObject *self, PyObject *args){
 }
 
 
-static PyObject *initSPI(PyObject *self, PyObject *args){
+static PyObject *pyInitSPI(PyObject *self, PyObject *args){
 	unsigned int speed;
 	int mode;
 	if(!PyArg_ParseTuple(args, "Ii", &speed, &mode)){
@@ -362,7 +351,7 @@ static PyObject *initSPI(PyObject *self, PyObject *args){
 	return Py_BuildValue("i",startSPI(speed, mode));
 }
 
-static PyObject *PyFlush(PyObject *self, PyObject *args){
+static PyObject *pyFlush(PyObject *self, PyObject *args){
     return Py_BuildValue("i", writeBytes(spi, led.frameBuffer, FRAME_BUFFER_SIZE));
 }
 
@@ -381,19 +370,18 @@ static PyObject *PyFlush(PyObject *self, PyObject *args){
 // return Py_BuildValue("i",writeBytes(spi, data, size));
 // }
 
-static PyObject *closeSPI(PyObject *self, PyObject *args){
-	return Py_BuildValue("i", close(spi));
+static PyObject *pyClose(PyObject *self, PyObject *args){
+	return Py_BuildValue("i", closeAndFree());
 }
 
 static PyMethodDef led_server_methods[] = {
-	// {"flush", flush, METH_VARARGS},
-    {"flush", PyFlush, METH_NOARGS, "Converts current frame buffer to a bistream and then sends it to SPI port."},
-	{"initSPI", initSPI, METH_VARARGS, ""},
-	{"closeSPI", closeSPI, METH_NOARGS},
-	{"point", PyPoint, METH_VARARGS},
-	{"line", PyLine, METH_VARARGS},
-	{"initLED", PyInitLED, METH_VARARGS},
-    {"fill", PyFill, METH_VARARGS},
+	{"initSPI", pyInitSPI, METH_VARARGS, "Initialize the SPI with given speed and port."},
+    {"initLED", pyInitLED, METH_VARARGS, "Initializes the give LED matrices in the list."},
+    {"flush", pyFlush, METH_NOARGS, "Converts current frame buffer to a bistream and then sends it to SPI port."},
+	{"close", pyClose, METH_NOARGS, "Closes the SPI and frees all memory."},
+	{"point", pyPoint, METH_VARARGS, "Sets a point in the frame buffer."},
+	{"line", pyLine, METH_VARARGS, "Sets a line from given source to destination."},
+    {"fill", pyFill, METH_VARARGS, "Fills all matrices with the given color."},
 	{NULL, NULL, 0, NULL}  /* Sentinal */
 };
 
@@ -433,7 +421,7 @@ static int led_server_clear(PyObject *m) {
 
 static struct PyModuleDef moduledef = {
         PyModuleDef_HEAD_INIT,
-        "led_server",
+        "led_driver",
         NULL,
         sizeof(struct module_state),
         led_server_methods,
@@ -458,14 +446,14 @@ initled_server(void)
 #if PY_MAJOR_VERSION >= 3
     PyObject *module = PyModule_Create(&moduledef);
 #else
-    PyObject *module = Py_InitModule("led_server", led_server_methods);
+    PyObject *module = Py_InitModule("led_driver", led_server_methods);
 #endif
 
     if (module == NULL)
         INITERROR;
     struct module_state *st = GETSTATE(module);
 
-    st->error = PyErr_NewException("led_server.Error", NULL, NULL);
+    st->error = PyErr_NewException("led_driver.Error", NULL, NULL);
     if (st->error == NULL) {
         Py_DECREF(module);
         INITERROR;

@@ -1,17 +1,18 @@
 #!/usr/bin/python3
 
 import os
-import bitstring
+# import bitstring
 import re
 import time
-from scipy import misc
-import numpy
-import magic
-import led_server     # from the attiny48 controller
+# from scipy import misc
+# import numpy
+# import magic
+import led_driver     # c extension that controls led matrices and contains frame buffer
 
 SIZE_OF_PIXEL = 4     # 4 bits to represent color
 DIM_OF_MATRIX = 8     # 8x8 led matrix elements
 
+initialized = False   # flag to indicate if LED has been initialized
 
 # run demo program if run by itself
 def _main():
@@ -48,19 +49,30 @@ def _convert_color(color):
         return 0x10
     return int(color, 16)
 
-class LEDContainer:
-    def __init__(self, mat_list):
-        """Create a chain of led matrices set at particular offsets into the container.
+def initMatrices(mat_list=[(0,0,0)]):
+        """Create a chain of led matrices set at particular offsets into the frame buffer
         The order of the led matrices in the list indicate the order they are
         physically hooked up with the first one connected to Pi.
         mat_list = list of tuple that contains led matrix and offset
             ex: [(0,0,led1),(7,0,led2)]"""
-        # self.frameBuffer = {}  # TODO: right now implementing as hash table, switch to array?
-        # for matrix in mat_list:
-        #     x = matrix[0]
-        #     y = matrix[1]
-        #     led = matrix[2]
-        led_server.initLED([item for tuple in mat_list for item in tuple]) # flatten out tuple
+        # if mat_list is None:
+        #     mat_list = [(0,0,0)] # set up a single matrix
+        max_x = max([matrix[0] for matrix in mat_list]) + (DIM_OF_MATRIX - 1)
+        max_y = max([matrix[1] for matrix in mat_list]) + (DIM_OF_MATRIX - 1)
+        flat_mat_list = [item for tuple in mat_list for item in tuple]
+        led_driver.open(flat_mat_list, len(mat_list), max_x, max_y) # flatten out tuple
+        initialized = True
+
+def show():
+        led_driver.flush()
+
+def close():
+    """Unintializes matrices and frees all memory"""
+    if not initialized:
+        return
+    led_driver.fill(0x0)
+    led_driver.flush()
+    led_driver.close()
 
 
 class LEDMatrix:
@@ -161,19 +173,6 @@ class LEDMatrix:
     #         assert False, "bitPos is not nibble aligned"
     #
     #     return bitPos
-
-
-    def show(self):
-        """Flushes current display setup to the led matrix"""
-        led_server.flush2()
-        # led_server.flush(self._bitarray_to_bytearray())  # give frame buffer to led_server
-        # TODO: make more proper debug statement
-        if not __debug__:
-            for y in range(self.height):
-                for x in range(self.width):
-                    bitPos = self._point_to_bitpos(x,y)
-                    print(self.bitarray[bitPos : bitPos+SIZE_OF_PIXEL].hex),
-                print("") # print newline
 
 
     def reset(self):
