@@ -55,11 +55,12 @@ class LEDContainer:
         physically hooked up with the first one connected to Pi.
         mat_list = list of tuple that contains led matrix and offset
             ex: [(0,0,led1),(7,0,led2)]"""
-        self.frameBuffer = {}  # TODO: right now implementing as hash table, switch to array?
-        for matrix in mat_list:
-            x = matrix[0]
-            y = matrix[1]
-            led = matrix[2]
+        # self.frameBuffer = {}  # TODO: right now implementing as hash table, switch to array?
+        # for matrix in mat_list:
+        #     x = matrix[0]
+        #     y = matrix[1]
+        #     led = matrix[2]
+        led_server.initLED([item for tuple in mat_list for item in tuple]) # flatten out tuple
 
 
 class LEDMatrix:
