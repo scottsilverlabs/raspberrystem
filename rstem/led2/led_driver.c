@@ -30,7 +30,7 @@ struct Matrix {
 struct Matrix *LEDList;       // information on led matrix elements
 unsigned int **frameBuffer;   // information on all pixels (physical or not)
 unsigned char *bitStream;     // data given to SPI port
-int num_matrices, max_x, max_y;
+int num_matrices, container_width, container_height;
 
 // SPI Stuff  =============================================
 
@@ -91,9 +91,9 @@ int writeBytes(int dev, unsigned char* val, int len) {
 
 int fill(unsigned int color){
     int y;
-    for (y = 0; y <= max_y; y++){
+    for (y = 0; y < container_height; y++){
         int x;
-        for (x = 0; x <= max_x; x++){
+        for (x = 0; x < container_width; x++){
             point(x, y, color);
         }
     }
@@ -159,14 +159,14 @@ int initFrameBufferandBitStream(){
     if (list == 0){
         return -1;
     }
-    frameBuffer = (unsigned int **) malloc((max_y + 1)*sizeof(unsigned int *));
+    frameBuffer = (unsigned int **) malloc(container_height*sizeof(unsigned int *));
     if (frameBuffer == 0){
         goto freeLEDList;
     }
     int i;
     // TODO: do a one dimensional array
     for (i = 0; i <= max_y; i++){
-        frameBuffer[i] = (unsigned int *) malloc((max_x + 1)*sizeof(unsigned int));
+        frameBuffer[i] = (unsigned int *) malloc(container_width*sizeof(unsigned int));
         if (frameBuffer[i] == 0){
             goto freeFrameBuffer;
         }
@@ -267,7 +267,8 @@ static PyObject *pyInitMatrices(PyObject *self, PyObject *args){
     // RAWGGGGG!!!!
     PyObject *mat_list;  // the list object
     // grab mat_list and global variables
-    if (!PyArg_ParseTuple(args, "O!i", &PyList_Type, &mat_list, &num_matrices, &max_x, &max_y)){
+    if (!PyArg_ParseTuple(args, "O!iii", &PyList_Type, &mat_list, &num_matrices,
+        &container_width, &container_height)){
         PyErr_SetString(PyExc_TypeError, "Invalid arguments.");
         return NULL;
     }
