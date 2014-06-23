@@ -60,11 +60,11 @@ def initMatrices(mat_list=[(0,0,0)]):
         max_x = max([matrix[0] for matrix in mat_list]) + (DIM_OF_MATRIX - 1)
         max_y = max([matrix[1] for matrix in mat_list]) + (DIM_OF_MATRIX - 1)
         flat_mat_list = [item for tuple in mat_list for item in tuple]
-        led_driver.open(flat_mat_list, len(mat_list), max_x, max_y) # flatten out tuple
+        led_driver.initMatrices(flat_mat_list, len(mat_list), max_x, max_y) # flatten out tuple
         initialized = True
 
 def show():
-        led_driver.flush()
+    led_driver.flush()
 
 def close():
     """Unintializes matrices and frees all memory"""
@@ -73,6 +73,28 @@ def close():
     led_driver.fill(0x0)
     led_driver.flush()
     led_driver.close()
+
+def fill(color=0xF):
+    led_driver.fill(_convert_color(color))
+
+def line(point_a, point_b, color=0xF):
+    led_driver.line(*point_a, *point_b, color)
+
+def point(self, x, y=None, color=0xF):
+    """Adds point to bitArray and foreground or background sprite"""
+    # If y is not given, then x is a tuple of the point
+    if y is None:
+        x, y = x
+    led_driver.point(x, y, _convert_color(color))
+
+def rect(self, start, dimensions, color=0xF):
+    """Creates a rectangle from start point using given dimensions"""
+    x, y = start
+    width, height = dimensions
+    led_driver.line((x, y), (x, y + height), color)
+    led_driver.line((x, y + height), (x + width, y + height), color)
+    led_driver.line((x + width, y + height), (x + width, y), color)
+    led_driver.line((x + width, y), (x, y), color)
 
 
 class LEDMatrix:
@@ -91,10 +113,6 @@ class LEDMatrix:
         # initialize spi
         # led_server.initSPI(5000000, 0)
         # led_server.initLED(num_rows, num_cols, zigzag, angle)
-
-    def _flush(self, x_offset, y_offset, frameBuffer):
-        # TODO: iterate through matrix in particular way based off angle and given framebuffer
-        # for x for y hash framebuffer of (x + x_offset, y + y_offset)
 
 
     #
@@ -175,24 +193,6 @@ class LEDMatrix:
     #     return bitPos
 
 
-    def reset(self):
-        """Completly clears all display setup and erases the led matrix"""
-        self.erase()
-        self.show()
-
-    def erase(self):
-        self.fill(color=0x0)
-
-    def fill(self, color=0xF):
-        led_server.fill(_convert_color(color))
-        """Sets entire display to be filled with given color"""
-        # old_angle = self.angle
-        # self.angle = 0    # switch to standard coordinates temporarily
-        # for x in range(self.width):
-        #     for y in range(self.height):
-        #         self.point(x, y, color)
-        # self.angle = old_angle
-
     def point(self, x, y=None, color=0xF):
         """Adds point to bitArray and foreground or background sprite"""
         # If y is not given, then x is a tuple of the point
@@ -243,14 +243,7 @@ class LEDMatrix:
                 )
 
 
-    def rect(self, start, dimensions, color=0xF):
-        """Creates a rectangle from start point using given dimensions"""
-        x, y = start
-        width, height = dimensions
-        self.line((x, y), (x, y + height), color)
-        self.line((x, y + height), (x + width, y + height), color)
-        self.line((x + width, y + height), (x + width, y), color)
-        self.line((x + width, y), (x, y), color)
+
 
     def text(self, text, x=0, y=0, scrolling=False):
         """Sets given string to be displayed on LED Matrix

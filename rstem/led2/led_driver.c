@@ -10,7 +10,7 @@
 
 // number of bytes in a matrix
 #define NUM_BYTES_MATRIX ((DIM_OF_MATRIX*DIM_OF_MATRIX)/2)
-
+#define BITSTREAM_SIZE (num_matrices*NUM_BYTES_MATRIX)
 
 int spi;
 unsigned char spiMode;
@@ -152,6 +152,8 @@ int line(int x1, int y1, int x2, int y2, unsigned int color){
     return 0;
 }
 
+
+
 int initFrameBufferandBitStream(){
     LEDList = (struct Matrix *) malloc(num_matrices*sizeof(struct Matrix));
     if (list == 0){
@@ -188,7 +190,8 @@ int initFrameBufferandBitStream(){
     return -1;
 }
 
-int flush(){
+// updates bitStream with current frame buffer
+int update_bitStream(){
     int matrix_i;
     int bitStreamPos = 0;
     // loop through matrices in reverse order and append to bitstream
@@ -259,7 +262,7 @@ int closeAndFree(){
 
 // Python Wrappers =================================================
 
-static PyObject *pyInitLED(PyObject *self, PyObject *args){
+static PyObject *pyInitMatrices(PyObject *self, PyObject *args){
     // TODO: no need to pass the LEDList over just set up the global variable here
     // RAWGGGGG!!!!
     PyObject *mat_list;  // the list object
@@ -348,11 +351,12 @@ static PyObject *pyInitSPI(PyObject *self, PyObject *args){
 		PyErr_SetString(PyExc_TypeError, "Not an unsigned int and int!");
 		return NULL;
 	}
-	return Py_BuildValue("i",startSPI(speed, mode));
+	return Py_BuildValue("i", startSPI(speed, mode));
 }
 
 static PyObject *pyFlush(PyObject *self, PyObject *args){
-    return Py_BuildValue("i", writeBytes(spi, led.frameBuffer, FRAME_BUFFER_SIZE));
+    update_bitStream();
+    return Py_BuildValue("i", writeBytes(spi, bitStream, BITSTREAM_SIZE));
 }
 
 // static PyObject *flush(PyObject *self, PyObject *args){
@@ -376,7 +380,7 @@ static PyObject *pyClose(PyObject *self, PyObject *args){
 
 static PyMethodDef led_server_methods[] = {
 	{"initSPI", pyInitSPI, METH_VARARGS, "Initialize the SPI with given speed and port."},
-    {"initLED", pyInitLED, METH_VARARGS, "Initializes the give LED matrices in the list."},
+    {"initMatrices", pyInitMatrices, METH_VARARGS, "Initializes the give LED matrices in the list."},
     {"flush", pyFlush, METH_NOARGS, "Converts current frame buffer to a bistream and then sends it to SPI port."},
 	{"close", pyClose, METH_NOARGS, "Closes the SPI and frees all memory."},
 	{"point", pyPoint, METH_VARARGS, "Sets a point in the frame buffer."},
