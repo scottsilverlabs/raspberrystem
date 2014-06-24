@@ -17,8 +17,10 @@ unsigned char spiMode;
 unsigned char bitsPerTrans;
 unsigned int spiSpeed;
 
-int main(){
+
+int main(void){
     // testing purpose TODO remove
+    return 0;
 }
 
 struct Matrix {
@@ -89,6 +91,11 @@ int writeBytes(int dev, unsigned char* val, int len) {
 
 // ========================================================
 
+int point(int x, int y, unsigned int color) {
+    frameBuffer[y][x] = color;
+    return 0;
+}
+
 int fill(unsigned int color){
     int y;
     for (y = 0; y < container_height; y++){
@@ -143,9 +150,7 @@ int fill(unsigned int color){
 //     return bitPos;
 // }
 
-int point(int x, int y, unsigned int color) {
-    frameBuffer[y][x] = color;
-}
+
 
 int line(int x1, int y1, int x2, int y2, unsigned int color){
     // TODO
@@ -154,7 +159,7 @@ int line(int x1, int y1, int x2, int y2, unsigned int color){
 
 
 
-int initFrameBufferandBitStream(){
+int initFrameBufferandBitStream(void){
     LEDList = (struct Matrix *) malloc(num_matrices*sizeof(struct Matrix));
     if (LEDList == 0){
         return -1;
@@ -191,13 +196,13 @@ int initFrameBufferandBitStream(){
 }
 
 // updates bitStream with current frame buffer
-int update_bitStream(){
+int update_bitStream(void){
     int matrix_i;
     int bitStreamPos = 0;
     // loop through matrices in reverse order and append to bitstream
     for (matrix_i = (num_matrices - 1); matrix_i >= 0; matrix_i--){
         // place colors in bitStream based off of the angle specified
-        if (LEDList[matrix_i].angle = 0){
+        if (LEDList[matrix_i].angle == 0){
             int x;
             for (x = 0; x < DIM_OF_MATRIX; x++){
                 int y;
@@ -206,7 +211,7 @@ int update_bitStream(){
                 }
             }
         }
-        if (LEDList[matrix_i].angle = 90){
+        if (LEDList[matrix_i].angle == 90){
             int y;
             for (y = 0; y < DIM_OF_MATRIX; y++){
                 int x;
@@ -215,7 +220,7 @@ int update_bitStream(){
                 }
             }
         }
-        if (LEDList[matrix_i].angle = 180){
+        if (LEDList[matrix_i].angle == 180){
             int x;
             for (x = (DIM_OF_MATRIX - 1); x >= 0; x--){
                 int y;
@@ -224,7 +229,7 @@ int update_bitStream(){
                 }
             }
         }
-        if (LEDList[matrix_i].angle = 0){
+        if (LEDList[matrix_i].angle == 0){
             int y;
             for (y = (DIM_OF_MATRIX - 1); y >= 0; y--){
                 int x;
@@ -234,10 +239,11 @@ int update_bitStream(){
             }
         }
     }
+    return 0;
 }
 
 // closes SPI port and frees all allocated memory
-int closeAndFree(){
+int closeAndFree(void){
     int i;
     if (frameBuffer){
         for (i = 0; i < container_height; i++){
@@ -400,12 +406,11 @@ struct module_state {
 static struct module_state _state;
 #endif
 
-static PyObject *
-error_out(PyObject *m) {
-    struct module_state *st = GETSTATE(m);
-    PyErr_SetString(st->error, "something bad happened");
-    return NULL;
-}
+// static PyObject * error_out(PyObject *m) {
+//     struct module_state *st = GETSTATE(m);
+//     PyErr_SetString(st->error, "something bad happened");
+//     return NULL;
+// }
 
 #if PY_MAJOR_VERSION >= 3
 
