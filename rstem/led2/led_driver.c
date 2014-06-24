@@ -156,7 +156,7 @@ int line(int x1, int y1, int x2, int y2, unsigned int color){
 
 int initFrameBufferandBitStream(){
     LEDList = (struct Matrix *) malloc(num_matrices*sizeof(struct Matrix));
-    if (list == 0){
+    if (LEDList == 0){
         return -1;
     }
     frameBuffer = (unsigned int **) malloc(container_height*sizeof(unsigned int *));
@@ -165,7 +165,7 @@ int initFrameBufferandBitStream(){
     }
     int i;
     // TODO: do a one dimensional array
-    for (i = 0; i <= max_y; i++){
+    for (i = 0; i < container_height; i++){
         frameBuffer[i] = (unsigned int *) malloc(container_width*sizeof(unsigned int));
         if (frameBuffer[i] == 0){
             goto freeFrameBuffer;
@@ -197,45 +197,41 @@ int update_bitStream(){
     // loop through matrices in reverse order and append to bitstream
     for (matrix_i = (num_matrices - 1); matrix_i >= 0; matrix_i--){
         // place colors in bitStream based off of the angle specified
-        switch (LEDList[matrix_i].angle){
-            case 0:
-                int x;
-                for (x = 0; x < DIM_OF_MATRIX; x++){
-                    int y;
-                    for (y = (DIM_OF_MATRIX - 1); y >= 0; y -= 2){
-                        bitStreamPos[bitStreamPos++] = ((frameBuffer[y][x] & 0xF) << 4) | (frameBuffer[y+1][x] & 0xF);
-                    }
-                }
-                break;
-            case 90:
+        if (LEDList[matrix_i].angle = 0){
+            int x;
+            for (x = 0; x < DIM_OF_MATRIX; x++){
                 int y;
-                for (y = 0; y < DIM_OF_MATRIX; y++){
-                    int x;
-                    for (x = 0; x < DIM_OF_MATRIX; x += 2){
-                        bitStreamPos[bitStreamPos++] = ((frameBuffer[y][x+1] & 0xF) << 4) | (frameBuffer[y][x] & 0xF);
-                    }
+                for (y = (DIM_OF_MATRIX - 1); y >= 0; y -= 2){
+                    bitStream[bitStreamPos++] = ((frameBuffer[y][x] & 0xF) << 4) | (frameBuffer[y+1][x] & 0xF);
                 }
-                break;
-            case 180:
+            }
+        }
+        if (LEDList[matrix_i].angle = 90){
+            int y;
+            for (y = 0; y < DIM_OF_MATRIX; y++){
                 int x;
-                for (x = (DIM_OF_MATRIX - 1); x >= 0; x--){
-                    int y;
-                    for (y = 0; y < DIM_OF_MATRIX; y += 2){
-                        bitStreamPos[bitStreamPos++] = ((frameBuffer[y+1][x] & 0xF) << 4) | (frameBuffer[y][x] & 0xF);
-                    }
+                for (x = 0; x < DIM_OF_MATRIX; x += 2){
+                    bitStream[bitStreamPos++] = ((frameBuffer[y][x+1] & 0xF) << 4) | (frameBuffer[y][x] & 0xF);
                 }
-                break;
-            case 270:
+            }
+        }
+        if (LEDList[matrix_i].angle = 180){
+            int x;
+            for (x = (DIM_OF_MATRIX - 1); x >= 0; x--){
                 int y;
-                for (y = (DIM_OF_MATRIX - 1); y >= 0; y--){
-                    int x;
-                    for (x = (DIM_OF_MATRIX - 1); x >= 0; x -= 2){
-                        bitStreamPos[bitStreamPos++] = ((frameBuffer[y][x] & 0xF) << 4) | (frameBuffer[y][x+1] & 0xF);
-                    }
+                for (y = 0; y < DIM_OF_MATRIX; y += 2){
+                    bitStream[bitStreamPos++] = ((frameBuffer[y+1][x] & 0xF) << 4) | (frameBuffer[y][x] & 0xF);
                 }
-                break;
-            default:
-                return -1;
+            }
+        }
+        if (LEDList[matrix_i].angle = 0){
+            int y;
+            for (y = (DIM_OF_MATRIX - 1); y >= 0; y--){
+                int x;
+                for (x = (DIM_OF_MATRIX - 1); x >= 0; x -= 2){
+                    bitStream[bitStreamPos++] = ((frameBuffer[y][x] & 0xF) << 4) | (frameBuffer[y][x+1] & 0xF);
+                }
+            }
         }
     }
 }
@@ -243,8 +239,8 @@ int update_bitStream(){
 // closes SPI port and frees all allocated memory
 int closeAndFree(){
     int i;
-    if (frameBuffer){}
-        for (i = 0; i <= max_y; i++){
+    if (frameBuffer){
+        for (i = 0; i < container_height; i++){
             free(frameBuffer[i]);
         }
     }
@@ -297,7 +293,7 @@ static PyObject *pyInitMatrices(PyObject *self, PyObject *args){
         yOffsetObj = PyList_GetItem(mat_list, i + 1);
         angleObj = PyList_GetItem(mat_list, i + 2);
         if (!PyInt_Check(xOffsetObj) || !PyInt_Check(yOffsetObj) || !PyInt_Check(angleObj)){
-            PyErr_SetString(PyExc_TypeError, "Non-integer was in the list.")
+            PyErr_SetString(PyExc_TypeError, "Non-integer was in the list.");
         }
         LEDList[i].x_offset = PyInt_AsLong(xOffsetObj);
         LEDList[i].y_offset = PyInt_AsLong(yOffsetObj);
@@ -379,7 +375,7 @@ static PyObject *pyClose(PyObject *self, PyObject *args){
 	return Py_BuildValue("i", closeAndFree());
 }
 
-static PyMethodDef led_server_methods[] = {
+static PyMethodDef led_driver_methods[] = {
 	{"initSPI", pyInitSPI, METH_VARARGS, "Initialize the SPI with given speed and port."},
     {"initMatrices", pyInitMatrices, METH_VARARGS, "Initializes the give LED matrices in the list."},
     {"flush", pyFlush, METH_NOARGS, "Converts current frame buffer to a bistream and then sends it to SPI port."},
@@ -413,12 +409,12 @@ error_out(PyObject *m) {
 
 #if PY_MAJOR_VERSION >= 3
 
-static int led_server_traverse(PyObject *m, visitproc visit, void *arg) {
+static int led_driver_traverse(PyObject *m, visitproc visit, void *arg) {
     Py_VISIT(GETSTATE(m)->error);
     return 0;
 }
 
-static int led_server_clear(PyObject *m) {
+static int led_driver_clear(PyObject *m) {
     Py_CLEAR(GETSTATE(m)->error);
     return 0;
 }
@@ -429,29 +425,29 @@ static struct PyModuleDef moduledef = {
         "led_driver",
         NULL,
         sizeof(struct module_state),
-        led_server_methods,
+        led_driver_methods,
         NULL,
-        led_server_traverse,
-        led_server_clear,
+        led_driver_traverse,
+        led_driver_clear,
         NULL
 };
 
 #define INITERROR return NULL
 
 PyObject *
-PyInit_led_server(void)
+PyInit_led_driver(void)
 
 #else
 #define INITERROR return
 
 void
-initled_server(void)
+initled_driver(void)
 #endif
 {
 #if PY_MAJOR_VERSION >= 3
     PyObject *module = PyModule_Create(&moduledef);
 #else
-    PyObject *module = Py_InitModule("led_driver", led_server_methods);
+    PyObject *module = Py_InitModule("led_driver", led_driver_methods);
 #endif
 
     if (module == NULL)

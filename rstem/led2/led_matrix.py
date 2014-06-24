@@ -4,7 +4,7 @@ import os
 # import bitstring
 import re
 import time
-from itertools import isslice
+from itertools import islice
 # from scipy import misc
 # import numpy
 # import magic
@@ -193,7 +193,7 @@ def sprite(self, sprite, position=(0,0), offset_into=None, crop=None):
             x_end = container_width - 1
         if crop[1] >= y_start and crop[1] < container_height:
             y_end = crop[1]
-        else
+        else:
             y_end = container_height - 1
     else:
         x_end, y_end = container_width - 1, container_height - 1
@@ -256,11 +256,12 @@ class LEDSprite(object):
         # update size
         self.width += sprite.width
 
-    def set_pixel(self, (x,y), color=0xF):
+    def set_pixel(self, point, color=0xF):
         """Sets given color to given x and y coordinate in sprite
             - color can be a int or string of hex value
             - return None if coordinate is not valid
         """
+        x, y = point
         if x >= self.width or y >= self.height or x < 0 or y < 0:
             return None
         self.bitmap[y][x] = _convert_color(color)
