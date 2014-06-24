@@ -64,9 +64,16 @@ DIST_DSC=dist/$(NAME)_$(VER).tar.gz \
 # files needed to be sent over to pi for local installation
 PI_TAR_FILES=rstem cellapps misc projects Makefile MANIFEST.in setup.py README.md make
 
-.PHONY: all install test doc source egg zip tar deb dist clean release upload-all \
-	upload-ppa upload-cheeseshop pi-install projects cellapps upload-check help \
-	clean-dist clean-all
+COMMANDS=install local-install projects cellapps test source egg zip tar deb dist clean-all \
+	clean clean-dist upload-all upload-ppa
+
+.PHONY: all pi-install upload-check help $(COMMANDS) release
+
+
+# update files on raspberry pi
+PUSH=rsync -azP -O --exclude=".git" --exclude=".gitignore" ./ $(PI):~/rsinstall
+# send changed files on pi back to user
+PULL=rsync -azP -O $(PI):~/rsinstall ./
 
 
 all::
@@ -93,23 +100,27 @@ help:
 	@echo "make upload-ppa - Upload the new release to ppa"
 	@echo "make upload-cheeseshop - Upload the new release to cheeseshop"
 
+# for each command push new files to raspberry pi then run command on the pi
+$(COMMANDS)::
+	$(PUSH)
+	$(SSHPASS) ssh $(SSHFLAGS) $(PI) "$(MAKE) pi-%@"
+	$(PULL)
 
-
-local-install:
+pi-install:
 	$(MAKE)
 	$(PYTHON) $(PYFLAGS) ./setup.py install --user
 	$(MAKE) projects
 	$(MAKE) cellapps
 
-projects:
+pi-projects:
 	mkdir -p $(PROJECTSDIR)
 	cp -r ./projects $(PROJECTSDIR)
 
-cellapps:
+pi-cellapps:
 	mkdir -p $(CELLAPPSDIR)
 	cp -r ./cellapps $(CELLAPPSDIR)
 
-test:
+pi-test:
     # TODO
 
 upload-check:
@@ -122,17 +133,17 @@ upload-check:
 		echo "In correct branch."; \
 	fi
 
-upload-all:
+pi-upload-all:
 	$(MAKE) upload-ppa
 	$(MAKE) upload-cheeseshop
 
-upload-ppa: $(DIST_DSC)
+pi-upload-ppa: $(DIST_DSC)
 	# TODO: change this from raspberrystem-test ppa to an official one
 	# (to add this repo on raspberrypi type: sudo add-apt-repository ppa:r-jon-s/ppa)
 	$(MAKE) upload-check
 	dput ppa:r-jon-s/ppa dist/$(NAME)_$(VER)_source.changes
 
-upload-cheeseshop: $(PY_SOURCES)
+pi-upload-cheeseshop: $(PY_SOURCES)
 	$(MAKE)
 	# update the package's registration on PyPI (in case any metadata's changed)
 	$(MAKE) upload-check
@@ -147,22 +158,21 @@ release: $(PY_SOURCES) $(DOC_SOURCES)
 	git commit debian/changelog -m "Updated changelog for release $(VER)"
 	git tag -s release-$(VER) -m "Release $(VER)"
 
-source: $(DIST_TAR) $(DIST_ZIP)
+pi-source: $(DIST_TAR) $(DIST_ZIP)
 
-egg: $(DIST_EGG)
+pi-egg: $(DIST_EGG)
 
-zip: $(DIST_ZIP)
+pi-zip: $(DIST_ZIP)
 
-tar: $(DIST_TAR)
+pi-tar: $(DIST_TAR)
 
-deb: $(DIST_DSC) $(DIST_DEB)
+pi-deb: $(DIST_DSC) $(DIST_DEB)
 
-dist: $(DIST_EGG) $(DIST_DEB) $(DIST_DSC) $(DIST_TAR) $(DIST_ZIP)
+pi-dist: $(DIST_EGG) $(DIST_DEB) $(DIST_DSC) $(DIST_TAR) $(DIST_ZIP)
 
-clean-all:
-	$(MAKE) clean clean-dist
+pi-clean-all: clean clean-dist | ssh
 
-clean-dist:
+pi-clean-dist: | ssh
 	$(PYTHON) $(PYFLAGS) setup.py clean
 	$(MAKE) -f $(CURDIR)/debian/rules clean
 	rm -rf build/ dist/ $(NAME).egg-info/ $(NAME)-$(VER)
@@ -205,21 +215,19 @@ $(DIST_DSC): $(PY_SOURCES) $(DEB_SOURCES)
 	mkdir -p dist/
 	for f in $(DIST_DSC); do cp ../$${f##*/} dist/; done
 
-
-
-pi-install.tar:
-	$(MAKE)
-	tar -cvf $@ $(shell $(MAKE) targets)
-
-install: pi-install.tar
-	# TODO: test if sshpass installed
-	$(SSHPASS) scp $(SSHFLAGS) $< $(PI):
-	$(SSHPASS) ssh $(SSHFLAGS) $(PI) " \
-		rm -rf rsinstall; \
-		mkdir -p rsinstall; \
-		cd rsinstall; \
-		tar -xvf ../$<; \
-		$(MAKE) install; \
-		"
+#
+# pi-install.tar:
+# 	$(MAKE)
+# 	tar -cvf $@ $(shell $(MAKE) targets)
+#
+# install: pi-install.tar
+# 	$(SSHPASS) scp $(SSHFLAGS) $< $(PI):
+# 	$(SSHPASS) ssh $(SSHFLAGS) $(PI) " \
+# 		rm -rf rsinstall; \
+# 		mkdir -p rsinstall; \
+# 		cd rsinstall; \
+# 		tar -xvf ../$<; \
+# 		$(MAKE) local-install; \
+# 		"
 
 include $(POST_MAK)
