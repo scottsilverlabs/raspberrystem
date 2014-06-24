@@ -24,11 +24,11 @@ class LedCal:
             try:
                 n = int(self._input_string("Enter the " + name_of_num, default))
             except (ValueError, TypeError):
-                print "Error: Invalid number"
+                print("Error: Invalid number")
                 continue
 
             if not (min_num <= n <= max_num):
-                print "Error: The %s must be %d through %d" % (name_of_num, min_num, max_num)
+                print("Error: The %s must be %d through %d" % (name_of_num, min_num, max_num))
                 continue
 
             break
@@ -57,9 +57,9 @@ class LedCal:
                 vals += [self._input_num(name_of_num, 0, 7, default)]
 
             if len(set(vals)) != len(vals):
-                print "Hmmmm, weird.  All %ss entered should be unique, but they aren't" % s
-                print "The values entered were: " + str(vals)
-                print "Try again..."
+                print("Hmmmm, weird.  All %ss entered should be unique, but they aren't" % s)
+                print("The values entered were: " + str(vals))
+                print("Try again...")
                 continue
             break
 
@@ -126,7 +126,7 @@ class LedCal:
         return self.MATRIX_ROWS
 
     def recalibrate(self):
-        print "Recalibrating..."
+        print("Recalibrating...")
         previous_matrices = self._restore_calibration(self.server, force_default_order=True)
         num_matrices = self._input_num("number of LED matrices", 1, 8, len(previous_matrices))
 

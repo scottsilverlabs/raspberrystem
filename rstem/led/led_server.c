@@ -413,7 +413,7 @@ int main(int argc, char *argv[])
         }
     }
     pthread_t f1_thread; 
-    pthread_create(&f1_thread, NULL, f1, &spi);
+/*    pthread_create(&f1_thread, NULL, f1, &spi);*/
 
     for (;;) {
         process_cmd(fifo, spi);
