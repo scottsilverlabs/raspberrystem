@@ -49,14 +49,15 @@ endif
 # Per file build rules
 #
 %: %.c
-	$(SSHPASS) scp $(SSHFLAGS) $^ $(PI):/tmp
-	$(SSHPASS) ssh $(SSHFLAGS) $(PI) "\
-		mkdir -p /tmp/rs; \
-		cd /tmp/rs; \
-		mv ../$^ .; \
-		gcc $(CFLAGS) $^ -o $@; \
-		mv $@ ..; \
-		cd ..; \
-		rm -r /tmp/rs; \
-		"
-	$(SSHPASS) scp $(SSHFLAGS) $(PI):/tmp/$@ $@
+	gcc $(CFLAGS) $^ -o $@.so
+#	$(SSHPASS) scp $(SSHFLAGS) $^ $(PI):/tmp
+#	$(SSHPASS) ssh $(SSHFLAGS) $(PI) "\
+#		mkdir -p /tmp/rs; \
+#		cd /tmp/rs; \
+#		mv ../$^ .; \
+#		gcc $(CFLAGS) $^ -o $@; \
+#		mv $@ ..; \
+#		cd ..; \
+#		rm -r /tmp/rs; \
+#		"
+#	$(SSHPASS) scp $(SSHFLAGS) $(PI):/tmp/$@ $@

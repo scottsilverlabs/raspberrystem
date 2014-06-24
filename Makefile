@@ -67,11 +67,11 @@ PI_TAR_FILES=rstem cellapps misc projects Makefile MANIFEST.in setup.py README.m
 COMMANDS=install local-install projects cellapps test source egg zip tar deb dist clean-all \
 	clean clean-dist upload-all upload-ppa
 
-.PHONY: all pi-install upload-check help $(COMMANDS) release
+.PHONY: all pi-install upload-check help $(COMMANDS) $(addprefix pi-, $(COMMANDS))
 
 
 # update files on raspberry pi
-PUSH=rsync -azP -O --exclude=".git" --exclude=".gitignore" ./ $(PI):~/rsinstall
+PUSH=rsync -azP -O --include-from='install_include.txt' --exclude='*' ./ $(PI):~/rsinstall
 # send changed files on pi back to user
 PULL=rsync -azP -O $(PI):~/rsinstall ./
 
@@ -103,14 +103,14 @@ help:
 # for each command push new files to raspberry pi then run command on the pi
 $(COMMANDS)::
 	$(PUSH)
-	$(SSHPASS) ssh $(SSHFLAGS) $(PI) "$(MAKE) pi-%@"
+	$(SSHPASS) ssh -t -v $(PI) "cd rsinstall; $(MAKE) pi-$@"
 	$(PULL)
 
 pi-install:
 	$(MAKE)
 	$(PYTHON) $(PYFLAGS) ./setup.py install --user
-	$(MAKE) projects
-	$(MAKE) cellapps
+	$(MAKE) pi-projects
+	$(MAKE) pi-cellapps
 
 pi-projects:
 	mkdir -p $(PROJECTSDIR)
@@ -134,8 +134,8 @@ upload-check:
 	fi
 
 pi-upload-all:
-	$(MAKE) upload-ppa
-	$(MAKE) upload-cheeseshop
+	$(MAKE) pi-upload-ppa
+	$(MAKE) pi-upload-cheeseshop
 
 pi-upload-ppa: $(DIST_DSC)
 	# TODO: change this from raspberrystem-test ppa to an official one
@@ -150,7 +150,7 @@ pi-upload-cheeseshop: $(PY_SOURCES)
 	$(PYTHON) $(PYFLAGS) setup.py register
 
 release: $(PY_SOURCES) $(DOC_SOURCES)
-	$(MAKE) clean
+	$(MAKE) pi-clean
 	$(MAKE) upload-check
 	# update the debian changelog with new release information
 	dch --newversion $(VER) --controlmaint
@@ -170,9 +170,9 @@ pi-deb: $(DIST_DSC) $(DIST_DEB)
 
 pi-dist: $(DIST_EGG) $(DIST_DEB) $(DIST_DSC) $(DIST_TAR) $(DIST_ZIP)
 
-pi-clean-all: clean clean-dist | ssh
+pi-clean-all: clean clean-dist
 
-pi-clean-dist: | ssh
+pi-clean-dist:
 	$(PYTHON) $(PYFLAGS) setup.py clean
 	$(MAKE) -f $(CURDIR)/debian/rules clean
 	rm -rf build/ dist/ $(NAME).egg-info/ $(NAME)-$(VER)
