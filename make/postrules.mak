@@ -10,4 +10,3 @@ clean:: $(DIRS:=.cleandir) $(TARGETS:=.clean)
 
 targets:: $(DIRS:=.targets) $(TARGETS:=.target)
 	@#This comment suppressed "Nothing to be done..."
-	

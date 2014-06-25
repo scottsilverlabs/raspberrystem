@@ -20,6 +20,7 @@ DIRS+=misc
 PYTHON=python
 PYFLAGS=
 DESTDIR=/
+# install directories
 PROJECTSDIR=$$HOME/rstem/projects
 CELLAPPSDIR=$$HOME/rstem/cellapps
 #BUILDIR=$(CURDIR)/debian/raspberrystem
@@ -64,10 +65,10 @@ DIST_DSC=dist/$(NAME)_$(VER).tar.gz \
 # files needed to be sent over to pi for local installation
 PI_TAR_FILES=rstem cellapps misc projects Makefile MANIFEST.in setup.py README.md make
 
-COMMANDS=install local-install projects cellapps test source egg zip tar deb dist clean-all \
-	clean clean-dist upload-all upload-ppa
+COMMANDS=install local-install test source egg zip tar deb dist clean-all \
+	clean-dist upload-all upload-ppa install-projects install-cellapps
 
-.PHONY: all pi-install upload-check help $(COMMANDS) $(addprefix pi-, $(COMMANDS))
+.PHONY: all pi-install upload-check help clean $(COMMANDS) $(addprefix pi-, $(COMMANDS))
 
 
 # update files on raspberry pi
@@ -76,14 +77,14 @@ PUSH=rsync -azP -O --include-from='install_include.txt' --exclude='*' ./ $(PI):~
 PULL=rsync -azP -O $(PI):~/rsinstall ./
 
 
-all::
+# all::
 
 help:
 	@echo "make - Compile sources"
 	@echo "make install - Install onto remote Raspberry Pi"
 	@echo "make local-install - Install onto local machine"
-	@echo "make projects - Install projects to home folder"
-	@echo "make cellapps - Install cellapps to home folder"
+	@echo "make install-projects - Install projects to home folder"
+	@echo "make install-cellapps - Install cellapps to home folder"
 	@echo "make test - Run tests"
 #	@echo "make doc - Generate HTML and PDF documentation"
 	@echo "make source - Create source package"
@@ -102,28 +103,38 @@ help:
 
 # for each command push new files to raspberry pi then run command on the pi
 $(COMMANDS)::
+	@echo "In $@"
+	@echo "Attempt to make $@"
 	$(PUSH)
-	$(SSHPASS) ssh -t -v $(PI) "cd rsinstall; $(MAKE) pi-$@"
+	$(SSHPASS) ssh $(SSHFLAGS) -t -v $(PI) "cd rsinstall; $(MAKE) pi-$@"
 	$(PULL)
 
+# pi-clean: clean
+
+# on pi commands start with "pi-"
 pi-install:
+	@echo "In $@"
 	$(MAKE)
 	$(PYTHON) $(PYFLAGS) ./setup.py install --user
 	$(MAKE) pi-projects
 	$(MAKE) pi-cellapps
 
-pi-projects:
-	mkdir -p $(PROJECTSDIR)
-	cp -r ./projects $(PROJECTSDIR)
 
-pi-cellapps:
+pi-install-cellapps:
+	@echo "In $@"
 	mkdir -p $(CELLAPPSDIR)
 	cp -r ./cellapps $(CELLAPPSDIR)
+
+pi-install-projects:
+	@echo "In $@"
+	mkdir -p $(PROJECTSDIR)
+	cp -r ./projects $(PROJECTSDIR)
 
 pi-test:
     # TODO
 
 upload-check:
+	@echo "In $@"
 	# Check that we are in correct branch....
 	@if ! git branch | grep -q "* rel/$(VER)"; then \
 		echo "Not in the expected branch rel/$(VER)."; \
@@ -134,23 +145,27 @@ upload-check:
 	fi
 
 pi-upload-all:
+	@echo "In $@"
 	$(MAKE) pi-upload-ppa
 	$(MAKE) pi-upload-cheeseshop
 
 pi-upload-ppa: $(DIST_DSC)
+	@echo "In $@"
 	# TODO: change this from raspberrystem-test ppa to an official one
 	# (to add this repo on raspberrypi type: sudo add-apt-repository ppa:r-jon-s/ppa)
 	$(MAKE) upload-check
 	dput ppa:r-jon-s/ppa dist/$(NAME)_$(VER)_source.changes
 
 pi-upload-cheeseshop: $(PY_SOURCES)
+	@echo "In $@"
 	$(MAKE)
 	# update the package's registration on PyPI (in case any metadata's changed)
 	$(MAKE) upload-check
 	$(PYTHON) $(PYFLAGS) setup.py register
 
 release: $(PY_SOURCES) $(DOC_SOURCES)
-	$(MAKE) pi-clean
+	@echo "In $@"
+	$(MAKE) clean
 	$(MAKE) upload-check
 	# update the debian changelog with new release information
 	dch --newversion $(VER) --controlmaint
@@ -159,20 +174,28 @@ release: $(PY_SOURCES) $(DOC_SOURCES)
 	git tag -s release-$(VER) -m "Release $(VER)"
 
 pi-source: $(DIST_TAR) $(DIST_ZIP)
+	@echo "In $@"
 
 pi-egg: $(DIST_EGG)
+	@echo "In $@"
 
 pi-zip: $(DIST_ZIP)
+	@echo "In $@"
 
 pi-tar: $(DIST_TAR)
+	@echo "In $@"
 
 pi-deb: $(DIST_DSC) $(DIST_DEB)
+	@echo "In $@"
 
 pi-dist: $(DIST_EGG) $(DIST_DEB) $(DIST_DSC) $(DIST_TAR) $(DIST_ZIP)
+	@echo "In $@"
 
-pi-clean-all: clean clean-dist
+pi-clean-all: clean pi-clean-dist
+	@echo "In $@"
 
 pi-clean-dist:
+	@echo "In $@"
 	$(PYTHON) $(PYFLAGS) setup.py clean
 	$(MAKE) -f $(CURDIR)/debian/rules clean
 	rm -rf build/ dist/ $(NAME).egg-info/ $(NAME)-$(VER)
@@ -187,15 +210,19 @@ pi-clean-dist:
 
 
 $(DIST_TAR): $(PY_SOURCES)
+	@echo "In $@"
 	$(PYTHON) $(PYFLAGS) setup.py sdist --formats gztar
 
 $(DIST_ZIP): $(PY_SOURCES)
+	@echo "In $@"
 	$(PYTHON) $(PYFLAGS) setup.py sdist --formats zip
 
 $(DIST_EGG): $(PY_SOURCES)
+	@echo "In $@"
 	$(PYTHON) $(PYFLAGS) setup.py bdist_egg
 
 $(DIST_DEB): $(PY_SOURCES) $(DEB_SOURCES)
+	@echo "In $@"
 	$(MAKE)
 	# build the binary package in the parent directory then rename it to
 	# project_version.orig.tar.gz
@@ -206,6 +233,7 @@ $(DIST_DEB): $(PY_SOURCES) $(DEB_SOURCES)
 	for f in $(DIST_DEB); do cp ../$${f##*/} dist/; done
 
 $(DIST_DSC): $(PY_SOURCES) $(DEB_SOURCES)
+	@echo "In $@"
 	$(MAKE)
 	# build the source package in the parent directory then rename it to
 	# project_version.orig.tar.gz

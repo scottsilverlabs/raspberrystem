@@ -15,33 +15,41 @@ endif
 # Directory rules
 #
 %.dir: %
+	@echo "In $@"
 	make -C $^
 
 %.targets: %
+	@echo "In $@"
 	@make -C $^ targets
 
 %.cleandir: %
+	@echo "In $@"
 	make -C $^ clean
 
 #
 # Per file clean rules
 #
 %.py.clean: %.py
+	@echo "In $@"
 	@#Do nothing
 
 %.c.clean: %.c
+	@echo "In $@"
 	rm -f $*
 
 %.clean:
+	@echo "In $@"
 	rm -f $*
 
 #
 # Per file target echo rules
 #
 %.c.target: %.c
+	@echo "In $@"
 	@echo $(RELDIR)/$*
 
 %.target:
+	@echo "In $@"
 	@echo $(RELDIR)/$*
 
 
@@ -49,6 +57,7 @@ endif
 # Per file build rules
 #
 %: %.c
+	@echo "In $@"
 	gcc $(CFLAGS) $^ -o $@.so
 #	$(SSHPASS) scp $(SSHFLAGS) $^ $(PI):/tmp
 #	$(SSHPASS) ssh $(SSHFLAGS) $(PI) "\
