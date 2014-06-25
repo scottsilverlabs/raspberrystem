@@ -84,7 +84,7 @@ pull:
 help:
 	@echo "make - Compile sources locally"
 	@echo "make push - Push changes on local computer onto pi"
-	@echo "make pull - Pull changes on pi onto local computer"
+	@echo "make pull - Pull changes on pi onto local computer (BE CAREFULL!!!)"
 	@echo "make install - Install onto remote Raspberry Pi"
 	@echo "make local-install - Install onto local machine"
 	@echo "make install-projects - Install projects to home folder"
@@ -127,8 +127,8 @@ pi-install:
 	@echo "In $@"
 	$(MAKE)
 	$(PYTHON) $(PYFLAGS) ./setup.py install --user
-	$(MAKE) pi-projects
-	$(MAKE) pi-cellapps
+	$(MAKE) pi-install-projects
+	$(MAKE) pi-install-cellapps
 
 
 pi-install-cellapps:

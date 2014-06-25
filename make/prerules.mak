@@ -1,6 +1,6 @@
 RELDIR=$(subst $(TOPDIR),.,$(CURDIR))
 COMPILEONPI=1 # set to 1 if you want to compile on pi instead
-PI=pi@192.168.1.11
+PI=pi@192.168.1.15
 SSHPASS=sshpass -p 'raspberry'  # comment this line out if you don't want to use sshpass
 SSHFLAGS= -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null
 
