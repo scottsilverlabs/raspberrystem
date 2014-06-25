@@ -65,22 +65,26 @@ DIST_DSC=dist/$(NAME)_$(VER).tar.gz \
 # files needed to be sent over to pi for local installation
 PI_TAR_FILES=rstem cellapps misc projects Makefile MANIFEST.in setup.py README.md make
 
-COMMANDS=install local-install test source egg zip tar deb dist clean-all \
-	clean-dist upload-all upload-ppa install-projects install-cellapps
+COMMANDS=install local-install test source egg zip tar deb dist clean-pi clean-all-pi \
+	clean-dist-pi upload-all upload-ppa install-projects install-cellapps
 
-.PHONY: all pi-install upload-check help clean $(COMMANDS) $(addprefix pi-, $(COMMANDS))
+.PHONY: all pi-install upload-check help clean push pull $(COMMANDS) $(addprefix pi-, $(COMMANDS))
 
 
 # update files on raspberry pi
-PUSH=rsync -azP -O --include-from='install_include.txt' --exclude='*' ./ $(PI):~/rsinstall
-# send changed files on pi back to user
-PULL=rsync -azP -O $(PI):~/rsinstall ./
+push:
+	rsync -azP --include-from='install_include.txt' --exclude='*' ./ $(PI):~/rsinstall
 
+# send changed files on pi back to user
+pull:
+	rsync -azP $(PI):~/rsinstall/* ./
 
 # all::
 
 help:
-	@echo "make - Compile sources"
+	@echo "make - Compile sources locally"
+	@echo "make push - Push changes on local computer onto pi"
+	@echo "make pull - Pull changes on pi onto local computer"
 	@echo "make install - Install onto remote Raspberry Pi"
 	@echo "make local-install - Install onto local machine"
 	@echo "make install-projects - Install projects to home folder"
@@ -93,9 +97,12 @@ help:
 	@echo "make tar - Generate a source tar package"
 	@echo "make deb - Generate Debian packages"
 	@echo "make dist - Generate all packages"
-	@echo "make clean-all - Clean all files"
-	@echo "make clean - Get rid of all compiled files"
-	@echo "make clean-dist - Get rid of all package files."
+	@echo "make clean-all - Clean all files locally"
+	@echo "make clean-all-pi - Clean all files on the pi"
+	@echo "make clean - Get rid of all compiled files locally"
+	@echo "make clean-pi - Clean all compiled files on pi"
+	@echo "make clean-dist - Get rid of all package files locally"
+	@echo "make clean-dist-pi - Get rid of all package files on pi"
 	@echo "make release - Create and tag a new release"
 	@echo "make upload-all - Upload the new release to all repositories"
 	@echo "make upload-ppa - Upload the new release to ppa"
@@ -105,11 +112,15 @@ help:
 $(COMMANDS)::
 	@echo "In $@"
 	@echo "Attempt to make $@"
-	$(PUSH)
+	$(MAKE) push
 	$(SSHPASS) ssh $(SSHFLAGS) -t -v $(PI) "cd rsinstall; $(MAKE) pi-$@"
-	$(PULL)
+	$(MAKE) pull
 
-# pi-clean: clean
+pi-clean-pi: clean
+
+pi-clean-dist-pi: clean-dist
+
+pi-clean-all-pi: clean-all
 
 # on pi commands start with "pi-"
 pi-install:
@@ -191,10 +202,10 @@ pi-deb: $(DIST_DSC) $(DIST_DEB)
 pi-dist: $(DIST_EGG) $(DIST_DEB) $(DIST_DSC) $(DIST_TAR) $(DIST_ZIP)
 	@echo "In $@"
 
-pi-clean-all: clean pi-clean-dist
+clean-all: clean clean-dist
 	@echo "In $@"
 
-pi-clean-dist:
+clean-dist:
 	@echo "In $@"
 	$(PYTHON) $(PYFLAGS) setup.py clean
 	$(MAKE) -f $(CURDIR)/debian/rules clean
