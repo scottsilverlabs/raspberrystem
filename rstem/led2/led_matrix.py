@@ -35,6 +35,7 @@ if __name__ == "__main__":
 
 def _init_check():
     """Checks that initMatrices has been called and throws an error if not"""
+    global initialized
     if not initialized:
         raise RuntimeError("Matrices must be initialized first.")
 
@@ -59,7 +60,7 @@ def _convert_color(color):
         return 0x10
     return int(color, 16)
 
-def initMatrices(mat_list=[(0,0,0)]):
+def initMatrices(mat_list=[(0,0,0)], spi_speed=500000, spi_port=0):
     """Create a chain of led matrices set at particular offsets into the frame buffer
     The order of the led matrices in the list indicate the order they are
     physically hooked up with the first one connected to Pi.
@@ -68,6 +69,7 @@ def initMatrices(mat_list=[(0,0,0)]):
     # if mat_list is None:
     #     mat_list = [(0,0,0)] # set up a single matrix
     # if already initialized clean up old initialization first
+    global initialized
     if initialized:
         close()
     container_width = max([matrix[0] for matrix in mat_list]) + DIM_OF_MATRIX
@@ -75,6 +77,7 @@ def initMatrices(mat_list=[(0,0,0)]):
     flat_mat_list = [item for tuple in mat_list for item in tuple]
     led_driver.initMatrices(flat_mat_list, len(mat_list), \
         container_width, container_height) # flatten out tuple
+    led_driver.initSPI(spi_speed, spi_port)
     initialized = True
 
 def show():
@@ -84,6 +87,7 @@ def show():
 # TODO: call this "unInitLED" instead?
 def close():
     """Unintializes matrices and frees all memory"""
+    global initialized
     if not initialized:
         return
     led_driver.fill(0x0)
@@ -100,9 +104,11 @@ def fill(color=0xF):
 def point(self, x, y=None, color=0xF):
     """Adds point to bitArray and foreground or background sprite"""
     _init_check()
+    if x < 0 or x >= container_width or y < 0 or y >= container_height:
+        raise IndexError("Point given is not in framebuffer.")
     # If y is not given, then x is a tuple of the point
-    if y is None:
-        x, y = x
+    # if y is None and type(x) is tuple:
+    #     x, y = x
     led_driver.point(x, y, _convert_color(color))
 
 def rect(self, start, dimensions, color=0xF):

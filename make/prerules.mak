@@ -57,8 +57,9 @@ endif
 # Per file build rules
 #
 %: %.c
+	# For now, do nothing because the extensions are installed through setup.py
 	@echo "In $@"
-	gcc $(CFLAGS) $^ -o $@.so
+	# gcc $(CFLAGS) $^ -o $@.so
 #	$(SSHPASS) scp $(SSHFLAGS) $^ $(PI):/tmp
 #	$(SSHPASS) ssh $(SSHFLAGS) $(PI) "\
 #		mkdir -p /tmp/rs; \

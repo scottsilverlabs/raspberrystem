@@ -12,6 +12,9 @@
 #define NUM_BYTES_MATRIX ((DIM_OF_MATRIX*DIM_OF_MATRIX)/2)
 #define BITSTREAM_SIZE (num_matrices*NUM_BYTES_MATRIX)
 
+int debug = 1;
+#define Debug(args...) if (debug) {printf("LED_DRIVER: " args); printf("\n");}
+
 int spi;
 unsigned char spiMode;
 unsigned char bitsPerTrans;
@@ -92,6 +95,7 @@ int writeBytes(int dev, unsigned char* val, int len) {
 // ========================================================
 
 int point(int x, int y, unsigned int color) {
+    Debug("Setting point at (%d,%d) with color %d", x, y, color);
     frameBuffer[y][x] = color;
     return 0;
 }
@@ -153,31 +157,39 @@ int fill(unsigned int color){
 
 
 int line(int x1, int y1, int x2, int y2, unsigned int color){
-    // TODO
+    // TODO: if the python version isn't fast enough
     return 0;
 }
 
 
 
 int initFrameBufferandBitStream(void){
+    Debug("Initializing LEDList");
     LEDList = (struct Matrix *) malloc(num_matrices*sizeof(struct Matrix));
     if (LEDList == 0){
+        Debug("Error mallocing LEDList");
         return -1;
     }
+    Debug("Initializing frameBuffer");
     frameBuffer = (unsigned int **) malloc(container_height*sizeof(unsigned int *));
     if (frameBuffer == 0){
+        Debug("Error mallocing frameBuffer");
         goto freeLEDList;
     }
     int i;
-    // TODO: do a one dimensional array
     for (i = 0; i < container_height; i++){
+        Debug("Initializing framebuffer[%d]", i);
         frameBuffer[i] = (unsigned int *) malloc(container_width*sizeof(unsigned int));
         if (frameBuffer[i] == 0){
+            Debug("Error mallocing framebuffer[%d]", i);
             goto freeFrameBuffer;
         }
     }
+    Debug("Initializing bitStream");
     bitStream = (unsigned char *) malloc(num_matrices*NUM_BYTES_MATRIX);
     if (bitStream == 0){
+        Debug("Error mallocing bitStream");
+
         goto freeFrameBuffer;
     }
 
@@ -197,43 +209,48 @@ int initFrameBufferandBitStream(void){
 
 // updates bitStream with current frame buffer
 int update_bitStream(void){
+    Debug("Updating bitSream");
     int matrix_i;
     int bitStreamPos = 0;
     // loop through matrices in reverse order and append to bitstream
     for (matrix_i = (num_matrices - 1); matrix_i >= 0; matrix_i--){
         // place colors in bitStream based off of the angle specified
-        if (LEDList[matrix_i].angle == 0){
+        // TODO: double check this logic...
+        int x_start = LEDList[matrix_i].x_offset;
+        int y_start = LEDList[matrix_i].y_offset;
+        int angle = LEDList[matrix_i].angle;
+        if (angle == 0){
             int x;
-            for (x = 0; x < DIM_OF_MATRIX; x++){
+            for (x = x_start ; x < (x_start + DIM_OF_MATRIX); x++){
                 int y;
-                for (y = (DIM_OF_MATRIX - 1); y >= 0; y -= 2){
+                for (y = y_start + (DIM_OF_MATRIX - 1); y >= y_start; y -= 2){
                     bitStream[bitStreamPos++] = ((frameBuffer[y][x] & 0xF) << 4) | (frameBuffer[y+1][x] & 0xF);
                 }
             }
         }
-        if (LEDList[matrix_i].angle == 90){
+        if (angle == 90){
             int y;
-            for (y = 0; y < DIM_OF_MATRIX; y++){
+            for (y = y_start; y < (y_start + DIM_OF_MATRIX); y++){
                 int x;
-                for (x = 0; x < DIM_OF_MATRIX; x += 2){
+                for (x = x_start; x < (x_start + DIM_OF_MATRIX); x += 2){
                     bitStream[bitStreamPos++] = ((frameBuffer[y][x+1] & 0xF) << 4) | (frameBuffer[y][x] & 0xF);
                 }
             }
         }
-        if (LEDList[matrix_i].angle == 180){
+        if (angle == 180){
             int x;
-            for (x = (DIM_OF_MATRIX - 1); x >= 0; x--){
+            for (x = (x_start + (DIM_OF_MATRIX - 1)); x >= x_start; x--){
                 int y;
-                for (y = 0; y < DIM_OF_MATRIX; y += 2){
+                for (y = y_start; y < (y_start + DIM_OF_MATRIX); y += 2){
                     bitStream[bitStreamPos++] = ((frameBuffer[y+1][x] & 0xF) << 4) | (frameBuffer[y][x] & 0xF);
                 }
             }
         }
-        if (LEDList[matrix_i].angle == 0){
+        if (angle == 270){
             int y;
-            for (y = (DIM_OF_MATRIX - 1); y >= 0; y--){
+            for (y = (y_start + (DIM_OF_MATRIX - 1)); y >= y_start; y--){
                 int x;
-                for (x = (DIM_OF_MATRIX - 1); x >= 0; x -= 2){
+                for (x = (x_start + (DIM_OF_MATRIX - 1)); x >= x_start; x -= 2){
                     bitStream[bitStreamPos++] = ((frameBuffer[y][x] & 0xF) << 4) | (frameBuffer[y][x+1] & 0xF);
                 }
             }
@@ -265,8 +282,6 @@ int closeAndFree(void){
 // Python Wrappers =================================================
 
 static PyObject *pyInitMatrices(PyObject *self, PyObject *args){
-    // TODO: no need to pass the LEDList over just set up the global variable here
-    // RAWGGGGG!!!!
     PyObject *mat_list;  // the list object
     // grab mat_list and global variables
     if (!PyArg_ParseTuple(args, "O!iii", &PyList_Type, &mat_list, &num_matrices,
@@ -324,7 +339,7 @@ static PyObject *pyFill(PyObject *self, PyObject *args){
 static PyObject *pyLine(PyObject *self, PyObject *args){
     int x1, y1, x2, y2;
     unsigned int color;
-	if(!PyArg_ParseTuple(args, "iiiiI", &x1, &y1, &x2, &y2, &color)){
+	if(!PyArg_ParseTuple(args, "iiii|I", &x1, &y1, &x2, &y2, &color)){
 		PyErr_SetString(PyExc_TypeError, "Not ints!");
 		return NULL;
 	}
@@ -335,8 +350,9 @@ static PyObject *pyLine(PyObject *self, PyObject *args){
 }
 
 static PyObject *pyPoint(PyObject *self, PyObject *args){
-    int x, y, color;
-	if(!PyArg_ParseTuple(args, "iii", &x, &y, &color)){
+    int x, y;
+    unsigned int color;
+	if(!PyArg_ParseTuple(args, "iiI", &x, &y, &color)){
 		PyErr_SetString(PyExc_TypeError, "Not ints!");
 		return NULL;
 	}
@@ -361,21 +377,6 @@ static PyObject *pyFlush(PyObject *self, PyObject *args){
     update_bitStream();
     return Py_BuildValue("i", writeBytes(spi, bitStream, BITSTREAM_SIZE));
 }
-
-// static PyObject *flush(PyObject *self, PyObject *args){
-// 	PyObject* seq;
-// 	unsigned char *data;
-// 	int size = 1;
-// 	int index = 0;
-// 	PyArg_ParseTuple(args, "O", &seq);
-// 	if(!PyByteArray_Check(seq)){
-// 		PyErr_SetString(PyExc_TypeError, "Not a bytearray");
-// 		return NULL;
-// 	}
-// 	size = PyObject_Length(seq);
-// 	data = PyByteArray_AsString(seq);
-// return Py_BuildValue("i",writeBytes(spi, data, size));
-// }
 
 static PyObject *pyClose(PyObject *self, PyObject *args){
 	return Py_BuildValue("i", closeAndFree());
