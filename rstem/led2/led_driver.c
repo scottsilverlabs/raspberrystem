@@ -164,7 +164,7 @@ int line(int x1, int y1, int x2, int y2, unsigned int color){
 
 
 int initFrameBufferandBitStream(void){
-    Debug("Initializing LEDList");
+    Debug("Initializing LEDList of size %d", num_matrices*sizeof(struct Matrix));
     LEDList = (struct Matrix *) malloc(num_matrices*sizeof(struct Matrix));
     if (LEDList == 0){
         Debug("Error mallocing LEDList");
@@ -219,12 +219,14 @@ int update_bitStream(void){
         int x_start = LEDList[matrix_i].x_offset;
         int y_start = LEDList[matrix_i].y_offset;
         int angle = LEDList[matrix_i].angle;
+        Debug("Setting matrix %d with x_start = %d, y_start = %d and angle = %d", matrix_i, x_start, y_start, angle);
         if (angle == 0){
             int x;
             for (x = x_start ; x < (x_start + DIM_OF_MATRIX); x++){
                 int y;
                 for (y = y_start + (DIM_OF_MATRIX - 1); y >= y_start; y -= 2){
                     bitStream[bitStreamPos++] = ((frameBuffer[y][x] & 0xF) << 4) | (frameBuffer[y+1][x] & 0xF);
+                    Debug("Bitstream = %s", bitStream);
                 }
             }
         }
@@ -261,6 +263,7 @@ int update_bitStream(void){
 
 // closes SPI port and frees all allocated memory
 int closeAndFree(void){
+    Debug("Closing and freeing.+")
     int i;
     if (frameBuffer){
         for (i = 0; i < container_height; i++){
@@ -289,39 +292,50 @@ static PyObject *pyInitMatrices(PyObject *self, PyObject *args){
         PyErr_SetString(PyExc_TypeError, "Invalid arguments.");
         return NULL;
     }
+    Debug("container_width = %d, container_height = %d, num_matrices = %d", container_width, container_height, num_matrices);
     int listSize = PyList_Size(mat_list);
     if (!PyList_Check(mat_list) || listSize < 0){
         PyErr_SetString(PyExc_TypeError, "Not a list");
         return NULL;
     }
-    if (listSize % 3 != 0){
-        PyErr_SetString(PyExc_ValueError, "List must be a multiple of 3.");
-        return NULL;
-    }
+/*    if (listSize % 3 != 0){*/
+/*        PyErr_SetString(PyExc_ValueError, "List must be a multiple of 3.");*/
+/*        return NULL;*/
+/*    }*/
     // get LEDlist ready
-    LEDList = (struct Matrix *) malloc((listSize/3)*sizeof(struct Matrix));
+    LEDList = (struct Matrix *) malloc((listSize)*sizeof(struct Matrix));
     if (!LEDList){
         PyErr_NoMemory();
         return NULL;
     }
     // iterate through list object and place items in LEDList
     int i;
-    PyObject *xOffsetObj;
-    PyObject *yOffsetObj;
-    PyObject *angleObj;
-    for (i = 0; i < listSize; i += 3){
-        xOffsetObj = PyList_GetItem(mat_list, i);
-        yOffsetObj = PyList_GetItem(mat_list, i + 1);
-        angleObj = PyList_GetItem(mat_list, i + 2);
-        if (!PyInt_Check(xOffsetObj) || !PyInt_Check(yOffsetObj) || !PyInt_Check(angleObj)){
-            PyErr_SetString(PyExc_TypeError, "Non-integer was in the list.");
+/*    PyObject *xOffsetObj;*/
+/*    PyObject *yOffsetObj;*/
+/*    PyObject *angleObj;*/
+    for (i = 0; i < listSize; i++){
+        int x_offset, y_offset;
+        int angle = 0;  // set angle to be 0 by default if not changed in tuple
+        if (!PyArg_ParseTuple(PyList_GetItem(mat_list, i), "ii|i", &x_offset, &y_offset, &angle)){
+            PyErr_SetString(PyExc_TypeError, "Tuple not correct.");
+            return NULL;
         }
-        LEDList[i].x_offset = PyInt_AsLong(xOffsetObj);
-        LEDList[i].y_offset = PyInt_AsLong(yOffsetObj);
-        LEDList[i].angle = PyInt_AsLong(angleObj);
+        LEDList[i].x_offset = x_offset;
+        LEDList[i].y_offset = y_offset;
+        LEDList[i].angle = angle;
+/*        xOffsetObj = PyList_GetItem(mat_list, i);*/
+/*        yOffsetObj = PyList_GetItem(mat_list, i + 1);*/
+/*        angleObj = PyList_GetItem(mat_list, i + 2);*/
+/*        if (!PyInt_Check(xOffsetObj) || !PyInt_Check(yOffsetObj) || !PyInt_Check(angleObj)){*/
+/*            PyErr_SetString(PyExc_TypeError, "Non-integer was in the list.");*/
+/*        }*/
+/*        LEDList[i].x_offset = (int) PyInt_AsLong(xOffsetObj);*/
+/*        LEDList[i].y_offset = (int) PyInt_AsLong(yOffsetObj);*/
+/*        LEDList[i].angle = (int) PyInt_AsLong(angleObj);*/
+        Debug("Set matrix %d with x_offset = %d, y_offset = %d and angle = %d", i, LEDList[i].x_offset, LEDList[i].y_offset, LEDList[i].angle);
     }
     // initialize the framebuffer and bitstream
-	return Py_BuildValue("i", initFrameBufferandBitStream());
+    return Py_BuildValue("i", initFrameBufferandBitStream());
 }
 
 static PyObject *pyFill(PyObject *self, PyObject *args){

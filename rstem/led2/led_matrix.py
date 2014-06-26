@@ -70,12 +70,14 @@ def initMatrices(mat_list=[(0,0,0)], spi_speed=500000, spi_port=0):
     #     mat_list = [(0,0,0)] # set up a single matrix
     # if already initialized clean up old initialization first
     global initialized
+    global container_width
+    global container_height
     if initialized:
         close()
     container_width = max([matrix[0] for matrix in mat_list]) + DIM_OF_MATRIX
     container_height = max([matrix[1] for matrix in mat_list]) + DIM_OF_MATRIX
-    flat_mat_list = [item for tuple in mat_list for item in tuple]
-    led_driver.initMatrices(flat_mat_list, len(mat_list), \
+#    flat_mat_list = [item for tuple in mat_list for item in tuple]
+    led_driver.initMatrices(mat_list, len(mat_list), \
         container_width, container_height) # flatten out tuple
     led_driver.initSPI(spi_speed, spi_port)
     initialized = True
@@ -101,17 +103,21 @@ def fill(color=0xF):
 # def line(point_a, point_b, color=0xF):
 #     led_driver.line(*point_a, *point_b, color)
 
-def point(self, x, y=None, color=0xF):
+def point(x, y=None, color=0xF):
     """Adds point to bitArray and foreground or background sprite"""
     _init_check()
+    global container_width
+    global container_height
+    print container_width, container_height, x, y
+    if y is None and type(x) is tuple:
+        x, y = x
     if x < 0 or x >= container_width or y < 0 or y >= container_height:
         raise IndexError("Point given is not in framebuffer.")
     # If y is not given, then x is a tuple of the point
-    # if y is None and type(x) is tuple:
-    #     x, y = x
+
     led_driver.point(x, y, _convert_color(color))
 
-def rect(self, start, dimensions, color=0xF):
+def rect(start, dimensions, color=0xF):
     """Creates a rectangle from start point using given dimensions"""
     x, y = start
     width, height = dimensions
@@ -121,11 +127,11 @@ def rect(self, start, dimensions, color=0xF):
     line((x + width, y), (x, y), color)
 
 
-def _sign(self, n):
+def _sign(n):
     return 1 if n >= 0 else -1
 
 
-def line(self, point_a, point_b, color=0xF):
+def line(point_a, point_b, color=0xF):
     """Create a line from point_a to point_b"""
     # if color < 0x0 or color > 0xF:
     #     raise ValueError("Invalid color")
@@ -155,7 +161,7 @@ def line(self, point_a, point_b, color=0xF):
             )
 
 
-def text(self, text, position=(0,0), offset_into=(0,0), crop=None, scrolling=False):
+def text(text, position=(0,0), offset_into=(0,0), crop=None, scrolling=False):
     """Sets given string to be displayed on LED Matrix
         - returns the LEDMessage sprite object used to create text
     """
@@ -179,9 +185,11 @@ def text(self, text, position=(0,0), offset_into=(0,0), crop=None, scrolling=Fal
     return text
 
 
-def sprite(self, sprite, position=(0,0), offset_into=None, crop=None):
+def sprite(sprite, position=(0,0), offset_into=None, crop=None):
     """Sets given sprite with top left corner at given position"""
     _init_check()
+    global container_width
+    global container_height
     # set offset to 0 if an offset into sprite is negative
     if offset_into is not None:
         for i in range(2):

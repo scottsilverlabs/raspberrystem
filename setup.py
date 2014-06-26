@@ -22,8 +22,8 @@ from distutils.command.install import install as _install
 
 # check python version is good
 if sys.version_info[0] == 2:
-    if not sys.version_info >= (2, 7):
-        raise ValueError('This package requires Python 2.7 or above')
+    if not sys.version_info >= (2, 6):
+        raise ValueError('This package requires Python 2.6 or above')
 elif sys.version_info[0] == 3:
     if not sys.version_info >= (3, 2):
         raise ValueError('This package requires Python 3.2 or above')

@@ -66,7 +66,7 @@ DIST_DSC=dist/$(NAME)_$(VER).tar.gz \
 PI_TAR_FILES=rstem cellapps misc projects Makefile MANIFEST.in setup.py README.md make
 
 COMMANDS=install local-install test source egg zip tar deb dist clean-pi clean-all-pi \
-	clean-dist-pi upload-all upload-ppa install-projects install-cellapps
+	clean-dist-pi  install-projects install-cellapps
 
 .PHONY: all pi-install upload-check help clean push pull $(COMMANDS) $(addprefix pi-, $(COMMANDS))
 
@@ -95,7 +95,7 @@ help:
 	@echo "make egg - Generate a PyPI egg package"
 	@echo "make zip - Generate a source zip package"
 	@echo "make tar - Generate a source tar package"
-	@echo "make deb - Generate Debian packages"
+	@echo "make deb - Generate Debian packages (NOT COMPLETED)"
 	@echo "make dist - Generate all packages"
 	@echo "make clean-all - Clean all files locally"
 	@echo "make clean-all-pi - Clean all files on the pi"
@@ -113,7 +113,7 @@ $(COMMANDS)::
 	@echo "In $@"
 	@echo "Attempt to make $@"
 	$(MAKE) push
-	$(SSHPASS) ssh $(SSHFLAGS) -t -v $(PI) "cd rsinstall; $(MAKE) pi-$@"
+	$(SSHPASS) ssh $(SSHFLAGS) -t -v $(PI) "cd rsinstall; $(MAKE) pi-$@ PI=$(PI) PYTHON=$(PYTHON)"
 	$(MAKE) pull
 
 pi-clean-pi: clean
@@ -160,23 +160,23 @@ pi-upload-all:
 	$(MAKE) pi-upload-ppa
 	$(MAKE) pi-upload-cheeseshop
 
-pi-upload-ppa: $(DIST_DSC)
+upload-ppa: $(DIST_DSC)
 	@echo "In $@"
 	# TODO: change this from raspberrystem-test ppa to an official one
 	# (to add this repo on raspberrypi type: sudo add-apt-repository ppa:r-jon-s/ppa)
 	$(MAKE) upload-check
 	dput ppa:r-jon-s/ppa dist/$(NAME)_$(VER)_source.changes
 
-pi-upload-cheeseshop: $(PY_SOURCES)
+upload-cheeseshop: $(PY_SOURCES)
 	@echo "In $@"
-	$(MAKE)
+#	$(MAKE)
 	# update the package's registration on PyPI (in case any metadata's changed)
 	$(MAKE) upload-check
 	$(PYTHON) $(PYFLAGS) setup.py register
 
 release: $(PY_SOURCES) $(DOC_SOURCES)
 	@echo "In $@"
-	$(MAKE) clean
+	$(MAKE) clean-all-pi	
 	$(MAKE) upload-check
 	# update the debian changelog with new release information
 	dch --newversion $(VER) --controlmaint
