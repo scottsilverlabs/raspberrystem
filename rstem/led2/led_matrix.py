@@ -65,7 +65,8 @@ def initMatrices(mat_list=[(0,0,0)], spi_speed=500000, spi_port=0):
     The order of the led matrices in the list indicate the order they are
     physically hooked up with the first one connected to Pi.
     mat_list = list of tuple that contains led matrix and offset
-        ex: [(0,0,led1),(7,0,led2)]"""
+        ex: [(0,0,led1),(7,0,led2)]
+        """
     # if mat_list is None:
     #     mat_list = [(0,0,0)] # set up a single matrix
     # if already initialized clean up old initialization first
@@ -81,6 +82,23 @@ def initMatrices(mat_list=[(0,0,0)], spi_speed=500000, spi_port=0):
         container_width, container_height) # flatten out tuple
     led_driver.initSPI(spi_speed, spi_port)
     initialized = True
+    
+def initGrid(num_rows=1, num_cols=1, zigzag=True, spi_speed=500000, spi_port=0):
+    """Initiallizes led matrices in a grid pattern with the given number
+    or rows and columns.
+    zigzag=True means the ledmatrices have been placed in a zigzag fashion.
+    """
+    if num_rows < 0 or num_cols < 0:
+        raise ValueError("num_rows and num_cols must be positive.")
+    mat_list = []
+    for row in range(num_rows):
+        if zigzag and row % 2 = 1:
+            for column in range(num_cols):
+                mat_list.append(((num_cols - column - 1)*DIM_OF_MATRIX, row*DIM_OF_MATRIX, 180))
+        else:
+            for column in range(num_cols):
+                mat_list.append((column*DIM_OF_MATRIX, row*DIM_OF_MATRIX, 0))
+    initMatrices(mat_list, spi_speed, spi_port)
 
 def show():
     _init_check()
