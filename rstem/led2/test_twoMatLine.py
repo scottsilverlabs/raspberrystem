@@ -1,20 +1,20 @@
 #!/usr/bin/env python
 
-import led_matrix
+from rstem import led2
 from time import sleep
-l = led_matrix.LEDMatrix(1,2)
+led2.initMatrices([(0,0),(8,0)])
 while 1:
 	for x in range(0,16):
 		for y in range(0,8):
 			for destx in range(0,16):
 				for desty in range(0,8):
 					for col in range(0,16):
-						l.line((x,y),(destx,desty),col)
-						l.show()
+						led2.line((x,y),(destx,desty),col)
+						led2.show()
 #						sleep(1.0/4.0)
 					for col in range(0,16):
-						l.line((x,y),(destx,desty),15-col)
-						l.show()
+						led2.line((x,y),(destx,desty),15-col)
+						led2.show()
 #	for y in range(0,8):
 #		l.line((0,y),(15,y),0)
 #		l.show()

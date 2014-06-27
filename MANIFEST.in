@@ -1,7 +1,4 @@
-include rstem/accel/accel_server
 include rstem/accel/accel_server.c
 include rstem/gpio/pullup.*
-include rstem/led/led_server
 include rstem/led/led_server.c
-include rstem/led/led_server.so
-include rstem/led2/font/*
+recursive-include rstem/led2/font *

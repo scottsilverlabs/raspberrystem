@@ -106,16 +106,19 @@ def fill(color=0xF):
 def point(x, y=None, color=0xF):
     """Adds point to bitArray and foreground or background sprite"""
     _init_check()
+    color = _convert_color(color)
+    if color == 16:
+        return   # don't do anything if transparent
     global container_width
     global container_height
-    print container_width, container_height, x, y
+#    print container_width, container_height, x, y
     if y is None and type(x) is tuple:
         x, y = x
     if x < 0 or x >= container_width or y < 0 or y >= container_height:
         raise IndexError("Point given is not in framebuffer.")
     # If y is not given, then x is a tuple of the point
 
-    led_driver.point(x, y, _convert_color(color))
+    led_driver.point(x, y, color)
 
 def rect(start, dimensions, color=0xF):
     """Creates a rectangle from start point using given dimensions"""
@@ -138,7 +141,7 @@ def line(point_a, point_b, color=0xF):
 
     x_diff = point_a[0] - point_b[0]
     y_diff = point_a[1] - point_b[1]
-    step = self._sign(x_diff) * self._sign(y_diff)
+    step = _sign(x_diff) * _sign(y_diff)
     width = abs(x_diff) + 1
     height = abs(y_diff) + 1
     if (width > height):
@@ -176,12 +179,11 @@ def text(text, position=(0,0), offset_into=(0,0), crop=None, scrolling=False):
         x_offset = offset_into[0]
         y_offset = offset_into[1]
         while 1:
-            if (x + text.width) < 0: # reset x
-                x = self.width
+            if (x_offset + text.width) < 0: # reset x
+                x_offset = self.width
             x_offset += 1
-            sprite(text, position, (x_offset, y_offset))
+            sprite(text, position)
             show()
-            x -= 1
     return text
 
 
@@ -190,28 +192,28 @@ def sprite(sprite, position=(0,0), offset_into=None, crop=None):
     _init_check()
     global container_width
     global container_height
-    # set offset to 0 if an offset into sprite is negative
-    if offset_into is not None:
+    # set up start position
+    if offset_into is None:
+        offset_into = position
+    else:
         for i in range(2):
             if offset_into[i] < position[i]:
                 offset_into[i] = position[i]
-    # set up start position
-    y_start = y if y >= 0 else 0
+    x, y = offset_into
     x_start = x if x >= 0 else 0
+    y_start = y if y >= 0 else 0
+    if x_start >= container_width or y_start >= container_height:
+        raise ValueError("Offset is outside of framebuffer space.")
 
     # set up end position
+    x_end = min(container_width - 1, sprite.width - 1)
+    y_end = min(container_height - 1, sprite.height - 1)
     if crop is not None:
-        if crop[0] >= x_start and crop[0] < container_width:
-            x_end = crop[0]
-        else:
-            x_end = container_width - 1
-        if crop[1] >= y_start and crop[1] < container_height:
-            y_end = crop[1]
-        else:
-            y_end = container_height - 1
-    else:
-        x_end, y_end = container_width - 1, container_height - 1
-
+        if crop[0] >= 0:
+            x_end = min(x_end, crop[0])
+        if crop[1] >= 0:
+            y_end = min(y_end, crop[1])
+    
     # iterate through sprite and set points to led_driver
     y = y_start
     while y <= y_end:

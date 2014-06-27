@@ -12,7 +12,7 @@
 #define NUM_BYTES_MATRIX ((DIM_OF_MATRIX*DIM_OF_MATRIX)/2)
 #define BITSTREAM_SIZE (num_matrices*NUM_BYTES_MATRIX)
 
-int debug = 1;
+int debug = 0;
 #define Debug(args...) if (debug) {printf("LED_DRIVER: " args); printf("\n");}
 
 int spi;
@@ -164,12 +164,6 @@ int line(int x1, int y1, int x2, int y2, unsigned int color){
 
 
 int initFrameBufferandBitStream(void){
-    Debug("Initializing LEDList of size %d", num_matrices*sizeof(struct Matrix));
-    LEDList = (struct Matrix *) malloc(num_matrices*sizeof(struct Matrix));
-    if (LEDList == 0){
-        Debug("Error mallocing LEDList");
-        return -1;
-    }
     Debug("Initializing frameBuffer");
     frameBuffer = (unsigned int **) malloc(container_height*sizeof(unsigned int *));
     if (frameBuffer == 0){
@@ -184,6 +178,7 @@ int initFrameBufferandBitStream(void){
             Debug("Error mallocing framebuffer[%d]", i);
             goto freeFrameBuffer;
         }
+        memset(frameBuffer[i], 0, container_width*sizeof(unsigned int));
     }
     Debug("Initializing bitStream");
     bitStream = (unsigned char *) malloc(num_matrices*NUM_BYTES_MATRIX);
@@ -192,7 +187,7 @@ int initFrameBufferandBitStream(void){
 
         goto freeFrameBuffer;
     }
-
+    memset(bitStream, '\0', num_matrices*NUM_BYTES_MATRIX);
     return 0;
 
     // Clean up on malloc error
@@ -224,7 +219,7 @@ int update_bitStream(void){
             int x;
             for (x = x_start ; x < (x_start + DIM_OF_MATRIX); x++){
                 int y;
-                for (y = y_start + (DIM_OF_MATRIX - 1); y >= y_start; y -= 2){
+                for (y = y_start + (DIM_OF_MATRIX - 2); y >= y_start; y -= 2){
                     bitStream[bitStreamPos++] = ((frameBuffer[y][x] & 0xF) << 4) | (frameBuffer[y+1][x] & 0xF);
                     Debug("Bitstream = %s", bitStream);
                 }
@@ -304,10 +299,11 @@ static PyObject *pyInitMatrices(PyObject *self, PyObject *args){
 /*    }*/
     // get LEDlist ready
     LEDList = (struct Matrix *) malloc((listSize)*sizeof(struct Matrix));
-    if (!LEDList){
+    if (LEDList == 0){
         PyErr_NoMemory();
         return NULL;
     }
+    memset(LEDList, '\0', (listSize)*sizeof(struct Matrix));
     // iterate through list object and place items in LEDList
     int i;
 /*    PyObject *xOffsetObj;*/
