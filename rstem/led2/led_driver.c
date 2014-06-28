@@ -12,7 +12,7 @@
 #define NUM_BYTES_MATRIX ((DIM_OF_MATRIX*DIM_OF_MATRIX)/2)
 #define BITSTREAM_SIZE (num_matrices*NUM_BYTES_MATRIX)
 
-int debug = 0;
+int debug = 1;
 #define Debug(args...) if (debug) {printf("LED_DRIVER: " args); printf("\n");}
 
 int spi;
@@ -221,25 +221,24 @@ int update_bitStream(void){
                 int y;
                 for (y = y_start + (DIM_OF_MATRIX - 2); y >= y_start; y -= 2){
                     bitStream[bitStreamPos++] = ((frameBuffer[y][x] & 0xF) << 4) | (frameBuffer[y+1][x] & 0xF);
-                    Debug("Bitstream = %s", bitStream);
                 }
             }
         }
-        if (angle == 90){
+        if (angle == 90){  // 90 degrees counter-clockwise
             int y;
             for (y = y_start; y < (y_start + DIM_OF_MATRIX); y++){
                 int x;
-                for (x = x_start; x < (x_start + DIM_OF_MATRIX); x += 2){
-                    bitStream[bitStreamPos++] = ((frameBuffer[y][x+1] & 0xF) << 4) | (frameBuffer[y][x] & 0xF);
+                for (x = x_start + 1; x < (x_start + DIM_OF_MATRIX); x += 2){
+                    bitStream[bitStreamPos++] = ((frameBuffer[y][x] & 0xF) << 4) | (frameBuffer[y][x-1] & 0xF);
                 }
             }
         }
-        if (angle == 180){
+        if (angle == 180){  // upside-down
             int x;
             for (x = (x_start + (DIM_OF_MATRIX - 1)); x >= x_start; x--){
                 int y;
-                for (y = y_start; y < (y_start + DIM_OF_MATRIX); y += 2){
-                    bitStream[bitStreamPos++] = ((frameBuffer[y+1][x] & 0xF) << 4) | (frameBuffer[y][x] & 0xF);
+                for (y = y_start + 1; y < (y_start + DIM_OF_MATRIX); y += 2){
+                    bitStream[bitStreamPos++] = ((frameBuffer[y][x] & 0xF) << 4) | (frameBuffer[y-1][x] & 0xF);
                 }
             }
         }
@@ -247,7 +246,7 @@ int update_bitStream(void){
             int y;
             for (y = (y_start + (DIM_OF_MATRIX - 1)); y >= y_start; y--){
                 int x;
-                for (x = (x_start + (DIM_OF_MATRIX - 1)); x >= x_start; x -= 2){
+                for (x = (x_start + (DIM_OF_MATRIX - 2)); x >= x_start; x -= 2){
                     bitStream[bitStreamPos++] = ((frameBuffer[y][x] & 0xF) << 4) | (frameBuffer[y][x+1] & 0xF);
                 }
             }

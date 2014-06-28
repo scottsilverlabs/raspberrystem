@@ -73,69 +73,143 @@ def initMatrices(mat_list=[(0,0,0)], spi_speed=500000, spi_port=0):
     global initialized
     global container_width
     global container_height
-    if initialized:
+    if initialized: # free previous memory before attempting to do it again
         close()
+    # convert matrix list to be standard angle=0 version
+#    if angle != 0:
+#        mat_list_temp = []
+#        for i, matrix in enumerate(mat_list):
+#            # change the angle
+#            cur_angle = 0
+#            if len(matrix) >= 3:
+#                cur_angle = matrix[2]
+#            cur_angle = (cur_angle + angle) % 360 # find angle relative to angle = 0
+#            # change the offset position to be relative to angle = 0
+#            # DON"T CONVERT ANYTHING!!!
+##            x_offset, y_offset = _convert_to_std_angle(matrix[0], matrix[1], angle)
+##            # offset must be upper left corner of matrix...
+##            if angle == 90:
+##                y_offset = y_offset - (DIM_OF_MATRIX - 1)
+##            elif angle == 180:
+##                x_offset = x_offset - (DIM_OF_MATRIX - 1)
+##                y_offset = y_offset - (DIM_OF_MATRIX - 1)
+##            elif angle == 270:
+##                x_offset = x_offset - (DIM_OF_MATRIX - 1)
+#            # finally add to mat_list_temp
+#            mat_list_temp.append((matrix[0], matrix[1], cur_angle))
+#        mat_list = mat_list_temp
+                
     container_width = max([matrix[0] for matrix in mat_list]) + DIM_OF_MATRIX
     container_height = max([matrix[1] for matrix in mat_list]) + DIM_OF_MATRIX
-#    flat_mat_list = [item for tuple in mat_list for item in tuple]
     led_driver.initMatrices(mat_list, len(mat_list), \
         container_width, container_height) # flatten out tuple
     led_driver.initSPI(spi_speed, spi_port)
     initialized = True
     
-def initGrid(num_rows=1, num_cols=1, zigzag=True, spi_speed=500000, spi_port=0):
+def initGrid(num_rows=1, num_cols=1, angle=0, zigzag=True, spi_speed=500000, spi_port=0):
     """Initiallizes led matrices in a grid pattern with the given number
     or rows and columns.
     zigzag=True means the ledmatrices have been placed in a zigzag fashion.
+    angle=0, 90, 180, or 270 to represent how the coordinate system should be
+            represented in the grid
+            (num_row and num_cols are representative of after the angle has been defined)
     """
-    if num_rows < 0 or num_cols < 0:
+    if num_rows <= 0 or num_cols <= 0:
         raise ValueError("num_rows and num_cols must be positive.")
     mat_list = []
-    for row in range(num_rows):
-        if zigzag and row % 2 = 1:
-            for column in range(num_cols):
-                mat_list.append(((num_cols - column - 1)*DIM_OF_MATRIX, row*DIM_OF_MATRIX, 180))
-        else:
-            for column in range(num_cols):
-                mat_list.append((column*DIM_OF_MATRIX, row*DIM_OF_MATRIX, 0))
-    initMatrices(mat_list, spi_speed, spi_port)
+    # TODO: make this code more pretty? (kind of hard to do without loosing readability)
+    # TODO: need to test this with larger matrices
+    if angle == 0:
+        for row in range(num_rows): # increment through rows downward
+            if zigzag and row % 2 == 1:
+                for column in range(num_cols-1,-1,-1):  # if odd increment right to left
+                    mat_list.append((column*DIM_OF_MATRIX, row*DIM_OF_MATRIX, 180))  # upside-down
+            else:
+                for column in range(num_cols): # if even, increment left to right
+                    mat_list.append((column*DIM_OF_MATRIX, row*DIM_OF_MATRIX, 0))  # right side up
+    elif angle == 90: # 90 degrees counter-clockwise
+        for column in range(num_cols): # increment through columns left to right
+            if zigzag and column % 2 == 1:
+                for row in range(num_rows): # if odd, increment downward
+                    mat_list.append((column*DIM_OF_MATRIX, row*DIM_OF_MATRIX, 270)) # 180 + 90
+            else:
+                for row in range(num_rows-1,-1,-1): # if even, increment upwards
+                    mat_list.append((column*DIM_OF_MATRIX, row*DIM_OF_MATRIX, 90))  # 0 + 90
+    elif angle == 180:
+        for row in range(num_rows-1,-1,-1): # increment through rows upwards
+            if zigzag and row % 2 == 1:
+                for column in range(num_cols):  # if odd increment left to right
+                    mat_list.append((column*DIM_OF_MATRIX, row*DIM_OF_MATRIX, 0)) # 180 + 180
+            else:
+                for column in range(num_cols-1,-1,-1): # if even increment right to left
+                    mat_list.append((column*DIM_OF_MATRIX, row*DIM_OF_MATRIX, 180)) # 0 + 180
+    elif angle == 270: # 90 degrees clockwise
+        for column in range(num_cols-1,-1,-1): # increment columns right to left
+            if zigzag and column % 2 == 1:
+                for row in range(num_rows-1,-1,-1): # if odd increment through rows upwards
+                    mat_list.append((column*DIM_OF_MATRIX, row*DIM_OF_MATRIX, 90)) # 180 - 90
+            else:
+                for row in range(num_rows): # increment through rows downwards
+                    mat_list.append((column*DIM_OF_MATRIX, row*DIM_OF_MATRIX, 270)) # 0 - 90 = 270
+    initMatrices(mat_list, spi_speed=spi_speed, spi_port=spi_port)
 
 def show():
+    """Tells the led_driver to send framebuffer to SPI port.
+    Refreshes the display using current framebuffer.
+    """
     _init_check()
     led_driver.flush()
 
 # TODO: call this "unInitLED" instead?
 def close():
-    """Unintializes matrices and frees all memory"""
+    """Unintializes matrices and frees all memory. 
+    Should be called at the end of a program to avoid memory leaks.
+    Also, clears the display.
+    """
     global initialized
     if not initialized:
         return
     led_driver.fill(0x0)
     led_driver.flush()
     led_driver.close()
-
+a
 def fill(color=0xF):
+    """Fills the framebuffer with the given color.
+    (Full brightness if no color is given).
+    """
     _init_check()
     led_driver.fill(_convert_color(color))
 
-# def line(point_a, point_b, color=0xF):
-#     led_driver.line(*point_a, *point_b, color)
+# TODO: remove this?
+def _convert_to_std_angle(x, y, angle):
+    if angle == 90:
+        oldx = x
+        x = y
+        y = (container_height - 1) - oldx
+    elif angle == 180:
+        x = (container_width - 1) - x
+        y = (container_height - 1) - x
+    elif angle == 270:
+        oldy = y
+        y = x
+        x = (container_width - 1) - oldy
+    return (x,y)
 
 def point(x, y=None, color=0xF):
-    """Adds point to bitArray and foreground or background sprite"""
+    """Sends point to the framebuffer.
+    Note: will not display the point until show() is called.
+    """
     _init_check()
     color = _convert_color(color)
-    if color == 16:
+    if color >= 16:
         return   # don't do anything if transparent
     global container_width
     global container_height
-#    print container_width, container_height, x, y
+    # If y is not given, then x is a tuple of the point
     if y is None and type(x) is tuple:
         x, y = x
     if x < 0 or x >= container_width or y < 0 or y >= container_height:
         raise IndexError("Point given is not in framebuffer.")
-    # If y is not given, then x is a tuple of the point
-
     led_driver.point(x, y, color)
 
 def rect(start, dimensions, color=0xF):
@@ -151,12 +225,9 @@ def rect(start, dimensions, color=0xF):
 def _sign(n):
     return 1 if n >= 0 else -1
 
-
+# TODO: write this in the led_driver ?
 def line(point_a, point_b, color=0xF):
     """Create a line from point_a to point_b"""
-    # if color < 0x0 or color > 0xF:
-    #     raise ValueError("Invalid color")
-
     x_diff = point_a[0] - point_b[0]
     y_diff = point_a[1] - point_b[1]
     step = _sign(x_diff) * _sign(y_diff)
@@ -182,7 +253,7 @@ def line(point_a, point_b, color=0xF):
             )
 
 
-def text(text, position=(0,0), offset_into=(0,0), crop=None, scrolling=False):
+def text(text, position=(0,0), offset_into=None, crop=None):
     """Sets given string to be displayed on LED Matrix
         - returns the LEDMessage sprite object used to create text
     """
@@ -191,17 +262,6 @@ def text(text, position=(0,0), offset_into=(0,0), crop=None, scrolling=False):
     elif type(text) != LEDMessage and type(text) != LEDSprite:
         raise ValueError("Invalid text")
     sprite(text, position, offset_into, crop)
-    # TODO: remove scrolling, let it be a user program
-    if scrolling:
-        fill(0x0)  # clear screen first
-        x_offset = offset_into[0]
-        y_offset = offset_into[1]
-        while 1:
-            if (x_offset + text.width) < 0: # reset x
-                x_offset = self.width
-            x_offset += 1
-            sprite(text, position)
-            show()
     return text
 
 
@@ -212,32 +272,34 @@ def sprite(sprite, position=(0,0), offset_into=None, crop=None):
     global container_height
     # set up start position
     if offset_into is None:
-        offset_into = position
+        offset_into = position  # if no offset use position as offset
     else:
         for i in range(2):
             if offset_into[i] < position[i]:
-                offset_into[i] = position[i]
-    x, y = offset_into
-    x_start = x if x >= 0 else 0
-    y_start = y if y >= 0 else 0
+                raise ValueError("Offset must greater than or equal to position")
+    # set start to be first valid offset position
+    x_start = offset_into[0] if offset_into[0] >= 0 else 0
+    y_start = offset_into[1] if offset_into[1] >= 0 else 0
     if x_start >= container_width or y_start >= container_height:
         raise ValueError("Offset is outside of framebuffer space.")
 
     # set up end position
     x_end = min(container_width - 1, sprite.width - 1)
     y_end = min(container_height - 1, sprite.height - 1)
+    # re-set end position as crop if defined
     if crop is not None:
-        if crop[0] >= 0:
-            x_end = min(x_end, crop[0])
-        if crop[1] >= 0:
-            y_end = min(y_end, crop[1])
+        if crop[0] < 0 or crop[1] < 0:
+            raise ValueError("Crop position must be a postive number")
+        x_end = min(x_end, crop[0])
+        y_end = min(y_end, crop[1])
     
     # iterate through sprite and set points to led_driver
     y = y_start
     while y <= y_end:
         x = x_start
         while x <= x_end:
-            point(x, y, sprite.bitmap[y][x])
+            # (we can skip right to led_driver version because all arguments have been checked)
+            led_driver.point(x, y, sprite.bitmap[y][x])
             x += 1
         y += 1
 
@@ -268,6 +330,7 @@ class LEDSprite(object):
                 bitmap_height += 1
             f.close()
         else:
+            # create an empty sprite of given height and width
             bitmap = [[color for i in range(width)] for j in range(height)]
             bitmap_height = height
             bitmap_width = width
