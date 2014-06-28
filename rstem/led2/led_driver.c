@@ -92,7 +92,7 @@ int writeBytes(int dev, unsigned char* val, int len) {
     return ret;
 }
 
-// ========================================================
+// led_driver commands =======================================
 
 int point(int x, int y, unsigned int color) {
     Debug("Setting point at (%d,%d) with color %d", x, y, color);
@@ -125,35 +125,6 @@ int fill(unsigned int color){
 //         *x = (PIXEL_WIDTH - 1) - oldy;
 //     }
 // }
-
-
-// int point_to_bitPos(int x, int y){
-//
-//     int mat_row = MAT_ROW(x,y);
-//     // subtract off above matrix row and column so we can tread y relative to matrix row
-//     y = (y - mat_row*DIM_OF_MATRIX);
-//     // if on odd matrix row and zigzag enabled, we need to flip x and y coords
-//     // (this allows us to treat x,y,mat_row,and mat_col as if zigzag == False)
-//     if (mat_row % 2 == 1 && led.zigzag){
-//         x = (DIM_OF_MATRIX*led.num_cols - 1) - x;
-//         y = (DIM_OF_MATRIX - 1) - y;
-//     }
-//     // subtract off left matrix columns so we can treat x relative to matrix element
-//     x = (x - MAT_COL(x,y)*DIM_OF_MATRIX);
-//
-//
-//     // x and y now relative to matrix element
-//     // get bitPos relative to matrix element
-//     int bitPosCol = x*DIM_OF_MATRIX*SIZE_OF_PIXEL;
-//     int bitPosColOffset = (DIM_OF_MATRIX - 1 - y)*SIZE_OF_PIXEL;
-//     int bitPos = bitPosCol + bitPosColOffset;
-//
-//     // update bitPos to be absolute index of entire matrix
-//     bitPos += MAT_INDEX(x,y)*NUM_BITS_MATRIX;
-//
-//     return bitPos;
-// }
-
 
 
 int line(int x1, int y1, int x2, int y2, unsigned int color){
@@ -292,10 +263,6 @@ static PyObject *pyInitMatrices(PyObject *self, PyObject *args){
         PyErr_SetString(PyExc_TypeError, "Not a list");
         return NULL;
     }
-/*    if (listSize % 3 != 0){*/
-/*        PyErr_SetString(PyExc_ValueError, "List must be a multiple of 3.");*/
-/*        return NULL;*/
-/*    }*/
     // get LEDlist ready
     LEDList = (struct Matrix *) malloc((listSize)*sizeof(struct Matrix));
     if (LEDList == 0){
@@ -305,9 +272,6 @@ static PyObject *pyInitMatrices(PyObject *self, PyObject *args){
     memset(LEDList, '\0', (listSize)*sizeof(struct Matrix));
     // iterate through list object and place items in LEDList
     int i;
-/*    PyObject *xOffsetObj;*/
-/*    PyObject *yOffsetObj;*/
-/*    PyObject *angleObj;*/
     for (i = 0; i < listSize; i++){
         int x_offset, y_offset;
         int angle = 0;  // set angle to be 0 by default if not changed in tuple
@@ -318,15 +282,6 @@ static PyObject *pyInitMatrices(PyObject *self, PyObject *args){
         LEDList[i].x_offset = x_offset;
         LEDList[i].y_offset = y_offset;
         LEDList[i].angle = angle;
-/*        xOffsetObj = PyList_GetItem(mat_list, i);*/
-/*        yOffsetObj = PyList_GetItem(mat_list, i + 1);*/
-/*        angleObj = PyList_GetItem(mat_list, i + 2);*/
-/*        if (!PyInt_Check(xOffsetObj) || !PyInt_Check(yOffsetObj) || !PyInt_Check(angleObj)){*/
-/*            PyErr_SetString(PyExc_TypeError, "Non-integer was in the list.");*/
-/*        }*/
-/*        LEDList[i].x_offset = (int) PyInt_AsLong(xOffsetObj);*/
-/*        LEDList[i].y_offset = (int) PyInt_AsLong(yOffsetObj);*/
-/*        LEDList[i].angle = (int) PyInt_AsLong(angleObj);*/
         Debug("Set matrix %d with x_offset = %d, y_offset = %d and angle = %d", i, LEDList[i].x_offset, LEDList[i].y_offset, LEDList[i].angle);
     }
     // initialize the framebuffer and bitstream

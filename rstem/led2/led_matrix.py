@@ -59,9 +59,13 @@ def _convert_color(color):
     if color == '-':
         return 0x10
     return int(color, 16)
+    
+def _convert_to_std_coords(x, y):
+    """Converts given math coordinates to standard programming coordinates"""
+    return (x, (container_height - 1 - y))
 
-def initMatrices(mat_list=[(0,0,0)], spi_speed=500000, spi_port=0):
-    """Create a chain of led matrices set at particular offsets into the frame buffer
+def initMatrices(mat_list=[(0,0,0)], math_coords=True, spi_speed=500000, spi_port=0):
+    """Create a chain of led matrices set at parti  cular offsets into the frame buffer
     The order of the led matrices in the list indicate the order they are
     physically hooked up with the first one connected to Pi.
     mat_list = list of tuple that contains led matrix and offset
@@ -75,32 +79,15 @@ def initMatrices(mat_list=[(0,0,0)], spi_speed=500000, spi_port=0):
     global container_height
     if initialized: # free previous memory before attempting to do it again
         close()
-    # convert matrix list to be standard angle=0 version
-#    if angle != 0:
-#        mat_list_temp = []
-#        for i, matrix in enumerate(mat_list):
-#            # change the angle
-#            cur_angle = 0
-#            if len(matrix) >= 3:
-#                cur_angle = matrix[2]
-#            cur_angle = (cur_angle + angle) % 360 # find angle relative to angle = 0
-#            # change the offset position to be relative to angle = 0
-#            # DON"T CONVERT ANYTHING!!!
-##            x_offset, y_offset = _convert_to_std_angle(matrix[0], matrix[1], angle)
-##            # offset must be upper left corner of matrix...
-##            if angle == 90:
-##                y_offset = y_offset - (DIM_OF_MATRIX - 1)
-##            elif angle == 180:
-##                x_offset = x_offset - (DIM_OF_MATRIX - 1)
-##                y_offset = y_offset - (DIM_OF_MATRIX - 1)
-##            elif angle == 270:
-##                x_offset = x_offset - (DIM_OF_MATRIX - 1)
-#            # finally add to mat_list_temp
-#            mat_list_temp.append((matrix[0], matrix[1], cur_angle))
-#        mat_list = mat_list_temp
                 
     container_width = max([matrix[0] for matrix in mat_list]) + DIM_OF_MATRIX
     container_height = max([matrix[1] for matrix in mat_list]) + DIM_OF_MATRIX
+    if math_coords:
+        # convert y's to be standard programming coordinates
+        for i in range(len(mat_list)):
+            mat_list[i][1] = container_height - 1 - mat_list[i][1] 
+            # move position from bottom left to top left of matrix
+            mat_list[i][1] = mat_list[i][1] - (DIM_OF_MATRIX - 1)
     led_driver.initMatrices(mat_list, len(mat_list), \
         container_width, container_height) # flatten out tuple
     led_driver.initSPI(spi_speed, spi_port)
@@ -195,7 +182,7 @@ def _convert_to_std_angle(x, y, angle):
         x = (container_width - 1) - oldy
     return (x,y)
 
-def point(x, y=None, color=0xF):
+def point(x, y=None, color=0xF, math_coords=True):
     """Sends point to the framebuffer.
     Note: will not display the point until show() is called.
     """
@@ -210,16 +197,20 @@ def point(x, y=None, color=0xF):
         x, y = x
     if x < 0 or x >= container_width or y < 0 or y >= container_height:
         raise IndexError("Point given is not in framebuffer.")
+    if math_coords:
+        x, y = _convert_to_std_coords(x, y)
     led_driver.point(x, y, color)
 
-def rect(start, dimensions, color=0xF):
+def rect(start, dimensions, color=0xF, math_coords=True):
     """Creates a rectangle from start point using given dimensions"""
+    if math_coords: # convert it now so no need to do it anymore
+        start = _convert_to_std_coords(*start)
     x, y = start
     width, height = dimensions
-    line((x, y), (x, y + height), color)
-    line((x, y + height), (x + width, y + height), color)
-    line((x + width, y + height), (x + width, y), color)
-    line((x + width, y), (x, y), color)
+    line((x, y), (x, y + height), color, math_coords=False)
+    line((x, y + height), (x + width, y + height), color, math_coords=False)
+    line((x + width, y + height), (x + width, y), color, math_coords=False)
+    line((x + width, y), (x, y), color, math_coords=False)
 
 
 def _sign(n):
@@ -377,6 +368,7 @@ class LEDSprite(object):
 
 
 def _char_to_sprite(char, font_location, space_size=(7,5)):
+    """Returns the LEDSprite object of given character."""
     if not (type(char) == str and len(char) == 1):
         raise ValueError("Not a character")
     if char.isdigit():
