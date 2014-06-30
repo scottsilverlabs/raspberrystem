@@ -12,8 +12,10 @@
 #define NUM_BYTES_MATRIX ((DIM_OF_MATRIX*DIM_OF_MATRIX)/2)
 #define BITSTREAM_SIZE (num_matrices*NUM_BYTES_MATRIX)
 
-int debug = 1;
+int debug = 0;
 #define Debug(args...) if (debug) {printf("LED_DRIVER: " args); printf("\n");}
+
+int display_on_terminal = 1;
 
 int spi;
 unsigned char spiMode;
@@ -111,21 +113,6 @@ int fill(unsigned int color){
     return 0;
 }
 
-// void convert_to_std_angle(int *x, int *y){
-//     if (led.angle == 90){
-//         int oldx = *x;
-//         *x = *y;
-//         *y = (PIXEL_HEIGHT - 1) - oldx;
-//     } else if (led.angle == 180){
-//         *x = (PIXEL_WIDTH - 1) - *x;
-//         *y = (PIXEL_HEIGHT - 1) - *y;
-//     } else if (led.angle == 270){
-//         int oldy = *y;
-//         *y = *x;
-//         *x = (PIXEL_WIDTH - 1) - oldy;
-//     }
-// }
-
 
 int line(int x1, int y1, int x2, int y2, unsigned int color){
     // TODO: if the python version isn't fast enough
@@ -181,7 +168,7 @@ int update_bitStream(void){
     // loop through matrices in reverse order and append to bitstream
     for (matrix_i = (num_matrices - 1); matrix_i >= 0; matrix_i--){
         // place colors in bitStream based off of the angle specified
-        // TODO: double check this logic...
+        // TODO: this needs TESTING with real hardware
         int x_start = LEDList[matrix_i].x_offset;
         int y_start = LEDList[matrix_i].y_offset;
         int angle = LEDList[matrix_i].angle;
@@ -244,6 +231,22 @@ int closeAndFree(void){
     }
     close(spi);
     return 0;
+}
+
+void print_frameBuffer(void){
+    rewind(stdout);  // clear terminal
+    int y;
+    for (y = 0; y < container_height; y++){
+        int x;
+        for (x = 0; x < container_width; x++){
+            int pixel = frameBuffer[y][x];
+            if (pixel < 16)
+                printf("%x ", pixel);
+            else
+                printf("- ");
+        }
+        printf("\n");
+    }
 }
 
 
@@ -338,6 +341,10 @@ static PyObject *pyInitSPI(PyObject *self, PyObject *args){
 }
 
 static PyObject *pyFlush(PyObject *self, PyObject *args){
+    // show on terminal if flag enabled
+    if (display_on_terminal){
+        print_frameBuffer();
+    }
     update_bitStream();
     return Py_BuildValue("i", writeBytes(spi, bitStream, BITSTREAM_SIZE));
 }
