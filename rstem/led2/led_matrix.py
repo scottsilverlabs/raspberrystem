@@ -373,7 +373,7 @@ class LEDSprite(object):
         # TODO: save sprite to file?
 
 
-def _char_to_sprite(char, font_path, space_size=(7,5)):
+def _char_to_sprite(char, font_path):
     """Returns the LEDSprite object of given character."""
     if not (type(char) == str and len(char) == 1):
         raise ValueError("Not a character")
@@ -384,29 +384,38 @@ def _char_to_sprite(char, font_path, space_size=(7,5)):
     elif char.islower():
         return LEDSprite(font_path + "/lower/" + char)
     elif char.isspace():
-        return LEDSprite(height=space_size[0], width=space_size[1], color=0x10)
+        return LEDSprite(font_path + "/space") # return a space 
+    elif os.path.isfile(font_path + "/misc/" + ord(char)): # add if exist in misc folder
+        return LEDSprite(font_path + "/misc/" + ord(char))
     else:
-        raise ValueError("Invalid character")
+        return LEDSprite(font_path + "/unknown") # return generic box character
 
 
 class LEDMessage(LEDSprite):
 
-    def __init__(self, message, char_spacing=1, font_path=None):
+    def __init__(self, message, char_spacing=1, font_size="large", font_path=None):
         """Creates a text sprite of the given string
             - This object can be used the same way a sprite is used
             char_spacing = number pixels between characters
             font_path = location of folder where font bitmaps are located
         """
-        # TODO: make multiple font sizes
         if font_path is None: # if none, set up default font location
             this_dir, this_filename = os.path.split(__file__)
+            # only use font_size if no custom font_path was given
             font_path = os.path.join(this_dir, "font")
+            if font_size == "large":
+                font_path += "/7x5"
+            elif font_size == "small":
+                font_path += "/5x3"
+            else:
+                raise ValueError("Invalid font size. Must be either 'large' or 'small'")
+
         message = message.strip()
         if len(message) == 0:
             super(LEDSprite, self).__init__()
             return
-        if not re.match(r'^[A-Za-z0-9\s]+$', message):
-            raise ValueError("Message contains invalid characters. Only A-Z, a-z, 0-9, -, and space")
+#        if not re.match(r'^[A-Za-z0-9\s]+$', message):
+#            raise ValueError("Message contains invalid characters. Only A-Z, a-z, 0-9, -, and space")
         # start with first character as intial sprite object
         init_sprite = _char_to_sprite(message[0], font_path)
         bitmap = init_sprite.bitmap
