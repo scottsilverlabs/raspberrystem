@@ -1,0 +1,14 @@
+rstem/***
+cellapps/***
+debian/***
+ide/***
+misc/***
+projects/***
+make/***
+/Makefile
+/install_include.txt
+/LICENSE.txt
+/MANIFEST.in
+/README.md
+/setup.py
+/postinstall
