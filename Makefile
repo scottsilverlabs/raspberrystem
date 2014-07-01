@@ -16,8 +16,7 @@ DIRS+=cellapps
 DIRS+=projects
 DIRS+=misc
 
-# TODO: make user choose python 2 or 3
-PYTHON=python
+PYTHON=python3  # default python
 PYFLAGS=
 DESTDIR=/
 # install directories
@@ -110,10 +109,8 @@ help:
 
 # for each command push new files to raspberry pi then run command on the pi
 $(COMMANDS)::
-	@echo "In $@"
-	@echo "Attempt to make $@"
 	$(MAKE) push
-	$(SSHPASS) ssh $(SSHFLAGS) -t -v $(PI) "cd rsinstall; $(MAKE) pi-$@ PI=$(PI) PYTHON=$(PYTHON)"
+	ssh $(SSHFLAGS) -t -v $(PI) "cd rsinstall; $(MAKE) pi-$@ PI=$(PI) PYTHON=$(PYTHON)"
 	$(MAKE) pull
 
 pi-clean-pi: clean
@@ -124,7 +121,6 @@ pi-clean-all-pi: clean-all
 
 # on pi commands start with "pi-"
 pi-install:
-	@echo "In $@"
 	$(MAKE)
 	$(PYTHON) $(PYFLAGS) ./setup.py install --user
 	$(MAKE) pi-install-projects
@@ -132,20 +128,17 @@ pi-install:
 
 
 pi-install-cellapps:
-	@echo "In $@"
 	mkdir -p $(CELLAPPSDIR)
 	cp -r ./cellapps $(CELLAPPSDIR)
 
 pi-install-projects:
-	@echo "In $@"
 	mkdir -p $(PROJECTSDIR)
 	cp -r ./projects $(PROJECTSDIR)
 
 pi-test:
-    # TODO
+	@echo "There are no test files at this time."
 
 upload-check:
-	@echo "In $@"
 	# Check that we are in correct branch....
 	@if ! git branch | grep -q "* rel/$(VER)"; then \
 		echo "Not in the expected branch rel/$(VER)."; \
@@ -156,26 +149,22 @@ upload-check:
 	fi
 
 pi-upload-all:
-	@echo "In $@"
 	$(MAKE) pi-upload-ppa
 	$(MAKE) pi-upload-cheeseshop
 
 upload-ppa: $(DIST_DSC)
-	@echo "In $@"
 	# TODO: change this from raspberrystem-test ppa to an official one
 	# (to add this repo on raspberrypi type: sudo add-apt-repository ppa:r-jon-s/ppa)
 	$(MAKE) upload-check
 	dput ppa:r-jon-s/ppa dist/$(NAME)_$(VER)_source.changes
 
 upload-cheeseshop: $(PY_SOURCES)
-	@echo "In $@"
 #	$(MAKE)
 	# update the package's registration on PyPI (in case any metadata's changed)
 	$(MAKE) upload-check
 	$(PYTHON) $(PYFLAGS) setup.py register
 
 release: $(PY_SOURCES) $(DOC_SOURCES)
-	@echo "In $@"
 	$(MAKE) clean-all-pi	
 	$(MAKE) upload-check
 	# update the debian changelog with new release information
@@ -185,28 +174,22 @@ release: $(PY_SOURCES) $(DOC_SOURCES)
 	git tag -s release-$(VER) -m "Release $(VER)"
 
 pi-source: $(DIST_TAR) $(DIST_ZIP)
-	@echo "In $@"
 
 pi-egg: $(DIST_EGG)
-	@echo "In $@"
 
 pi-zip: $(DIST_ZIP)
-	@echo "In $@"
 
 pi-tar: $(DIST_TAR)
-	@echo "In $@"
 
-pi-deb: $(DIST_DSC) $(DIST_DEB)
-	@echo "In $@"
+#pi-deb: $(DIST_DSC) $(DIST_DEB) // uncomment when debian is finished
+pi-deb:
+	@echo "make deb not currently supported"
 
 pi-dist: $(DIST_EGG) $(DIST_DEB) $(DIST_DSC) $(DIST_TAR) $(DIST_ZIP)
-	@echo "In $@"
 
 clean-all: clean clean-dist
-	@echo "In $@"
 
 clean-dist:
-	@echo "In $@"
 	$(PYTHON) $(PYFLAGS) setup.py clean
 	$(MAKE) -f $(CURDIR)/debian/rules clean
 	rm -rf build/ dist/ $(NAME).egg-info/ $(NAME)-$(VER)
@@ -221,20 +204,16 @@ clean-dist:
 
 
 $(DIST_TAR): $(PY_SOURCES)
-	@echo "In $@"
 	$(PYTHON) $(PYFLAGS) setup.py sdist --formats gztar
 
 $(DIST_ZIP): $(PY_SOURCES)
-	@echo "In $@"
 	$(PYTHON) $(PYFLAGS) setup.py sdist --formats zip
 
 $(DIST_EGG): $(PY_SOURCES)
-	@echo "In $@"
 	$(PYTHON) $(PYFLAGS) setup.py bdist_egg
 
 $(DIST_DEB): $(PY_SOURCES) $(DEB_SOURCES)
-	@echo "In $@"
-	$(MAKE)
+#	$(MAKE)
 	# build the binary package in the parent directory then rename it to
 	# project_version.orig.tar.gz
 	$(PYTHON) $(PYFLAGS) setup.py sdist --dist-dir=../
@@ -244,8 +223,7 @@ $(DIST_DEB): $(PY_SOURCES) $(DEB_SOURCES)
 	for f in $(DIST_DEB); do cp ../$${f##*/} dist/; done
 
 $(DIST_DSC): $(PY_SOURCES) $(DEB_SOURCES)
-	@echo "In $@"
-	$(MAKE)
+#	$(MAKE)
 	# build the source package in the parent directory then rename it to
 	# project_version.orig.tar.gz
 	$(PYTHON) $(PYFLAGS) setup.py sdist --dist-dir=../
@@ -254,19 +232,5 @@ $(DIST_DSC): $(PY_SOURCES) $(DEB_SOURCES)
 	mkdir -p dist/
 	for f in $(DIST_DSC); do cp ../$${f##*/} dist/; done
 
-#
-# pi-install.tar:
-# 	$(MAKE)
-# 	tar -cvf $@ $(shell $(MAKE) targets)
-#
-# install: pi-install.tar
-# 	$(SSHPASS) scp $(SSHFLAGS) $< $(PI):
-# 	$(SSHPASS) ssh $(SSHFLAGS) $(PI) " \
-# 		rm -rf rsinstall; \
-# 		mkdir -p rsinstall; \
-# 		cd rsinstall; \
-# 		tar -xvf ../$<; \
-# 		$(MAKE) local-install; \
-# 		"
 
 include $(POST_MAK)

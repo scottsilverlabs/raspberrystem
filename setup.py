@@ -39,7 +39,7 @@ def read(fname):
 
 def _post_install(dir):
     from subprocess import call
-    call("./postinstall")
+    call("./make/postinstall")
 
 # Post installation task to setup raspberry pi
 class install(_install):

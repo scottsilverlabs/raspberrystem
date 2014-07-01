@@ -4,33 +4,19 @@ import os
 import re
 import time
 from itertools import islice
-import led_driver     # c extension that controls led matrices and contains frame buffer
+import led_driver     # c extension that controls led matrices and contains framebuffer
 
 # global variables for use
-SIZE_OF_PIXEL = 4     # 4 bits to represent color
+BITS_PER_PIXEL = 4     # 4 bits to represent color
 DIM_OF_MATRIX = 8     # 8x8 led matrix elements
 initialized = False   # flag to indicate if LED has been initialized
 contianer_width = 0    # indicates the maximum width and height of the LEDContainer
 container_height = 0
 
-# run demo program if run by itself
-def _main():
-    initMatrices()
-    while 1:
-        for i in range(8):
-            for j in range(8):
-                point(x, y)
-                show()
-                time.sleep(0.5);
-                point(x, y, color=0)
-
-if __name__ == "__main__":
-    _main()
-
 
 
 def _init_check():
-    """Checks that initMatrices has been called and throws an error if not"""
+    """Checks that init_matrices has been called and throws an error if not"""
     global initialized
     if not initialized:
         raise RuntimeError("Matrices must be initialized first.")
@@ -61,7 +47,7 @@ def _convert_to_std_coords(x, y):
     """Converts given math coordinates to standard programming coordinates"""
     return (x, (container_height - 1 - y))
 
-def initMatrices(mat_list=[(0,0,0)], math_coords=True, spi_speed=500000, spi_port=0):
+def init_matrices(mat_list=[(0,0,0)], math_coords=True, spi_speed=500000, spi_port=0):
     """Create a chain of led matrices set at parti  cular offsets into the frame buffer
     The order of the led matrices in the list indicate the order they are
     physically hooked up with the first one connected to Pi.
@@ -72,7 +58,7 @@ def initMatrices(mat_list=[(0,0,0)], math_coords=True, spi_speed=500000, spi_por
     global container_width
     global container_height
     if initialized: # free previous memory before attempting to do it again
-        close()
+        shutdown_matrices()
                 
     container_width = max([matrix[0] for matrix in mat_list]) + DIM_OF_MATRIX
     container_height = max([matrix[1] for matrix in mat_list]) + DIM_OF_MATRIX
@@ -80,16 +66,16 @@ def initMatrices(mat_list=[(0,0,0)], math_coords=True, spi_speed=500000, spi_por
         for i in range(len(mat_list)):
             # convert y's to be standard programming coordinates
             # and also move position from bottom left to top left of matrix
-            if mat_list[i] > 2:
+            if len(mat_list[i]) > 2:
                 mat_list[i] = (mat_list[i][0], (container_height-1 - mat_list[i][1]) - (DIM_OF_MATRIX-1), mat_list[i][2])
             else:
                 mat_list[i] = (mat_list[i][0], (container_height-1 - mat_list[i][1]) - (DIM_OF_MATRIX-1))
-    led_driver.initMatrices(mat_list, len(mat_list), \
+    led_driver.init_matrices(mat_list, len(mat_list), \
         container_width, container_height) # flatten out tuple
-    led_driver.initSPI(spi_speed, spi_port)
+    led_driver.init_SPI(spi_speed, spi_port)
     initialized = True
     
-def initGrid(num_rows=1, num_cols=1, angle=0, zigzag=True, spi_speed=500000, spi_port=0):
+def init_grid(num_rows=1, num_cols=1, angle=0, zigzag=True, spi_speed=500000, spi_port=0):
     """Initiallizes led matrices in a grid pattern with the given number
     or rows and columns.
     zigzag=True means the ledmatrices have been placed in a zigzag fashion.
@@ -134,7 +120,7 @@ def initGrid(num_rows=1, num_cols=1, angle=0, zigzag=True, spi_speed=500000, spi
             else:
                 for row in range(num_rows): # increment through rows downwards
                     mat_list.append((column*DIM_OF_MATRIX, row*DIM_OF_MATRIX, 270)) # 0 - 90 = 270
-    initMatrices(mat_list, spi_speed=spi_speed, spi_port=spi_port)
+    init_matrices(mat_list, spi_speed=spi_speed, spi_port=spi_port)
 
 def show():
     """Tells the led_driver to send framebuffer to SPI port.
@@ -143,8 +129,7 @@ def show():
     _init_check()
     led_driver.flush()
 
-# TODO: call this "unInitLED" instead?
-def close():
+def shutdown_matrices():
     """Unintializes matrices and frees all memory. 
     Should be called at the end of a program to avoid memory leaks.
     Also, clears the display.
@@ -153,7 +138,7 @@ def close():
     if initialized:
         led_driver.fill(0x0)
         led_driver.flush()
-        led_driver.close()
+        led_driver.shutdown_matrices()
         initialized = False
 
 def fill(color=0xF):
@@ -229,7 +214,7 @@ def line(point_a, point_b, color=0xF, math_coords=True):
             led_driver.point(
                 start_x + x_offset,
                 start_y + step*(x_offset*height/width),
-                _convert_color(color)
+                color
             )
     else:
         start_point = point_a if y_diff < 0 else point_b
@@ -238,7 +223,7 @@ def line(point_a, point_b, color=0xF, math_coords=True):
             led_driver.point(
                 start_x + step*(y_offset*width/height),
                 start_y + y_offset,
-                _convert_color(color)
+                color
             )
 
 
@@ -266,17 +251,17 @@ def sprite(sprite, position=(0,0), offset_into=None, crop=None, math_coords=True
             offset_into = _convert_to_std_coords(*offset_into)
         if crop is not None:
             crop = _convert_to_std_coords(*crop)
-
+    x_pos, y_pos = position
     # set up start position
     if offset_into is None:
         offset_into = position  # if no offset use position as offset
     else:
-        for i in range(2):
-            if offset_into[i] < position[i]:
-                raise ValueError("Offset must greater than or equal to position")
+        x_offset, y_offset = offset_into
+        if x_offset < x_pos or y_offset < y_pos:
+            raise ValueError("Offset must greater than or equal to position")
     # set start to be first valid offset position
-    x_start = offset_into[0] if offset_into[0] >= 0 else 0
-    y_start = offset_into[1] if offset_into[1] >= 0 else 0
+    x_start = x_offset if x_offset >= 0 else 0
+    y_start = y_offset if y_offset >= 0 else 0
     if x_start >= container_width or y_start >= container_height:
         raise ValueError("Offset is outside of framebuffer space.")
 
@@ -285,10 +270,11 @@ def sprite(sprite, position=(0,0), offset_into=None, crop=None, math_coords=True
     y_end = min(container_height - 1, sprite.height - 1)
     # re-set end position as crop if defined
     if crop is not None:
-        if crop[0] < 0 or crop[1] < 0:
+        x_crop, y_crop = crop
+        if x_crop < 0 or y_crop < 0:
             raise ValueError("Crop position must be a postive number")
-        x_end = min(x_end, crop[0])
-        y_end = min(y_end, crop[1])
+        x_end = min(x_end, x_crop)
+        y_end = min(y_end, y_crop)
     
     # iterate through sprite and set points to led_driver
     y = y_start
@@ -314,8 +300,6 @@ class LEDSprite(object):
         if filename is not None:
             f = open(filename, 'r')
             for line in f:
-                if not re.match(r'^[0-9a-fA-F\s-]+$', line):
-                    raise ValueError("Sprite file contains invalid characters")
                 leds = [_convert_color(char) for char in line.split()]
                 # Determine if widths are consistent
                 if bitmap_width != 0:
@@ -404,9 +388,9 @@ class LEDMessage(LEDSprite):
             # only use font_size if no custom font_path was given
             font_path = os.path.join(this_dir, "font")
             if font_size == "large":
-                font_path += "/7x5"
+                font_path += "/5x7"
             elif font_size == "small":
-                font_path += "/5x3"
+                font_path += "/3x5"
             else:
                 raise ValueError("Invalid font size. Must be either 'large' or 'small'")
 
@@ -414,8 +398,6 @@ class LEDMessage(LEDSprite):
         if len(message) == 0:
             super(LEDSprite, self).__init__()
             return
-#        if not re.match(r'^[A-Za-z0-9\s]+$', message):
-#            raise ValueError("Message contains invalid characters. Only A-Z, a-z, 0-9, -, and space")
         # start with first character as intial sprite object
         init_sprite = _char_to_sprite(message[0], font_path)
         bitmap = init_sprite.bitmap
@@ -438,3 +420,19 @@ class LEDMessage(LEDSprite):
         self.bitmap = init_sprite.bitmap
         self.height = init_sprite.height
         self.width = init_sprite.width
+        
+        
+# run demo program if run by itself
+def _main():
+    init_matrices()
+    while 1:
+        for x in range(8):
+            for y in range(8):
+                point(x, y)
+                show()
+                time.sleep(0.5);
+                point(x, y, color=0)
+
+if __name__ == "__main__":
+    _main()
+

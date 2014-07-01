@@ -1,10 +1,7 @@
 RELDIR=$(subst $(TOPDIR),.,$(CURDIR))
-COMPILEONPI=1 # set to 1 if you want to compile on pi instead
-PI=pi@192.168.1.15
-SSHPASS=sshpass -p 'raspberry'  # comment this line out if you don't want to use sshpass
-SSHFLAGS= -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null
+PI=pi@raspberrypi
 
-
+# proper CFLAGS if need to compile c manually
 ifeq ($(PYTHON),python3)
 	CFLAGS=-shared -I/usr/include/python3.2mu/ -lpython3.2mu
 else
@@ -15,41 +12,33 @@ endif
 # Directory rules
 #
 %.dir: %
-	@echo "In $@"
 	make -C $^
 
 %.targets: %
-	@echo "In $@"
 	@make -C $^ targets
 
 %.cleandir: %
-	@echo "In $@"
 	make -C $^ clean
 
 #
 # Per file clean rules
 #
 %.py.clean: %.py
-	@echo "In $@"
 	@#Do nothing
 
 %.c.clean: %.c
-	@echo "In $@"
 	rm -f $*
 
 %.clean:
-	@echo "In $@"
 	rm -f $*
 
 #
 # Per file target echo rules
 #
 %.c.target: %.c
-	@echo "In $@"
 	@echo $(RELDIR)/$*
 
 %.target:
-	@echo "In $@"
 	@echo $(RELDIR)/$*
 
 
@@ -57,17 +46,4 @@ endif
 # Per file build rules
 #
 %: %.c
-	# For now, do nothing because the extensions are installed through setup.py
-	@echo "In $@"
-	# gcc $(CFLAGS) $^ -o $@.so
-#	$(SSHPASS) scp $(SSHFLAGS) $^ $(PI):/tmp
-#	$(SSHPASS) ssh $(SSHFLAGS) $(PI) "\
-#		mkdir -p /tmp/rs; \
-#		cd /tmp/rs; \
-#		mv ../$^ .; \
-#		gcc $(CFLAGS) $^ -o $@; \
-#		mv $@ ..; \
-#		cd ..; \
-#		rm -r /tmp/rs; \
-#		"
-#	$(SSHPASS) scp $(SSHFLAGS) $(PI):/tmp/$@ $@
+	# Do nothing because the extensions are installed through setup.py
