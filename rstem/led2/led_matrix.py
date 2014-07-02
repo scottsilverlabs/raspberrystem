@@ -255,26 +255,12 @@ def sprite(sprite, position=(0,0), offset_into=(0,0), crop_into=None, math_coord
     global container_height
     # convert coordinates if math_coords
     if math_coords:
-        print("position before : ", position)
         position = (position[0], sprite.height - 1 + position[1])  # convert to top left corner
-        print("position middle : ", position)
         position = _convert_to_std_coords(*position)
-        print("position after : ", position)
-#        if offset_into is not None:
-#            offset_into = (offset_into[0], sprite.height - offset_into[1])
-##            offset_into = _convert_to_std_coords(*offset_into)
-#        if crop_into is not None:
-#            crop_into = (crop_into[0], sprite.height - crop_into[1])
-##            crop_into = _convert_to_std_coords(*crop)
     x_pos, y_pos = position
-#    if math_coords:
-#        y_pos = sprite.height - y_pos   # swap to top left instead of bottom left
     if offset_into is None: # fix bug
         offset_into = (0,0)
     x_offset, y_offset = offset_into
-    print("offset : ", offset_into)
-#    if math_coords:
-#        y_offset = sprite.height - y_offset  # swap to top left
     
     # set up offset
     if x_offset < 0 or y_offset < 0:
@@ -298,8 +284,6 @@ def sprite(sprite, position=(0,0), offset_into=(0,0), crop_into=None, math_coord
         x_crop, y_crop = crop_into
         if x_crop <= x_offset or y_crop <= y_offset:
             raise ValueError("crop_into must be greater than offset_into")
-#    if math_coords:
-#        y_crop = sprite.height - y_crop  # swap to top left
         
     # set up start position
     x_start = max(x_pos + x_offset, 0)
@@ -314,45 +298,11 @@ def sprite(sprite, position=(0,0), offset_into=(0,0), crop_into=None, math_coord
     
     print("start : ", (x_start, y_start), "end : ", (x_end, y_end))
     
-    # set up start position
-#    if offset_into is None:
-#        if all(coord >= 0 for coord in position):
-#            offset_into = position  # if no offset use position as offset (if in framebuffer)
-#        else:
-#            offset_into = (0,0)  # start at 0 if offset is negative
-#    else:
-#        if offset_into[0] < x_pos or offset_into[1] < y_pos:
-#            raise ValueError("Offset must greater than or equal to position")
-    
-            
-    # set start to be first valid offset position
-#    x_offset, y_offset = offset_into
-#    if x_offset >= container_width or y_offset >= container_height:
-#        raise ValueError("Offset is outside of framebuffer space.")
-#    x_start = x_offset if x_offset >= 0 else 0
-#    y_start = y_offset if y_offset >= 0 else 0
-    
-    # set up end position
-#    x_end = min(container_width - 1, sprite.width - 1)
-#    y_end = min(container_height - 1, sprite.height - 1)
-    # re-set end position as crop if defined
-#    if crop is not None:
-#        x_crop, y_crop = crop
-#        if x_crop < 0 or y_crop < 0:
-#            raise ValueError("Crop position must be a postive number")
-#        x_end = min(x_end, x_crop)
-#        y_end = min(y_end, y_crop)
-    
     # iterate through sprite and set points to led_driver
     y = y_start
     while y < y_end:
         x = x_start
         while x < x_end:
-            print("attempt to make point at ", (x, y))
-#            if math_coords:
-#                # if math_coords we need to display this way to avoid mirrored image
-#                point((x, sprite.height - 1 - y), color=sprite.bitmap[y - y_start + y_offset][x - x_start + x_offset], math_coords=math_coords)
-#            else:
             point((x, y), color=sprite.bitmap[y - y_start + y_offset][x - x_start + x_offset], math_coords=False)
             x += 1
         y += 1

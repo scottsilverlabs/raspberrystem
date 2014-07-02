@@ -12,7 +12,7 @@
 #define NUM_BYTES_MATRIX ((DIM_OF_MATRIX*DIM_OF_MATRIX)/2)
 #define bitstream_SIZE (num_matrices*NUM_BYTES_MATRIX)
 
-int debug = 1;
+int debug = 0;
 #define Debug(args...) if (debug) {printf("LED_DRIVER: " args); printf("\n");}
 
 // display current framebuffer during flush
