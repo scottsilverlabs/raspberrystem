@@ -227,62 +227,133 @@ def line(point_a, point_b, color=0xF, math_coords=True):
             )
 
 
-def text(text, position=(0,0), offset_into=None, crop=None):
+def text(text, position=(0,0), offset_into=(0,0), crop_into=None, math_coords=True, font_size="large"):
     """Sets given string to be displayed on LED Matrix
         - returns the LEDMessage sprite object used to create text
     """
     if type(text) == str:
-        text = LEDMessage(text)
+        text = LEDMessage(text, font_size=font_size)
     elif type(text) != LEDMessage and type(text) != LEDSprite:
         raise ValueError("Invalid text")
-    sprite(text, position, offset_into, crop)
+    sprite(text, position, offset_into, crop, crop_into, math_coords)
     return text
 
 
-def sprite(sprite, position=(0,0), offset_into=None, crop=None, math_coords=True):
-    """Sets given sprite with top left corner at given position"""
+def sprite(sprite, position=(0,0), offset_into=(0,0), crop_into=None, math_coords=True):
+    """Sets given sprite with top left corner at given position
+        position = the (x,y) coordinates to start displaying the sprite 
+            (bottom left for math_coords, top left for programming coords)
+        offset_into = the offset into the sprite that should actually be displayed
+                Note: offset_into is relative to position
+        crop_into = the position inside the sprite to stop displaying
+                Note: like offset_into thi is also relative to position
+        math_coords = True to represent coordinates by standanrd quadrant 1 coordinates, 
+            False to use programming coordinates
+    """
     _init_check()
     global container_width
     global container_height
-    # convert coordinates
+    # convert coordinates if math_coords
     if math_coords:
+        print("position before : ", position)
+        position = (position[0], sprite.height - 1 + position[1])  # convert to top left corner
+        print("position middle : ", position)
         position = _convert_to_std_coords(*position)
-        if offset_into is not None:
-            offset_into = _convert_to_std_coords(*offset_into)
-        if crop is not None:
-            crop = _convert_to_std_coords(*crop)
+        print("position after : ", position)
+#        if offset_into is not None:
+#            offset_into = (offset_into[0], sprite.height - offset_into[1])
+##            offset_into = _convert_to_std_coords(*offset_into)
+#        if crop_into is not None:
+#            crop_into = (crop_into[0], sprite.height - crop_into[1])
+##            crop_into = _convert_to_std_coords(*crop)
     x_pos, y_pos = position
-    # set up start position
-    if offset_into is None:
-        offset_into = position  # if no offset use position as offset
+#    if math_coords:
+#        y_pos = sprite.height - y_pos   # swap to top left instead of bottom left
+    if offset_into is None: # fix bug
+        offset_into = (0,0)
+    x_offset, y_offset = offset_into
+    print("offset : ", offset_into)
+#    if math_coords:
+#        y_offset = sprite.height - y_offset  # swap to top left
+    
+    # set up offset
+    if x_offset < 0 or y_offset < 0:
+        raise ValueError("offset_into must be positive numbers")
+    if (x_pos + x_offset) >= container_width or (y_pos + y_offset) >= container_height:
+        raise ValueError("offset_into is outside of framebuffer space") 
+    # move offset into framebuffer if outside (negative-wise)
+    if x_pos + x_offset < 0:
+        x_offset = abs(x_pos)
+    if math_coords:
+        if y_pos - y_offset < 0:
+            y_offset = abs(y_pos)
     else:
-        x_offset, y_offset = offset_into
-        if x_offset < x_pos or y_offset < y_pos:
-            raise ValueError("Offset must greater than or equal to position")
-    # set start to be first valid offset position
-    x_start = x_offset if x_offset >= 0 else 0
-    y_start = y_offset if y_offset >= 0 else 0
-    if x_start >= container_width or y_start >= container_height:
-        raise ValueError("Offset is outside of framebuffer space.")
-
+        if y_pos + y_offset < 0:
+            y_offset = abs(y_pos)
+    
+    # set up crop
+    if crop_into is None:
+        x_crop, y_crop = (sprite.width, sprite.height)   # no cropping
+    else:
+        x_crop, y_crop = crop_into
+        if x_crop <= x_offset or y_crop <= y_offset:
+            raise ValueError("crop_into must be greater than offset_into")
+#    if math_coords:
+#        y_crop = sprite.height - y_crop  # swap to top left
+        
+    # set up start position
+    x_start = max(x_pos + x_offset, 0)
+    if math_coords:
+        y_start = max(y_pos - y_offset, 0)
+    else:
+        y_start = max(y_pos + y_offset, 0) 
+        
     # set up end position
-    x_end = min(container_width - 1, sprite.width - 1)
-    y_end = min(container_height - 1, sprite.height - 1)
+    x_end = min(x_pos + x_crop, container_width)
+    y_end = min(y_pos + y_crop, container_height)
+    
+    print("start : ", (x_start, y_start), "end : ", (x_end, y_end))
+    
+    # set up start position
+#    if offset_into is None:
+#        if all(coord >= 0 for coord in position):
+#            offset_into = position  # if no offset use position as offset (if in framebuffer)
+#        else:
+#            offset_into = (0,0)  # start at 0 if offset is negative
+#    else:
+#        if offset_into[0] < x_pos or offset_into[1] < y_pos:
+#            raise ValueError("Offset must greater than or equal to position")
+    
+            
+    # set start to be first valid offset position
+#    x_offset, y_offset = offset_into
+#    if x_offset >= container_width or y_offset >= container_height:
+#        raise ValueError("Offset is outside of framebuffer space.")
+#    x_start = x_offset if x_offset >= 0 else 0
+#    y_start = y_offset if y_offset >= 0 else 0
+    
+    # set up end position
+#    x_end = min(container_width - 1, sprite.width - 1)
+#    y_end = min(container_height - 1, sprite.height - 1)
     # re-set end position as crop if defined
-    if crop is not None:
-        x_crop, y_crop = crop
-        if x_crop < 0 or y_crop < 0:
-            raise ValueError("Crop position must be a postive number")
-        x_end = min(x_end, x_crop)
-        y_end = min(y_end, y_crop)
+#    if crop is not None:
+#        x_crop, y_crop = crop
+#        if x_crop < 0 or y_crop < 0:
+#            raise ValueError("Crop position must be a postive number")
+#        x_end = min(x_end, x_crop)
+#        y_end = min(y_end, y_crop)
     
     # iterate through sprite and set points to led_driver
     y = y_start
-    while y <= y_end:
+    while y < y_end:
         x = x_start
-        while x <= x_end:
-            # (we can skip right to led_driver version because all arguments have been checked)
-            led_driver.point(x, y, sprite.bitmap[y][x])
+        while x < x_end:
+            print("attempt to make point at ", (x, y))
+#            if math_coords:
+#                # if math_coords we need to display this way to avoid mirrored image
+#                point((x, sprite.height - 1 - y), color=sprite.bitmap[y - y_start + y_offset][x - x_start + x_offset], math_coords=math_coords)
+#            else:
+            point((x, y), color=sprite.bitmap[y - y_start + y_offset][x - x_start + x_offset], math_coords=False)
             x += 1
         y += 1
 
@@ -411,7 +482,8 @@ class LEDMessage(LEDSprite):
                 # add character spacing
                 init_sprite.append(
                         LEDSprite(height=height, width=char_spacing, color=0x10))
-                sprite = _char_to_sprite(char, font_path, space_size=(height, width))
+                # now add next character
+                sprite = _char_to_sprite(char, font_path)
                 if sprite.height != height:
                     raise ValueError("Height of character sprites must all be the same.")
                 # append

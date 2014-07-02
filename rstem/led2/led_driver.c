@@ -12,11 +12,11 @@
 #define NUM_BYTES_MATRIX ((DIM_OF_MATRIX*DIM_OF_MATRIX)/2)
 #define bitstream_SIZE (num_matrices*NUM_BYTES_MATRIX)
 
-int debug = 0;
+int debug = 1;
 #define Debug(args...) if (debug) {printf("LED_DRIVER: " args); printf("\n");}
 
 // display current framebuffer during flush
-int display_on_terminal = 0;
+int display_on_terminal = 1;
 
 int spi;
 unsigned char spi_mode;
@@ -229,10 +229,10 @@ int close_and_free(void){
 
 void print_framebuffer(void){
     rewind(stdout);  // clear terminal
-    int x;
-    for (x = 0; x < container_width; x++){
-        int y;
-        for (y = 0; y < container_height; y++){
+    int y;
+    for (y = 0; y < container_height; y++){
+        int x;
+        for (x = 0; x < container_width; x++){
             int pixel = framebuffer[x][y];
             if (pixel < 16)
                 printf("%x ", pixel);
