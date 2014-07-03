@@ -130,7 +130,7 @@ def _main():
     while True:
         c = was_clicked()
         if c:
-            print c
+            print(c)
         time.sleep(0.030)
 
 if __name__ == "__main__":

@@ -1,0 +1,25 @@
+#!/bin/sh
+set -e
+
+case "$1" in
+	install)
+		# TODO figure out how to figure out which package it is so we don't need to do both pips
+		echo "pip installing dependencies"
+		sudo apt-get install python-pip python3-pip -y
+		sudo pip install bitstring
+		sudo pip3 install bitstring
+		;;
+
+	upgrade|abort-upgrade)
+		# TODO
+		;;
+
+	*)
+		echo "postinst called with unknown argument \`$1'" >&2
+		exit 0
+		;;
+esac
+
+#DEBHELPER#
+
+exit 0

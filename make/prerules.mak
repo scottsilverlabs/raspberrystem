@@ -1,6 +1,13 @@
 RELDIR=$(subst $(TOPDIR),.,$(CURDIR))
 PI=pi@raspberrypi
 
+# proper CFLAGS if need to compile c manually
+ifeq ($(PYTHON),python3)
+	CFLAGS=-shared -I/usr/include/python3.2mu/ -lpython3.2mu
+else
+	CFLAGS=-shared -I/usr/include/python2.7/ -lpython2.7
+endif
+
 #
 # Directory rules
 #
@@ -34,18 +41,9 @@ PI=pi@raspberrypi
 %.target:
 	@echo $(RELDIR)/$*
 
+
 #
 # Per file build rules
 #
 %: %.c
-	scp $^ $(PI):/tmp
-	ssh $(PI) "\
-		mkdir -p /tmp/rs; \
-		cd /tmp/rs; \
-		mv ../$^ .; \
-		gcc $(CFLAGS) $^ -o $@; \
-		mv $@ ..; \
-		cd ..; \
-		rm -r /tmp/rs; \
-		"
-	scp $(PI):/tmp/$@ $@
+	# Do nothing because the extensions are installed through setup.py
