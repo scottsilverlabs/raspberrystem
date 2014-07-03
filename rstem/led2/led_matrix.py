@@ -270,39 +270,12 @@ def sprite(sprite, position=(0,0), offset_into=(0,0), crop_into=None, math_coord
     global container_width
     global container_height
     
-#    if math_coords:
-#        x_pos, y_pos = postion
-#        x_offset, y_offset = offset_into
-#        if crop_into is None:
-#            x_crop, y_crop = (sprite.width, sprite.height)
-#    else:
-    
-    
-    
-    # convert coordinates if math_coords
-#    if math_coords:
-#        position = (position[0], position[1] + (sprite.height-1))  # convert to top left corner
-#        position = _convert_to_std_coords(*position)
     x_pos, y_pos = position
     x_offset, y_offset = offset_into
     
     # set up offset
     if x_offset < 0 or y_offset < 0:
         raise ValueError("offset_into must be positive numbers")
-#    if (x_pos + x_offset) >= container_width or \
-#        (math_coords and (_convert_to_std_coords(0,y_pos + y_offset)[1] >= container_height) or \
-#        (!math_coords and (y_pos + y_offset >= container_height)):
-#        # TODO: just do nothing and return instead
-#        raise ValueError("offset_into is outside of framebuffer space") 
-    # move offset into framebuffer if outside (negative-wise)
-#    if x_pos + x_offset < 0:
-#        x_offset = abs(x_pos)
-#    if math_coords:
-#        if y_pos + y_offset >= container_height:
-#            y_offset = abs(y_pos)
-#    else:
-#    if y_pos + y_offset < 0:
-#        y_offset = abs(y_pos)
     
     # set up crop
     if crop_into is None:
@@ -314,9 +287,6 @@ def sprite(sprite, position=(0,0), offset_into=(0,0), crop_into=None, math_coord
         
     # set up start position
     x_start = max(x_pos + x_offset, 0)
-#    if math_coords:
-#        y_start = max(y_pos - y_offset, 0)
-#    else:
     y_start = max(y_pos + y_offset, 0) 
     
     if x_start >= container_width or y_start >= container_height:
@@ -327,20 +297,16 @@ def sprite(sprite, position=(0,0), offset_into=(0,0), crop_into=None, math_coord
     x_end = min(x_pos + x_crop, container_width, x_pos + sprite.width)
     y_end = min(y_pos + y_crop, container_height, y_pos + sprite.height)
     
-    print("start : ", (x_start, y_start), "end : ", (x_end, y_end))
     
     # iterate through sprite and set points to led_driver
     y = y_start
     while y < y_end:
         x = x_start
         while x < x_end:
-#            if math_coords:
-#                x, y = _convert_to_std_coords(x, y)
-        
             x_sprite = x - x_start + x_offset
             y_sprite = y - y_start + y_offset
-#            if math_coords:
-#                y_sprite = sprite.height - 1 - y_sprite
+            if math_coords:
+                y_sprite = sprite.height - 1 - y_sprite
             point((x, y), color=sprite.bitmap[y_sprite][x_sprite], math_coords=math_coords)
             x += 1
         y += 1
