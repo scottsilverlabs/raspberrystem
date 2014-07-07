@@ -123,7 +123,7 @@ clean-pi:
 #	rm -rf ~/rsinstall
 
 pi-install:
-	$(MAKE)
+#	$(MAKE)
 	$(PYTHON) $(PYFLAGS) ./setup.py install --user
 	$(MAKE) pi-install-projects
 	$(MAKE) pi-install-cellapps

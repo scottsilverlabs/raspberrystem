@@ -228,29 +228,7 @@ def line(point_a, point_b, color=0xF, math_coords=True):
     if math_coords:
         point_a = _convert_to_std_coords(*point_a)
         point_b = _convert_to_std_coords(*point_b)
-    x_diff = point_a[0] - point_b[0]
-    y_diff = point_a[1] - point_b[1]
-    step = _sign(x_diff) * _sign(y_diff)
-    width = abs(x_diff) + 1
-    height = abs(y_diff) + 1
-    if (width > height):
-        start_point = point_a if x_diff < 0 else point_b
-        start_x, start_y = start_point
-        for x_offset in range(width):
-            led_driver.point(
-                start_x + x_offset,
-                start_y + step*(x_offset*height/width),
-                color
-            )
-    else:
-        start_point = point_a if y_diff < 0 else point_b
-        start_x, start_y = start_point
-        for y_offset in range(height):
-            led_driver.point(
-                start_x + step*(y_offset*width/height),
-                start_y + y_offset,
-                color
-            )
+    led_driver.line(point_a[0], point_a[1], point_b[0], point_b[1], _convert_color(color))
 
 
 def text(text, position=(0,0), offset_into=(0,0), crop_into=None, math_coords=True, font_size="large"):
