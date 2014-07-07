@@ -16,11 +16,12 @@
 import os
 import time
 import random
-from rstem import led
-from rstem import accel
-from rstem import gpio
+from rstem import led2
+#from rstem import accel
+from RPi.GPIO as GPIO
+#from rstem import gpio
 from collections import deque
-from subprocess import Popen
+#from subprocess import Popen
 
 
 POLL_PERIOD=0.020
@@ -170,7 +171,7 @@ class AudibleSprite(Sprite):
 
 class PointSprite(Sprite):
     def draw(self):
-        led.point(self.origin, color=self.color)
+        led2.point(self.origin, color=self.color)
 
     def collision(self, other):
         if isinstance(other, PointSprite):
@@ -241,7 +242,7 @@ class Wall(Sprite):
             for y in range(HEIGHT):
                 bottom, top = self.wall[x]
                 if y < bottom or y > top:
-                    led.point(x, y)
+                    led2.point(x, y)
 
     def collision(self, other):
         if isinstance(other, PointSprite):
@@ -337,10 +338,13 @@ class States(object):
         while self._current != s:
             self.next()
 
-def protector():
+def protector(num_rows=1, num_cols=2, angle=0):
     try:
-        music_cmd = "exec mpg123 /usr/share/scratch/Media/Sounds/Music\ Loops/Cave.mp3 -g 50 -l 0"
-        music = Popen(music_cmd, shell=True)
+#        music_cmd = "exec mpg123 /usr/share/scratch/Media/Sounds/Music\ Loops/Cave.mp3 -g 50 -l 0"
+#        music = Popen(music_cmd, shell=True)
+
+        # set up led matrix
+        led2.init_grid(num_rows, num_cols, angle)
 
         DONE=1
         WALL_SCENE=2
@@ -370,6 +374,7 @@ def protector():
 
         next_tick = time.time() + POLL_PERIOD
 
+        # state machine that runs through game
         while state.current() != DONE:
             if state.current() in [WALL_SCENE, WALL_2_ENEMY_SCENE, ENEMY_SCENE, BIG_BOSS]:
                 if state.first_time():
@@ -386,12 +391,20 @@ def protector():
                         pass
                 else:
                     # Adjust sprites based on user input
-                    clicks = gpio.was_clicked()
-                    for c in clicks:
-                        if c in [LEFT, RIGHT, UP, DOWN]:
-                            ship.deferred_adjust(c)
-                        if c in [SHOOT]:
-                            missiles.new(ship.origin)
+                    # TODO: set up as callback functions instead?
+                    for c in [SHOOT, LEFT, DOWN, UP, RIGHT]:
+                        if GPIO.input(c) == 1:  # TODO: debounce input
+                            if c in [LEFT, RIGHT, UP, DOWN]:
+                                ship.deferred_adjust(c)
+                            if c in [SHOOT]:
+                                missiles.new(ship.origin)
+                                
+#                    clicks = gpio.was_clicked()
+#                    for c in clicks:
+#                        if c in [LEFT, RIGHT, UP, DOWN]:
+#                            ship.deferred_adjust(c)
+#                        if c in [SHOOT]:
+#                            missiles.new(ship.origin)
 
                     # Move sprites
                     for sprite in all_sprites:
@@ -429,33 +442,37 @@ def protector():
     finally:
         music.kill()
 
-xbase, ybase =  accel.get_data()
-def balancing_dot():
-    x, y = (4, 4)
-    presses = 0
-    while True:
-        # Adjust sprites based on user input
-        clicks = gpio.was_clicked()
-        for c in clicks:
-            if c in [LEFT, RIGHT, UP, DOWN, SHOOT]:
-                presses += 1
-        if presses > 3:
-            break
+#xbase, ybase =  accel.get_data()
+#def balancing_dot():
+#    x, y = (4, 4)
+#    presses = 0
+#    while True:
+#        # Adjust sprites based on user input
+#        clicks = gpio.was_clicked()
+#        for c in clicks:
+#            if c in [LEFT, RIGHT, UP, DOWN, SHOOT]:
+#                presses += 1
+#        if presses > 3:
+#            break
 
-        xaccel, yaccel =  accel.get_data()
-        xchg = (xaccel - xbase)/20.0
-        ychg = (yaccel - ybase)/20.0
-        x, y = led.bound(x + xchg, y + ychg)
+#        xaccel, yaccel =  accel.get_data()
+#        xchg = (xaccel - xbase)/20.0
+#        ychg = (yaccel - ybase)/20.0
+#        x, y = led.bound(x + xchg, y + ychg)
 
-        led.erase()
-        led.point(int(x), int(y))
-        led.show()
-        time.sleep(0.1)
+#        led.erase()
+#        led.point(int(x), int(y))
+#        led.show()
+#        time.sleep(0.1)
 
-time.sleep(3)
+#time.sleep(3)
+
+# set up gpio inputs
+GPIO.setmode(GPIO.BCM)
 for g in [SHOOT, LEFT, DOWN, UP, RIGHT]:
-    gpio.configure(g, gpio.INPUT)
+    GPIO.setup(g, GPIO.IN)
+#    gpio.configure(g, gpio.INPUT)
 
 while True:
-    balancing_dot()
+#    balancing_dot()
     protector()
