@@ -25,7 +25,7 @@ import led_driver     # c extension that controls led matrices and contains fram
 BITS_PER_PIXEL = 4     # 4 bits to represent color
 DIM_OF_MATRIX = 8     # 8x8 led matrix elements
 initialized = False   # flag to indicate if LED has been initialized
-contianer_width = 0    # indicates the maximum width and height of the LEDContainer
+container_width = 0    # indicates the maximum width and height of the LEDContainer
 container_height = 0
 
 # TODO: for unit testing, remove when done
@@ -69,6 +69,12 @@ def _convert_color(color):
 def _convert_to_std_coords(x, y):
     """Converts given math coordinates to standard programming coordinates"""
     return (x, (container_height - 1 - y))
+    
+def width():
+    return container_width
+    
+def height():
+    return container_height
 
 def init_matrices(mat_list=[(0,0,0)], math_coords=True, spi_speed=500000, spi_port=0):
     """Create a chain of led matrices set at parti  cular offsets into the frame buffer
@@ -186,6 +192,9 @@ def _convert_to_std_angle(x, y, angle):
         y = x
         x = (container_width - 1) - oldy
     return (x,y)
+    
+def erase():
+    fill(0)
 
 def point(x, y=None, color=0xF, math_coords=True):
     """Sends point to the framebuffer.

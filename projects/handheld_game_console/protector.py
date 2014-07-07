@@ -31,8 +31,8 @@ DOWN=4
 UP=14
 RIGHT=15
 
-WIDTH=led.width()
-HEIGHT=led.height()
+WIDTH=led2.width()
+HEIGHT=led2.height()
 MISSILE_RATE=10
 ENEMY_RATE=10
 
@@ -74,17 +74,19 @@ no_wall_params = {
 }
 
 def clamp(val, minimum, maximum):
+    # TODO: don't know what this does???
     return min(maximum, max(minimum, val))
 
 def randint(min, max):
     return int(random.random() * (max - min + 1)) + min
 
+# Defines the definition of adding two tuples.
 class AddableTuple(tuple):
     def __add__(self, a):
         return self.__class__([sum(t) for t in zip(self, a)])
 
 class Sprite(object):
-    def __init__(self, origin=(0,0), rate=999, width=1, height=1, color=1, collideswith=None):
+    def __init__(self, origin=(0,0), rate=999, width=1, height=1, color=0xF, collideswith=None):
         self.origin = AddableTuple(origin)
         self.rate = rate
         self.width = width
@@ -99,13 +101,16 @@ class Sprite(object):
         for other in self.__collideswith:
             collided = self.collision(other)
             if collided:
+                # notify the sprites that they have been collided
                 s1, s2 = collided
                 s1.__collided = collided
                 s2.__collided = collided
+                # define who handled the impact
                 handled = s1.impact(s2)
                 s2.impact(s1, handled)
 
     def trystep(self):
+        """Moves sprite if clock has hit 0"""
         if self.tick > 1/(self.rate*POLL_PERIOD):
             self.tick = 0
             self.step()
@@ -114,6 +119,7 @@ class Sprite(object):
         return self
 
     def step(self):
+        """Overloaded function defined in inherited classes."""
         pass
 
     def impact(self, other, handled=False):
@@ -132,17 +138,20 @@ class Sprite(object):
 class SpriteGroup(object):
     def __init__(self, num=0, **kwds):
         self.sprites = []
+        # run new function for each sprite in group
         for i in range(num):
             self.new(**kwds)
         self.__collideswith = []
 
     def trystep(self):
+        """Steps each sprite in group and removes the sprite if offscreen or collided"""
         for i, s in enumerate(self.sprites):
             s.trystep()
             if s.offscreen() or s.collided():
                 del self.sprites[i]
 
     def draw(self):
+        """Draw each sprite in group on screen."""
         for s in self.sprites:
             s.draw()
 
@@ -153,12 +162,14 @@ class SpriteGroup(object):
         return self.sprites[index]
 
     def collision(self, other):
+        """Returns first collision in groupd of sprites."""
         for s in self.sprites:
             if s.collision(other):
                 return (s, other)
         return None
 
     def collideswith(self, *args):
+        """Sets what can collide with sprite group."""
         self.__collideswith = args
 
     def getcollideswith(self):
@@ -166,20 +177,24 @@ class SpriteGroup(object):
 
 class AudibleSprite(Sprite):
     def impact(self, other, handled=False):
+        """Overloaded function to play sound on impact."""
         #os.system("aplay /usr/share/pyshared/pygame/examples/data/boom.wav &")
         return True
 
 class PointSprite(Sprite):
+    """A single point of a sprite object in the game"""
     def draw(self):
         led2.point(self.origin, color=self.color)
 
     def collision(self, other):
+        # if both PointSprites then show if points have collided
         if isinstance(other, PointSprite):
             return (self, other) if self.origin == other.origin else None
         else:
             return other.collision(self)
     
 class MoveablePointSprite(PointSprite):
+    """Similar to a PointSprite only it can change orgin coordinate"""
     change = {
         LEFT    : (-1,0),
         RIGHT   : (+1,0),
@@ -192,20 +207,24 @@ class MoveablePointSprite(PointSprite):
         super(MoveablePointSprite, self).__init__(*args, **kwds)
 
     def step(self):
+        """In a step move in all directions allocated in queue"""
         for d in range(len(self.dirq)):
             self.adjust(self.dirq.popleft())
 
     def adjust(self, direction):
+        """Append direction change to current position immediatly."""
         self.origin += self.change[direction]
 
     def deferred_adjust(self, direction):
+        """Add direction to movement queue"""
         self.dirq.append(direction)
     
 class Wall(Sprite):
-    def __init__(self):
+    def __init__(self, color=0xF):
         self.set_params()
         self.wall = [(0, HEIGHT - 1) for i in range(WIDTH)]
         self.start_time = time.time()
+        self.color = color
         super(Wall, self).__init__(rate=self.start_rate)
 
     def set_params(self, more_cols_min=3, more_cols_max=6, tunnel_min=3, tunnel_max=6, start_rate=3, period=5):
@@ -219,6 +238,8 @@ class Wall(Sprite):
             self.period = period
 
     def step(self):
+        # TODO: is this correct?
+        """Create a new column of wall relative to the current column of wall."""
         self.rate = self.start_rate + int((time.time() - self.start_time)/self.period)
         if len(self.wall) <= WIDTH:
             more_cols = randint(self.more_cols_min, self.more_cols_max)
@@ -238,16 +259,19 @@ class Wall(Sprite):
         del self.wall[0]
 
     def draw(self):
+        """Draw all columns of wall."""
         for x in range(WIDTH):
             for y in range(HEIGHT):
                 bottom, top = self.wall[x]
                 if y < bottom or y > top:
-                    led2.point(x, y)
+                    led2.point(x, y, color=self.color) # draw wall with less brightness
 
     def collision(self, other):
+        """If other element is a PointStripe, check if it hit the wall and return collision.
+        Else just return whatever other collision causes"""
         if isinstance(other, PointSprite):
             x, y = other.origin
-            if 0 <= x < WIDTH:
+            if 0 <= x < WIDTH:  # if x is on the board
                 bottom, top = self.wall[x]
                 return (self, other) if y < bottom or y > top else None
             return None
@@ -258,13 +282,13 @@ class Wall(Sprite):
         return self.wall[index]
     
 class Ship(MoveablePointSprite, AudibleSprite):
-    def __init__(self, origin, color=3):
+    def __init__(self, origin, color=0xA):
         super(Ship, self).__init__(origin=origin, color=color)
 
     def step(self):
         super(Ship, self).step()
         x, y = self.origin
-        self.origin = AddableTuple((clamp(x, 0, WIDTH - 1), clamp(y, 0, HEIGHT - 1)))
+        self.origin = AddableTuple((clamp(x, 0, WIDTH - 1), clamp(y, 0, HEIGHT - 1)))   # ????
 
 class Missile(MoveablePointSprite, AudibleSprite):
     def __init__(self, origin, rate=MISSILE_RATE, color=5, direction=RIGHT, collideswith=None):
@@ -294,7 +318,7 @@ class Enemy(MoveablePointSprite, AudibleSprite):
 
     def step(self):
         if randint(0,100) > 30:
-            self.adjust([LEFT, RIGHT, UP, DOWN][randint(0, 3)])
+            self.adjust([LEFT, RIGHT, UP, DOWN][randint(0, 3)])  # enemies move randomly
             x, y = self.origin
             self.origin = AddableTuple((clamp(x, WIDTH/2, WIDTH - 1), clamp(y, 0, HEIGHT - 1)))
         if randint(0,100) > 99:
@@ -314,7 +338,7 @@ class Enemies(SpriteGroup):
 class States(object):
     def __init__(self, l):
         self.l = l
-        self.list_iter = iter(self.l)
+        self.list_iter = iter(self.l) # set up iterator of states
         self.next()
 
     def next(self):
@@ -326,11 +350,15 @@ class States(object):
         return self._current
 
     def first_time(self):
+        """Sets first time to be False and returns previous status"""
         ft = self._first_time
         self._first_time = False
         return ft
 
     def next_if_after(self, duration):
+        """Jumps to next state if certain amount of time has passed,
+        else keeps current state.
+        """
         if time.time() - self.start_time > duration:
             self.next()
 
@@ -338,6 +366,7 @@ class States(object):
         while self._current != s:
             self.next()
 
+# TODO: seperate this protector game from the game engine
 def protector(num_rows=1, num_cols=2, angle=0):
     try:
 #        music_cmd = "exec mpg123 /usr/share/scratch/Media/Sounds/Music\ Loops/Cave.mp3 -g 50 -l 0"
@@ -346,6 +375,7 @@ def protector(num_rows=1, num_cols=2, angle=0):
         # set up led matrix
         led2.init_grid(num_rows, num_cols, angle)
 
+        # set up states
         DONE=1
         WALL_SCENE=2
         WALL_2_ENEMY_SCENE=3
@@ -353,14 +383,13 @@ def protector(num_rows=1, num_cols=2, angle=0):
         BIG_BOSS=5
         YOU_WIN=6
         GAME_OVER=7
-
         state = States(
             [WALL_SCENE, WALL_2_ENEMY_SCENE, ENEMY_SCENE] * 3 + [BIG_BOSS, YOU_WIN, GAME_OVER, DONE])
         wall_scene = 0
         enemy_scene = 0
 
-        wall = Wall()
-        ship = Ship((2,4))
+        wall = Wall(color=0xA)
+        ship = Ship((2,4), color=0xF)
         missiles = Missiles(direction=RIGHT)
         enemy_missiles = Missiles(direction=LEFT)
         enemies = Enemies(enemy_missiles)
@@ -379,7 +408,7 @@ def protector(num_rows=1, num_cols=2, angle=0):
             if state.current() in [WALL_SCENE, WALL_2_ENEMY_SCENE, ENEMY_SCENE, BIG_BOSS]:
                 if state.first_time():
                     if state.current() == WALL_SCENE:
-                        wall.set_params(**wall_params[wall_scene])
+                        wall.set_params(**wall_params[wall_scene]) # set parameters of particular wall scene
                         wall_scene += 1
                     elif state.current() == WALL_2_ENEMY_SCENE:
                         wall.set_params(**no_wall_params)
@@ -411,10 +440,11 @@ def protector(num_rows=1, num_cols=2, angle=0):
                         sprite.trystep()
 
                     # Draw sprites
-                    led.erase()
+                    # TODO: use sprite objects in api to draw sprites or meh?
+                    led2.erase()
                     for sprite in all_sprites:
                         sprite.draw()
-                    led.show()
+                    led2.show()
 
                     # Exit on collision
                     if ship.collided():
@@ -432,6 +462,10 @@ def protector(num_rows=1, num_cols=2, angle=0):
 
             elif state.current() == GAME_OVER:
                 # TODO - print game over unit button press
+                led2.erase()
+                led2.text("GAME OVER", font_size="small")
+                # TODO: scrolling text
+                led2.show()
                 state.next()
 
             t = next_tick - time.time()
@@ -441,6 +475,7 @@ def protector(num_rows=1, num_cols=2, angle=0):
 
     finally:
         music.kill()
+        led2.shutdown_matrices()
 
 #xbase, ybase =  accel.get_data()
 #def balancing_dot():
