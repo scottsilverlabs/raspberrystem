@@ -5,6 +5,7 @@ ide/***
 misc/***
 projects/***
 make/***
+tests/***
 /Makefile
 /install_include.txt
 /LICENSE.txt

@@ -64,8 +64,7 @@ DIST_DSC=dist/$(NAME)_$(VER).tar.gz \
 # files needed to be sent over to pi for local installation
 PI_TAR_FILES=rstem cellapps misc projects Makefile MANIFEST.in setup.py README.md make
 
-COMMANDS=install local-install test source egg zip tar deb dist clean-pi clean-all-pi \
-	clean-dist-pi  install-projects install-cellapps
+COMMANDS=install local-install test source egg zip tar deb dist install-projects install-cellapps
 
 .PHONY: all pi-install upload-check help clean push pull $(COMMANDS) $(addprefix pi-, $(COMMANDS))
 
@@ -117,8 +116,11 @@ $(COMMANDS)::
 
 # on pi commands start with "pi-"
 
-pi-clean-pi:
-	rm -rf ~/rsinstall
+clean-pi:
+	ssh $(SSHFLAGS) -t -v $(PI) "rm -rf ~/rsinstall"
+
+#pi-clean-pi:
+#	rm -rf ~/rsinstall
 
 pi-install:
 	$(MAKE)

@@ -33,7 +33,7 @@ int debug = 0;
 #define Debug(args...) if (debug) {printf("LED_DRIVER: " args); printf("\n");}
 
 // display current framebuffer during flush
-int display_on_terminal = 1;
+int display_on_terminal = 0;
 
 int spi;
 unsigned char spi_mode;

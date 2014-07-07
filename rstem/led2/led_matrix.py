@@ -28,6 +28,13 @@ initialized = False   # flag to indicate if LED has been initialized
 contianer_width = 0    # indicates the maximum width and height of the LEDContainer
 container_height = 0
 
+# TODO: for unit testing, remove when done
+def valid_color(color):
+    return valid_color(color)
+def convert_color(color):
+    return convert_color(color)
+def convert_to_std_coords(x,y):
+    return _convert_to_std_coords(x,y)
 
 
 def _init_check():
@@ -35,6 +42,7 @@ def _init_check():
     global initialized
     if not initialized:
         raise RuntimeError("Matrices must be initialized first.")
+    
 
 def _valid_color(color):
     """Checks if given color is number between 0-16 if an int or 0-f, or - if string"""
@@ -143,6 +151,7 @@ def show():
     """
     _init_check()
     led_driver.flush()
+    return 1
 
 def shutdown_matrices():
     """Unintializes matrices and frees all memory. 
@@ -196,6 +205,7 @@ def point(x, y=None, color=0xF, math_coords=True):
         if math_coords:
             x, y = _convert_to_std_coords(x, y)
         led_driver.point(x, y, color)
+        return 1
 
 def rect(start, dimensions, color=0xF, math_coords=True):
     """Creates a rectangle from start point using given dimensions"""
@@ -344,6 +354,7 @@ class LEDSprite(object):
         self.bitmap = bitmap
         self.height = bitmap_height
         self.width = bitmap_width
+        return 1
 
     def append(self, sprite):
         """Appends given sprite to the right of itself
