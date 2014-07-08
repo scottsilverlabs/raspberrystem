@@ -20,8 +20,8 @@ PYTHON=python3  # default python
 PYFLAGS=
 DESTDIR=/
 # install directories
-PROJECTSDIR=$$HOME/rstem/projects
-CELLAPPSDIR=$$HOME/rstem/cellapps
+PROJECTSDIR=$$HOME/rstem
+CELLAPPSDIR=$$HOME/rstem
 #BUILDIR=$(CURDIR)/debian/raspberrystem
 
 # Calculate the base names of the distribution, the location of all source,
@@ -117,14 +117,14 @@ $(COMMANDS)::
 # on pi commands start with "pi-"
 
 clean-pi:
-	ssh $(SSHFLAGS) -t -v $(PI) "rm -rf ~/rsinstall"
+	ssh $(SSHFLAGS) -t -v $(PI) "rm -rf ~/rsinstall; rm -rf ~/rstem"
 
 #pi-clean-pi:
 #	rm -rf ~/rsinstall
 
 pi-install:
 #	$(MAKE)
-	$(PYTHON) $(PYFLAGS) ./setup.py install --user
+	sudo $(PYTHON) $(PYFLAGS) ./setup.py install
 	$(MAKE) pi-install-projects
 	$(MAKE) pi-install-cellapps
 

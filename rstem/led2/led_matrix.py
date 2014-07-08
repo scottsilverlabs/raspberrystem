@@ -210,7 +210,8 @@ def point(x, y=None, color=0xF, math_coords=True):
             x, y = x
         if x < 0 or x >= container_width or y < 0 or y >= container_height:
             # TODO: just do nothing and return instead
-            raise IndexError("Point given is not in framebuffer.")
+            return
+#            raise IndexError("Point given is not in framebuffer.")
         if math_coords:
             x, y = _convert_to_std_coords(x, y)
         led_driver.point(x, y, color)
@@ -341,7 +342,6 @@ class LEDSprite(object):
         self.bitmap = bitmap
         self.height = bitmap_height
         self.width = bitmap_width
-        return 1
 
     def append(self, sprite):
         """Appends given sprite to the right of itself

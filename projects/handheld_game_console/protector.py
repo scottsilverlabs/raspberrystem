@@ -16,9 +16,10 @@
 import os
 import time
 import random
+import sys
 from rstem import led2
 #from rstem import accel
-from RPi.GPIO as GPIO
+import RPi.GPIO as GPIO
 #from rstem import gpio
 from collections import deque
 #from subprocess import Popen
@@ -31,8 +32,9 @@ DOWN=4
 UP=14
 RIGHT=15
 
-WIDTH=led2.width()
-HEIGHT=led2.height()
+
+WIDTH=0  # will be changed during setup
+HEIGHT=0
 MISSILE_RATE=10
 ENEMY_RATE=10
 
@@ -184,7 +186,7 @@ class AudibleSprite(Sprite):
 class PointSprite(Sprite):
     """A single point of a sprite object in the game"""
     def draw(self):
-        led2.point(self.origin, color=self.color)
+        led2.point(*self.origin, color=self.color)
 
     def collision(self, other):
         # if both PointSprites then show if points have collided
@@ -344,7 +346,10 @@ class States(object):
     def next(self):
         self._first_time = True
         self.start_time = time.time()
-        self._current = self.list_iter.next()
+        if sys.version_info[0] == 2:
+            self._current = self.list_iter.next()
+        else:
+            self._current = self.list_iter.__next__()
 
     def current(self):
         return self._current
@@ -367,13 +372,17 @@ class States(object):
             self.next()
 
 # TODO: seperate this protector game from the game engine
-def protector(num_rows=1, num_cols=2, angle=0):
+def protector(num_rows=1, num_cols=2, angle=180):
     try:
 #        music_cmd = "exec mpg123 /usr/share/scratch/Media/Sounds/Music\ Loops/Cave.mp3 -g 50 -l 0"
 #        music = Popen(music_cmd, shell=True)
 
         # set up led matrix
         led2.init_grid(num_rows, num_cols, angle)
+        global WIDTH
+        global HEIGHT
+        WIDTH = led2.width()
+        HEIGHT = led2.height()
 
         # set up states
         DONE=1
@@ -474,7 +483,7 @@ def protector(num_rows=1, num_cols=2, angle=0):
             next_tick += POLL_PERIOD
 
     finally:
-        music.kill()
+#        music.kill()
         led2.shutdown_matrices()
 
 #xbase, ybase =  accel.get_data()
@@ -502,6 +511,7 @@ def protector(num_rows=1, num_cols=2, angle=0):
 
 #time.sleep(3)
 
+
 # set up gpio inputs
 GPIO.setmode(GPIO.BCM)
 for g in [SHOOT, LEFT, DOWN, UP, RIGHT]:
@@ -511,3 +521,4 @@ for g in [SHOOT, LEFT, DOWN, UP, RIGHT]:
 while True:
 #    balancing_dot()
     protector()
+
