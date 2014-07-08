@@ -25,6 +25,7 @@ from collections import deque
 #from subprocess import Popen
 
 
+
 POLL_PERIOD=0.020
 SHOOT=2
 LEFT=3
@@ -38,42 +39,9 @@ HEIGHT=0
 MISSILE_RATE=10
 ENEMY_RATE=10
 
-wall_params = [
-    {
-        # WALL_SCENE 0
-        "more_cols_min":5,
-        "more_cols_max":8,
-        "tunnel_min":4,
-        "tunnel_max":HEIGHT - 3,
-        "start_rate":2,
-        "period":5,
-    }, {
-        # WALL_SCENE 1
-        "more_cols_min":3,
-        "more_cols_max":6,
-        "tunnel_min":2,
-        "tunnel_max":HEIGHT - 4,
-        "start_rate":3,
-        "period":5,
-    }, {
-        # WALL_SCENE 2
-        "more_cols_min":3,
-        "more_cols_max":5,
-        "tunnel_min":2,
-        "tunnel_max":HEIGHT - 5,
-        "start_rate":5,
-        "period":5,
-    }
-]
-
-no_wall_params = {
-    "more_cols_min":2,
-    "more_cols_max":2,
-    "tunnel_min":HEIGHT,
-    "tunnel_max":HEIGHT,
-    "start_rate":0,
-    "period":0,
-}
+# will be defined during setup
+wall_params = None
+no_wall_params = None
 
 def clamp(val, minimum, maximum):
     # TODO: don't know what this does???
@@ -186,7 +154,7 @@ class AudibleSprite(Sprite):
 class PointSprite(Sprite):
     """A single point of a sprite object in the game"""
     def draw(self):
-        led2.point(*self.origin, color=self.color)
+            led2.point(*self.origin, color=self.color)
 
     def collision(self, other):
         # if both PointSprites then show if points have collided
@@ -244,7 +212,7 @@ class Wall(Sprite):
         self.rate = self.start_rate + int((time.time() - self.start_time)/self.period)
         if len(self.wall) <= WIDTH:
             more_cols = randint(self.more_cols_min, self.more_cols_max)
-            tunnel_thickness =  4 #randint(self.tunnel_min, self.tunnel_max)
+            tunnel_thickness = randint(self.tunnel_min, self.tunnel_max)
             tunnel_bottom = randint(0, HEIGHT - tunnel_thickness)
             tunnel_top = tunnel_bottom + tunnel_thickness - 1
             old_bottom, old_top = self.wall[-1]
@@ -257,7 +225,6 @@ class Wall(Sprite):
             new_bottoms = create_cols(old_bottom, tunnel_bottom, more_cols)
             new_tops = create_cols(old_top, tunnel_top, more_cols)
             self.wall += zip(new_bottoms, new_tops)
-        print(self.wall)
         del self.wall[0]
 
     def draw(self):
@@ -401,6 +368,46 @@ def protector(num_rows=1, num_cols=2, angle=180):
         WIDTH = led2.width()
         HEIGHT = led2.height()
         
+        # define walls
+        global wall_params
+        global no_wall_params
+        wall_params = [
+            {
+                # WALL_SCENE 0
+                "more_cols_min":5,
+                "more_cols_max":8,
+                "tunnel_min":4,
+                "tunnel_max":HEIGHT - 3,
+                "start_rate":2,  # slow
+                "period":5,
+            }, {
+                # WALL_SCENE 1
+                "more_cols_min":3,
+                "more_cols_max":6,
+                "tunnel_min":2,
+                "tunnel_max":HEIGHT - 4,
+                "start_rate":3,  # faster
+                "period":5,
+            }, {
+                # WALL_SCENE 2
+                "more_cols_min":3,
+                "more_cols_max":5,
+                "tunnel_min":2,
+                "tunnel_max":HEIGHT - 5,
+                "start_rate":5,  # fastest
+                "period":5,
+            }
+        ]
+        # parameters to show no tunnel
+        no_wall_params = {
+            "more_cols_min":2,
+            "more_cols_max":2,
+            "tunnel_min":HEIGHT,
+            "tunnel_max":HEIGHT,
+            "start_rate":0,
+            "period":0,
+        }
+        
         # set up states
         DONE=1
         WALL_SCENE=2
@@ -410,11 +417,11 @@ def protector(num_rows=1, num_cols=2, angle=180):
         YOU_WIN=6
         GAME_OVER=7
         state = States(
-            [WALL_SCENE, WALL_2_ENEMY_SCENE, ENEMY_SCENE] * 3 + [BIG_BOSS, YOU_WIN, GAME_OVER, DONE])
+            [WALL_SCENE, WALL_2_ENEMY_SCENE, ENEMY_SCENE] * 2 + [BIG_BOSS, YOU_WIN, GAME_OVER, DONE])
         wall_scene = 0
         enemy_scene = 0
 
-        wall = Wall()
+        wall = Wall(color=5)
         ship = Ship((2,4), color=0xF)
         missiles = Missiles(direction=RIGHT)
         enemy_missiles = Missiles(direction=LEFT)
