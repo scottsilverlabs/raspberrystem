@@ -286,12 +286,11 @@ def sprite(sprite, position=(0,0), offset_into=(0,0), crop_into=None, math_coord
             raise ValueError("crop_into must be greater than offset_into")
         
     # set up start position
-    x_start = max(x_pos + x_offset, 0)
-    y_start = max(y_pos + y_offset, 0) 
+    x_start = x_pos + x_offset
+    y_start = y_pos + y_offset 
     
     if x_start >= container_width or y_start >= container_height:
-        # TODO: do nothing, return
-        raise ValueError("start position outside of container.")
+        return
         
     # set up end position
     x_end = min(x_pos + x_crop, container_width, x_pos + sprite.width)
@@ -394,8 +393,8 @@ def _char_to_sprite(char, font_path):
         return LEDSprite(font_path + "/lower/" + char)
     elif char.isspace():
         return LEDSprite(font_path + "/space") # return a space 
-    elif os.path.isfile(font_path + "/misc/" + ord(char)): # add if exist in misc folder
-        return LEDSprite(font_path + "/misc/" + ord(char))
+    elif os.path.isfile(font_path + "/misc/" + str(ord(char))): # add if exist in misc folder
+        return LEDSprite(font_path + "/misc/" + str(ord(char)))
     else:
         return LEDSprite(font_path + "/unknown") # return generic box character
 

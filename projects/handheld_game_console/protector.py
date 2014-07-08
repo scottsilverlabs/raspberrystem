@@ -498,12 +498,16 @@ def protector(num_rows=1, num_cols=2, angle=180):
                         state.next()
 
             elif state.current() == GAME_OVER:
-                # TODO - print game over unit button press
-                led2.erase()
-                led2.text("GAME OVER", font_size="small")
-                # TODO: scrolling text
-                led2.show()
-                time.sleep(3)
+                # Scroll "GAME OVER" message
+                text = led2.LEDMessage("GAME OVER!!!  :)", font_size="small")
+                pos_x, pos_y = (led2.width(),0)
+                while -pos_x < text.width:
+                    time.sleep(.1)
+                    led2.erase()
+                    led2.text(text, (pos_x, pos_y))
+                    led2.show()
+                    pos_x -= 1
+
                 state.next()
 
             t = next_tick - time.time()

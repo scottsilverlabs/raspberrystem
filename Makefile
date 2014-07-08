@@ -141,7 +141,7 @@ pi-test:
 	@echo "There are no test files at this time."
 
 upload-check:
-	# Check that we are in correct branch....
+	# Check that we are  in correct branch....
 	@if ! git branch | grep -q "* rel/$(VER)"; then \
 		echo "Not in the expected branch rel/$(VER)."; \
 		echo "Either change your branch to rel/$(VER) or update the version number in ./setup.py"; \
