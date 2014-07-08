@@ -154,7 +154,7 @@ class AudibleSprite(Sprite):
 class PointSprite(Sprite):
     """A single point of a sprite object in the game"""
     def draw(self):
-            led2.point(*self.origin, color=self.color)
+        led2.point(*self.origin, color=self.color)
 
     def collision(self, other):
         # if both PointSprites then show if points have collided
@@ -174,7 +174,7 @@ class MoveablePointSprite(PointSprite):
 
     def __init__(self, *args, **kwds):
         self.dirq = deque()
-        super(MoveablePointSprite, self).__init__(*args, **kwds)
+        super(MoveablePointSprite, self).__init__(*args, **kwds)  # pass to parent object
 
     def step(self):
         """In a step move in all directions allocated in queue"""
@@ -241,7 +241,7 @@ class Wall(Sprite):
         if isinstance(other, PointSprite):
             x, y = other.origin
             if 0 <= x < WIDTH:  # if x is on the board
-                bottom, top = self.wall[x]
+                bottom, top = self.wall[int(x)]
                 return (self, other) if y < bottom or y > top else None
             return None
         else:
@@ -251,7 +251,7 @@ class Wall(Sprite):
         return self.wall[index]
     
 class Ship(MoveablePointSprite, AudibleSprite):
-    def __init__(self, origin, color=0xA):
+    def __init__(self, origin, color=0xF):
         super(Ship, self).__init__(origin=origin, color=color)
 
     def step(self):
@@ -260,7 +260,7 @@ class Ship(MoveablePointSprite, AudibleSprite):
         self.origin = AddableTuple((clamp(x, 0, WIDTH - 1), clamp(y, 0, HEIGHT - 1)))   # ????
 
 class Missile(MoveablePointSprite, AudibleSprite):
-    def __init__(self, origin, rate=MISSILE_RATE, color=5, direction=RIGHT, collideswith=None):
+    def __init__(self, origin, rate=MISSILE_RATE, color=0xF, direction=RIGHT, collideswith=None):
         super(Missile, self).__init__(
             origin=origin, rate=rate, color=color, collideswith=collideswith
             )
@@ -271,15 +271,16 @@ class Missile(MoveablePointSprite, AudibleSprite):
         super(Missile, self).step()
 
 class Missiles(SpriteGroup):
-    def __init__(self, direction=RIGHT):
+    def __init__(self, direction=RIGHT, color=0xF):
         self.direction = direction
+        self.color = color
         super(Missiles, self).__init__()
 
     def new(self, start=(0,0)):
-        self.sprites += [Missile(start, direction=self.direction, collideswith=self.getcollideswith())]
+        self.sprites += [Missile(start, direction=self.direction, collideswith=self.getcollideswith(), color=self.color)]
 
 class Enemy(MoveablePointSprite, AudibleSprite):
-    def __init__(self, origin, missiles, rate=ENEMY_RATE, color=1, collideswith=None):
+    def __init__(self, origin, missiles, rate=ENEMY_RATE, color=0xF, collideswith=None):
         self.missiles = missiles
         super(Enemy, self).__init__(
             origin=origin, rate=rate, color=color, collideswith=collideswith
@@ -295,14 +296,15 @@ class Enemy(MoveablePointSprite, AudibleSprite):
         super(Enemy, self).step()
 
 class Enemies(SpriteGroup):
-    def __init__(self, missiles):
+    def __init__(self, missiles, color=0xF):
         self.missiles = missiles
+        self.color = color
         super(Enemies, self).__init__()
 
     def new(self, num=1):
         start = (WIDTH-1, randint(0, HEIGHT))
         c = self.getcollideswith()
-        self.sprites += [Enemy(start, self.missiles, collideswith=c) for i in range(num)]
+        self.sprites += [Enemy(start, self.missiles, collideswith=c, color=self.color) for i in range(num)]
 
 class States(object):
     def __init__(self, l):
@@ -423,9 +425,9 @@ def protector(num_rows=1, num_cols=2, angle=180):
 
         wall = Wall(color=5)
         ship = Ship((2,4), color=0xF)
-        missiles = Missiles(direction=RIGHT)
-        enemy_missiles = Missiles(direction=LEFT)
-        enemies = Enemies(enemy_missiles)
+        missiles = Missiles(direction=RIGHT, color=1)
+        enemy_missiles = Missiles(direction=LEFT, color=1)
+        enemies = Enemies(enemy_missiles, color=0xA)
         all_sprites = [wall, ship, missiles, enemies, enemy_missiles]
 
         wall.collideswith(ship, missiles, enemy_missiles, enemies)
