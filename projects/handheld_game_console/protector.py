@@ -257,6 +257,7 @@ class Wall(Sprite):
             new_bottoms = create_cols(old_bottom, tunnel_bottom, more_cols)
             new_tops = create_cols(old_top, tunnel_top, more_cols)
             self.wall += zip(new_bottoms, new_tops)
+        print(self.wall)
         del self.wall[0]
 
     def draw(self):
@@ -439,6 +440,7 @@ def protector(num_rows=1, num_cols=2, angle=180):
                     elif state.current() == WALL_2_ENEMY_SCENE:
                         wall.set_params(**no_wall_params)
                     elif state.current() == ENEMY_SCENE:
+                        # clear wall and create enemies?
                         wall.set_params(**no_wall_params)
                         enemies.new(5)
                         enemy_scene += 1
