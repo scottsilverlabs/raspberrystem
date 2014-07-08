@@ -222,7 +222,7 @@ class MoveablePointSprite(PointSprite):
         self.dirq.append(direction)
     
 class Wall(Sprite):
-    def __init__(self, color=0xF):
+    def __init__(self, color=0x1):
         self.set_params()
         self.wall = [(0, HEIGHT - 1) for i in range(WIDTH)]
         self.start_time = time.time()
@@ -240,12 +240,11 @@ class Wall(Sprite):
             self.period = period
 
     def step(self):
-        # TODO: is this correct?
         """Create a new column of wall relative to the current column of wall."""
         self.rate = self.start_rate + int((time.time() - self.start_time)/self.period)
         if len(self.wall) <= WIDTH:
             more_cols = randint(self.more_cols_min, self.more_cols_max)
-            tunnel_thickness = randint(self.tunnel_min, self.tunnel_max)
+            tunnel_thickness =  4 #randint(self.tunnel_min, self.tunnel_max)
             tunnel_bottom = randint(0, HEIGHT - tunnel_thickness)
             tunnel_top = tunnel_bottom + tunnel_thickness - 1
             old_bottom, old_top = self.wall[-1]
@@ -371,11 +370,28 @@ class States(object):
         while self._current != s:
             self.next()
 
+
+
 # TODO: seperate this protector game from the game engine
 def protector(num_rows=1, num_cols=2, angle=180):
     try:
 #        music_cmd = "exec mpg123 /usr/share/scratch/Media/Sounds/Music\ Loops/Cave.mp3 -g 50 -l 0"
 #        music = Popen(music_cmd, shell=True)
+
+        # define what to do during a button press
+        def button_handler(channel):
+            if channel in [LEFT, RIGHT, UP, DOWN]:
+                ship.deferred_adjust(channel)  # add direction to direction queue
+            if channel in [SHOOT]:
+                missiles.new(ship.origin)  # generate new missle from ship
+
+        # set up gpio inputs
+        GPIO.setmode(GPIO.BCM)
+        for g in [SHOOT, LEFT, DOWN, UP, RIGHT]:
+            GPIO.setup(g, GPIO.IN, pull_up_down = GPIO.PUD_UP)
+            GPIO.add_event_detect(g, GPIO.FALLING, callback=button_handler, bouncetime=100)
+        #    gpio.configure(g, gpio.INPUT)
+
 
         # set up led matrix
         led2.init_grid(num_rows, num_cols, angle)
@@ -383,7 +399,7 @@ def protector(num_rows=1, num_cols=2, angle=180):
         global HEIGHT
         WIDTH = led2.width()
         HEIGHT = led2.height()
-
+        
         # set up states
         DONE=1
         WALL_SCENE=2
@@ -397,7 +413,7 @@ def protector(num_rows=1, num_cols=2, angle=180):
         wall_scene = 0
         enemy_scene = 0
 
-        wall = Wall(color=0xA)
+        wall = Wall()
         ship = Ship((2,4), color=0xF)
         missiles = Missiles(direction=RIGHT)
         enemy_missiles = Missiles(direction=LEFT)
@@ -411,6 +427,7 @@ def protector(num_rows=1, num_cols=2, angle=180):
         enemies.collideswith(wall, ship, missiles)
 
         next_tick = time.time() + POLL_PERIOD
+        
 
         # state machine that runs through game
         while state.current() != DONE:
@@ -430,12 +447,12 @@ def protector(num_rows=1, num_cols=2, angle=180):
                 else:
                     # Adjust sprites based on user input
                     # TODO: set up as callback functions instead?
-                    for c in [SHOOT, LEFT, DOWN, UP, RIGHT]:
-                        if GPIO.input(c) == 1:  # TODO: debounce input
-                            if c in [LEFT, RIGHT, UP, DOWN]:
-                                ship.deferred_adjust(c)
-                            if c in [SHOOT]:
-                                missiles.new(ship.origin)
+#                    for c in [SHOOT, LEFT, DOWN, UP, RIGHT]:
+#                        if GPIO.input(c) == 1:  # TODO: debounce input
+#                            if c in [LEFT, RIGHT, UP, DOWN]:
+#                                ship.deferred_adjust(c)
+#                            if c in [SHOOT]:
+#                                missiles.new(ship.origin)
                                 
 #                    clicks = gpio.was_clicked()
 #                    for c in clicks:
@@ -460,11 +477,11 @@ def protector(num_rows=1, num_cols=2, angle=180):
                         state.skipto(GAME_OVER)
 
                     if state.current() == WALL_SCENE:
-                        state.next_if_after(20)
+                        state.next_if_after(10)
                     elif state.current() == WALL_2_ENEMY_SCENE:
                         state.next_if_after(3)
                     elif state.current() == ENEMY_SCENE:
-                        if len(enemies) == 0:
+                        if len(enemies) == 0:  # if all enemies killed
                             state.next()
                     elif state.current() == BIG_BOSS:
                         state.next()
@@ -475,6 +492,7 @@ def protector(num_rows=1, num_cols=2, angle=180):
                 led2.text("GAME OVER", font_size="small")
                 # TODO: scrolling text
                 led2.show()
+                time.sleep(3)
                 state.next()
 
             t = next_tick - time.time()
@@ -485,6 +503,7 @@ def protector(num_rows=1, num_cols=2, angle=180):
     finally:
 #        music.kill()
         led2.shutdown_matrices()
+        GPIO.cleanup()
 
 #xbase, ybase =  accel.get_data()
 #def balancing_dot():
@@ -512,11 +531,6 @@ def protector(num_rows=1, num_cols=2, angle=180):
 #time.sleep(3)
 
 
-# set up gpio inputs
-GPIO.setmode(GPIO.BCM)
-for g in [SHOOT, LEFT, DOWN, UP, RIGHT]:
-    GPIO.setup(g, GPIO.IN)
-#    gpio.configure(g, gpio.INPUT)
 
 while True:
 #    balancing_dot()
