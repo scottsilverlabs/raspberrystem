@@ -154,7 +154,7 @@ class AudibleSprite(Sprite):
 class PointSprite(Sprite):
     """A single point of a sprite object in the game"""
     def draw(self):
-        led2.point(*self.origin, color=self.color)
+        led2.point(*self.origin, color=int(self.color))
 
     def collision(self, other):
         # if both PointSprites then show if points have collided
@@ -233,7 +233,7 @@ class Wall(Sprite):
             for y in range(HEIGHT):
                 bottom, top = self.wall[x]
                 if y < bottom or y > top:
-                    led2.point(x, y, color=self.color) # draw wall with less brightness
+                    led2.point(x, y, color=int(self.color)) # draw wall with less brightness
 
     def collision(self, other):
         """If other element is a PointStripe, check if it hit the wall and return collision.

@@ -62,9 +62,11 @@ def _convert_color(color):
             " or a number 0-16 with 16 being transparent")
     if type(color) == int:
         return color
-    if color == '-':
-        return 0x10
-    return int(color, 16)
+    elif type(color) == str:
+        if color == '-':
+            return 0x10
+        return int(color, 16)
+    raise RuntimeError("Invalid color")
     
 def _convert_to_std_coords(x, y):
     """Converts given math coordinates to standard programming coordinates"""
@@ -214,7 +216,7 @@ def point(x, y=None, color=0xF, math_coords=True):
 #            raise IndexError("Point given is not in framebuffer.")
         if math_coords:
             x, y = _convert_to_std_coords(x, y)
-        led_driver.point(x, y, color)
+        led_driver.point(int(x), int(y), color)
         return 1
 
 def rect(start, dimensions, color=0xF, math_coords=True):
