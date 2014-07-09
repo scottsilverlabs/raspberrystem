@@ -124,7 +124,7 @@ clean-pi:
 
 pi-install:
 #	$(MAKE)
-	$(PYTHON) $(PYFLAGS) ./setup.py install --user
+	sudo $(PYTHON) $(PYFLAGS) ./setup.py install
 	$(MAKE) pi-install-projects
 	$(MAKE) pi-install-cellapps
 

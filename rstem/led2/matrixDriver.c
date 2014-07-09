@@ -1,5 +1,5 @@
 /*
- * accel_server.c
+ * matrixDriver.c
  *
  * Copyright (c) 2014, Scott Silver Labs, LLC.
  *
