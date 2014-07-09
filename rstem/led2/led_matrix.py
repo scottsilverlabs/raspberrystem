@@ -201,10 +201,11 @@ def point(x, y=None, color=0xF, math_coords=True):
             x, y = x
         if x < 0 or x >= container_width or y < 0 or y >= container_height:
             # TODO: just do nothing and return instead
-            raise IndexError("Point given is not in framebuffer.")
+#            raise IndexError("Point given is not in framebuffer.")
+            return
         if math_coords:
             x, y = _convert_to_std_coords(x, y)
-        led_driver.point(x, y, color)
+        led_driver.point(int(x), int(y), color)
         return 1
 
 def rect(start, dimensions, color=0xF, math_coords=True):
@@ -222,9 +223,31 @@ def rect(start, dimensions, color=0xF, math_coords=True):
 def _sign(n):
     return 1 if n >= 0 else -1
 
-# TODO: write this in the led_driver ?
 def line(point_a, point_b, color=0xF, math_coords=True):
-    """Create a line from point_a to point_b"""
+    """Create a line from point_a to point_b.
+    Uses Bresenham's Line Algorithm (http://en.wikipedia.org/wiki/Bresenham's_line_algorithm)
+    """
+    x1, y1 = point_a
+    x2, y2 = point_b
+    dx = abs(x2 - x1)
+    dy = abs(y2 - y1)
+    sx = 1 if x1 < x2 else -1
+    sy = 1 if y1 < y2 else -1
+    err = dx - dy
+    while True:
+        point(x1, y1, color, math_coords=math_coords)
+        if ((x1 == x2 and y1 == y2) or x1 >= container_width or y1 >= container_height):
+            break
+        e2 = 2*err
+        if (e2 > -dy):
+            err -= dy
+            x1 += sx
+        if (e2 < dx):
+            err += dx
+            y1 += sy
+            
+def _line_fast(point_a, point_b, color=0xF, math_coords=True):
+    """A faster c implementation of line. Use if you need the speed."""
     if math_coords:
         point_a = _convert_to_std_coords(*point_a)
         point_b = _convert_to_std_coords(*point_b)
@@ -383,8 +406,8 @@ def _char_to_sprite(char, font_path):
         return LEDSprite(font_path + "/lower/" + char)
     elif char.isspace():
         return LEDSprite(font_path + "/space") # return a space 
-    elif os.path.isfile(font_path + "/misc/" + ord(char)): # add if exist in misc folder
-        return LEDSprite(font_path + "/misc/" + ord(char))
+    elif os.path.isfile(font_path + "/misc/" + str(ord(char))): # add if exist in misc folder
+        return LEDSprite(font_path + "/misc/" + str(ord(char)))
     else:
         return LEDSprite(font_path + "/unknown") # return generic box character
 
