@@ -16,7 +16,11 @@ DIRS+=cellapps
 DIRS+=projects
 DIRS+=misc
 
-PYTHON=python3  # default python
+ifdef ON_PI
+  PYTHON=python3  # default python
+else
+  PYTHON=python  # default python
+endif
 PYFLAGS=
 DESTDIR=/
 # install directories
@@ -24,42 +28,43 @@ PROJECTSDIR=$$HOME/rstem/projects
 CELLAPPSDIR=$$HOME/rstem/cellapps
 #BUILDIR=$(CURDIR)/debian/raspberrystem
 
-# Calculate the base names of the distribution, the location of all source,
-NAME:=$(shell $(PYTHON) $(PYFLAGS) setup.py --name)
-VER:=$(shell $(PYTHON) $(PYFLAGS) setup.py --version)
-
-
-PYVER:=$(shell $(PYTHON) $(PYFLAGS) -c "import sys; print('py%d.%d' % sys.version_info[:2])")
-PY_SOURCES:=$(shell \
-	$(PYTHON) $(PYFLAGS) setup.py egg_info >/dev/null 2>&1 && \
-	grep -v "\.egg-info" $(NAME).egg-info/SOURCES.txt)
-DEB_SOURCES:=debian/changelog \
-	debian/control \
-	debian/copyright \
-	debian/rules \
-#	debian/docs \
-	$(wildcard debian/*.init) \
-	$(wildcard debian/*.default) \
-	$(wildcard debian/*.manpages) \
-#	$(wildcard debian/*.docs) \
-	$(wildcard debian/*.doc-base) \
-	$(wildcard debian/*.desktop)
-DOC_SOURCES:=docs/conf.py \
-	$(wildcard docs/*.png) \
-	$(wildcard docs/*.svg) \
-	$(wildcard docs/*.rst) \
-	$(wildcard docs/*.pdf)
-
-# Types of dist files all located in dist folder
-DIST_EGG=dist/$(NAME)-$(VER)-$(PYVER).egg
-DIST_TAR=dist/$(NAME)-$(VER).tar.gz
-DIST_ZIP=dist/$(NAME)-$(VER).zip
-DIST_DEB=dist/python-$(NAME)_$(VER)_armhf.deb \
-	dist/python3-$(NAME)_$(VER)_armhf.deb
-#	dist/python-$(NAME)-docs_$(VER)-1$(DEB_SUFFIX)_all.deb
-DIST_DSC=dist/$(NAME)_$(VER).tar.gz \
-	dist/$(NAME)_$(VER).dsc \
-	dist/$(NAME)_$(VER)_source.changes
+ifdef ON_PI
+  # Calculate the base names of the distribution, the location of all source,
+  NAME:=$(shell $(PYTHON) $(PYFLAGS) setup.py --name)
+  VER:=$(shell $(PYTHON) $(PYFLAGS) setup.py --version)
+  
+  PYVER:=$(shell $(PYTHON) $(PYFLAGS) -c "import sys; print('py%d.%d' % sys.version_info[:2])")
+  PY_SOURCES:=$(shell \
+  	$(PYTHON) $(PYFLAGS) setup.py egg_info >/dev/null 2>&1 && \
+  	grep -v "\.egg-info" $(NAME).egg-info/SOURCES.txt)
+  DEB_SOURCES:=debian/changelog \
+  	debian/control \
+  	debian/copyright \
+  	debian/rules \
+  #	debian/docs \
+  	$(wildcard debian/*.init) \
+  	$(wildcard debian/*.default) \
+  	$(wildcard debian/*.manpages) \
+  #	$(wildcard debian/*.docs) \
+  	$(wildcard debian/*.doc-base) \
+  	$(wildcard debian/*.desktop)
+  DOC_SOURCES:=docs/conf.py \
+  	$(wildcard docs/*.png) \
+  	$(wildcard docs/*.svg) \
+  	$(wildcard docs/*.rst) \
+  	$(wildcard docs/*.pdf)
+  
+  # Types of dist files all located in dist folder
+  DIST_EGG=dist/$(NAME)-$(VER)-$(PYVER).egg
+  DIST_TAR=dist/$(NAME)-$(VER).tar.gz
+  DIST_ZIP=dist/$(NAME)-$(VER).zip
+  DIST_DEB=dist/python-$(NAME)_$(VER)_armhf.deb \
+  	dist/python3-$(NAME)_$(VER)_armhf.deb
+  #	dist/python-$(NAME)-docs_$(VER)-1$(DEB_SUFFIX)_all.deb
+  DIST_DSC=dist/$(NAME)_$(VER).tar.gz \
+  	dist/$(NAME)_$(VER).dsc \
+  	dist/$(NAME)_$(VER)_source.changes
+endif
 
 # files needed to be sent over to pi for local installation
 PI_TAR_FILES=rstem cellapps misc projects Makefile MANIFEST.in setup.py README.md make
@@ -68,7 +73,6 @@ COMMANDS=install local-install test source egg zip tar deb dist clean-pi clean-a
 	clean-dist-pi  install-projects install-cellapps
 
 .PHONY: all pi-install upload-check help clean push pull $(COMMANDS) $(addprefix pi-, $(COMMANDS))
-
 
 # update files on raspberry pi
 push:
@@ -110,7 +114,9 @@ help:
 # for each command push new files to raspberry pi then run command on the pi
 $(COMMANDS)::
 	$(MAKE) push
-	ssh $(SSHFLAGS) -t -v $(PI) "cd rsinstall; $(MAKE) pi-$@ PI=$(PI) PYTHON=$(PYTHON)"
+	# Run make on target - note: don't use $(MAKE), as host and target "make"s
+	# may differ.
+	ssh $(SSHFLAGS) -t $(PI) "cd rsinstall; make pi-$@ PI=$(PI) ON_PI=1"
 	$(MAKE) pull
 
 pi-clean-pi: clean
@@ -121,11 +127,9 @@ pi-clean-all-pi: clean-all
 
 # on pi commands start with "pi-"
 pi-install:
-	$(MAKE)
 	$(PYTHON) $(PYFLAGS) ./setup.py install --user
 	$(MAKE) pi-install-projects
 	$(MAKE) pi-install-cellapps
-
 
 pi-install-cellapps:
 	mkdir -p $(CELLAPPSDIR)

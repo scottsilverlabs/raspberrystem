@@ -14,43 +14,36 @@
 # limitations under the License.
 #
 import time
-import math
 from rstem import led
 
-def new_vector(ball, direction, speed, time, width=8.0, height=8.0):
-    x, y = ball
-    distance = speed * time
-    x = x + distance * math.cos(math.radians(direction))
-    y = y + distance * math.sin(math.radians(direction))
-    if x >= width:
-        x = 2 * width - x
-        direction = 180 - direction
-    if x < 0:
-        x = -x
-        direction = 180 - direction
-    if y >= height:
-        y = 2 * height - y
-        direction = -direction
-    if y < 0:
-        y = - y
-        direction = -direction
-    return ((x, y), direction)
-    
-ball = (0.0, 0.0)
-direction = 70.0
-speed = 100.0
-period = 0.02
-dimensions = (1,1)
-width=led.width()
-height=led.height()
-tick = 0
+x = 0.0
+y = 0.0
+xdist = 0.1
+ydist = 0.5
+period = 0.01
+sprite_period = 0.2
+sprite_steps = sprite_period/period
+step = 0
+sprites = [LEDSprite("ball%d.txt" % i) for i in range(4)]
 while True:
+    # Draw the ball (which is just a point)
+    sprite = sprites[n]
     led.erase()
-    led.rect(tuple(int(x) for x in ball), dimensions)
+    led.sprite(sprite, (int(x), int(y)))
     led.show()
-    time.sleep(period);
-    ball, direction = new_vector(ball, direction, speed, period, width=width, height=height)
-    if tick % 100 == 0:
-        direction += 1000
-    tick += 1
+
+    # Change to next sprite, once every sprite_steps
+    step += 1
+    if step % sprite_steps == 0:
+        n = (n + 1) % len(sprites)
+
+    # Move the point to a new position.  If it hits a wall, reverse the
+    # direction of the ball.
+    x, y = (x+xdist, y+ydist)
+    if x >= (led.width() - (sprite.width() - 1)) or x < 0:
+        xdist = - xdist
+    if y >= (led.height() - (sprite.height() - 1)) or y < 0:
+        ydist = - ydist
+
+    time.sleep(period)
 
