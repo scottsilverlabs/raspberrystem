@@ -1,18 +1,23 @@
 /*
-Copyright (c) 2014, Scott Silver Labs, LLC.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-      http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+ * led_driver.c
+ *
+ * Copyright (c) 2014, Scott Silver Labs, LLC.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * This code originally used the SPI testing utility included with Linux as a
+ * reference.
+ */
 
 
 #include <Python.h>
@@ -138,12 +143,10 @@ int fill(unsigned int color){
 
 
 int line(int x1, int y1, int x2, int y2, unsigned int color){
-    // TODO: if the python version isn't fast enough
-    
     int dx = abs(x2 - x1);
     int dy = abs(y2 - y1);
     int sx = (x1 < x2) ? 1 : -1;
-    int sy = (y1 < y1) ? 1 : -1;
+    int sy = (y1 < y2) ? 1 : -1;
     int err = dx - dy;
     Debug("dx = %d, dy = %d, sx = %d, sy = %d, err = %d", dx, dy, sx, sy, err);
     while (1) {
