@@ -11,7 +11,7 @@ sed -i 's/NO_START=1/NO_START=0/g' /etc/default/dropbear #Enable dropbear on boo
 /etc/init.d/dropbear start #Start dropbear
 update-rc.d ssh disable #Stop SSH on boot
 sed -i 's/defaults,noatime/defaults,noatime,nodiratime/g' /etc/fstab #Optimize mounting
-ed -i 's/deadline/noop/g' /boot/cmdline.txt #Switch to better scheduler
+sed -i 's/deadline/noop/g' /boot/cmdline.txt #Switch to better scheduler
 service inetutils-syslogd stop #Stop the logging daemon
 ##Delete old logs##
 for file in /var/log/*.log /var/log/mail.* /var/log/debug /var/log/syslog; do [ -f "$file" ] && rm -f "$file"; done
