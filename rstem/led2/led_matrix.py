@@ -99,12 +99,11 @@ def init_matrices(mat_list=[(0,0,0)], math_coords=True, spi_speed=500000, spi_po
     if container_math_coords:
         for i in range(len(mat_list)):
             # convert y's to be standard programming coordinates
-            # and also move position from bottom left to top left of matrix
+            # and also move origin from bottom left to top left of matrix
             if len(mat_list[i]) > 2:
                 mat_list[i] = (mat_list[i][0], (container_height-1 - mat_list[i][1]) - (DIM_OF_MATRIX-1), mat_list[i][2])
             else:
                 mat_list[i] = (mat_list[i][0], (container_height-1 - mat_list[i][1]) - (DIM_OF_MATRIX-1))
-        print("YOU SHOULDNT SEE MEE!!!!")   
     led_driver.init_matrices(mat_list, len(mat_list), \
         container_width, container_height) # flatten out tuple
     led_driver.init_SPI(spi_speed, spi_port)
@@ -272,58 +271,55 @@ def _line_fast(point_a, point_b, color=0xF):
     led_driver.line(point_a[0], point_a[1], point_b[0], point_b[1], _convert_color(color))
 
 
-def text(text, position=(0,0), offset_into=(0,0), crop_into=None, font_size="large"):
+def text(text, origin=(0,0), crop_origin=(0,0), crop_dimensions=None, font_size="large"):
     """Sets given string to be displayed on LED Matrix
-        - returns the LEDMessage sprite object used to create text
+        - returns the LEDText sprite object used to create text
     """
     if type(text) == str:
-        text = LEDMessage(text, font_size=font_size)
-    elif type(text) != LEDMessage and type(text) != LEDSprite:
+        text = LEDText(text, font_size=font_size)
+    elif type(text) != LEDText and type(text) != LEDSprite:
         raise ValueError("Invalid text")
-    sprite(text, position, offset_into, crop_into)
+    sprite(text, origin, crop_origin, crop_dimensions)
     return text
 
 
-def sprite(sprite, position=(0,0), offset_into=(0,0), crop_into=None):
-    """Sets given sprite with top left corner at given position
-        position = the (x,y) coordinates to start displaying the sprite 
+def sprite(sprite, origin=(0,0), crop_origin=(0,0), crop_dimensions=None):
+    """Sets given sprite with top left corner at given origin
+        origin = the (x,y) coordinates to start displaying the sprite 
             (bottom left for math_coords, top left for programming coords)
-        offset_into = the offset into the sprite that should actually be displayed
-                Note: offset_into is relative to position
-        crop_into = the position inside the sprite to stop displaying
-                Note: like offset_into thi is also relative to position
-        math_coords = True to represent coordinates by standanrd quadrant 1 coordinates, 
-            False to use programming coordinates
+        crop_origin = the offset into the sprite that should actually be displayed
+                Note: crop_origin is relative to origin
+        crop_dimensions = the number of pixels (x, y) inside the sprite to display (None for no crop)
     """
     _init_check()
     global container_width
     global container_height
     
-    x_pos, y_pos = position
-    x_offset, y_offset = offset_into
+    x_pos, y_pos = origin
+    x_crop, y_crop = crop_origin
     
     # set up offset
-    if x_offset < 0 or y_offset < 0:
-        raise ValueError("offset_into must be positive numbers")
+    if x_crop < 0 or y_crop < 0:
+        raise ValueError("crop_origin must be positive numbers")
     
     # set up crop
-    if crop_into is None:
-        x_crop, y_crop = (sprite.width, sprite.height)   # no cropping
+    if crop_dimensions is None:
+        x_crop_dim, y_crop_dim = (sprite.width, sprite.height)   # no cropping
     else:
-        x_crop, y_crop = crop_into
-        if x_crop <= x_offset or y_crop <= y_offset:
-            raise ValueError("crop_into must be greater than offset_into")
+        x_crop_dim, y_crop_dim = crop_dimensions
+        if x_crop_dim < 0 or y_crop_dim < 0:
+            raise ValueError("crop_dimensions must be positive numbers")
         
     # set up start position
-    x_start = x_pos + x_offset
-    y_start = y_pos + y_offset 
+    x_start = x_pos + x_crop
+    y_start = y_pos + y_crop 
     
     if x_start >= container_width or y_start >= container_height:
         return
         
     # set up end position
-    x_end = min(x_pos + x_crop, container_width, x_pos + sprite.width)
-    y_end = min(y_pos + y_crop, container_height, y_pos + sprite.height)
+    x_end = min(x_pos + x_crop + x_crop_dim, container_width, x_pos + sprite.width)
+    y_end = min(y_pos + y_crop + y_crop_dim, container_height, y_pos + sprite.height)
     
     
     # iterate through sprite and set points to led_driver
@@ -331,13 +327,21 @@ def sprite(sprite, position=(0,0), offset_into=(0,0), crop_into=None):
     while y < y_end:
         x = x_start
         while x < x_end:
-            x_sprite = x - x_start + x_offset
-            y_sprite = y - y_start + y_offset
+            x_sprite = x - x_start + x_crop
+            y_sprite = y - y_start + y_crop
             if container_math_coords:
                 y_sprite = sprite.height - 1 - y_sprite
             point((x, y), color=sprite.bitmap[y_sprite][x_sprite])
             x += 1
         y += 1
+        
+        
+    def frame(bitmap):
+        """Sends the entire frame (represented in a bitmap) to the led matrix.
+        Note: bitmap dimensions must be the same as the dimensions of the container (non rotated).
+        """
+        pass
+        # TODO
 
 
 class LEDSprite(object):
@@ -352,6 +356,7 @@ class LEDSprite(object):
         bitmap_height = 0
         if filename is not None:
             f = open(filename, 'r')
+            # TODO: implement creating bitmaps from image files
             for line in f:
                 leds = [_convert_color(char) for char in line.split()]
                 # Determine if widths are consistent
@@ -398,16 +403,24 @@ class LEDSprite(object):
         self.bitmap[y][x] = _convert_color(color)
 
     def get_pixel(self, x, y):
-        """Returns int of color at given position or None
+        """Returns int of color at given origin or None
         """
         if x >= self.width or y >= self.height or x < 0 or y < 0:
             return None
         return self.bitmap[y][x]
 
-
+    
     def save_to_file(self, filename):
         pass
-        # TODO: save sprite to file?
+        # TODO: make this
+        
+    def rotate(self, angle):
+        pass
+        # TODO
+        
+    def rotated(self, angle):
+        pass
+        # TODO
 
 
 def _char_to_sprite(char, font_path):
@@ -428,7 +441,7 @@ def _char_to_sprite(char, font_path):
         return LEDSprite(font_path + "/unknown") # return generic box character
 
 
-class LEDMessage(LEDSprite):
+class LEDText(LEDSprite):
 
     def __init__(self, message, char_spacing=1, font_size="large", font_path=None):
         """Creates a text sprite of the given string
