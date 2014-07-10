@@ -64,8 +64,7 @@ DIST_DSC=dist/$(NAME)_$(VER).tar.gz \
 # files needed to be sent over to pi for local installation
 PI_TAR_FILES=rstem cellapps misc projects Makefile MANIFEST.in setup.py README.md make
 
-COMMANDS=install local-install test source egg zip tar deb dist clean-pi clean-all-pi \
-	clean-dist-pi  install-projects install-cellapps
+COMMANDS=install local-install test source egg zip tar deb dist install-projects install-cellapps
 
 .PHONY: all pi-install upload-check help clean push pull $(COMMANDS) $(addprefix pi-, $(COMMANDS))
 
@@ -96,12 +95,10 @@ help:
 	@echo "make tar - Generate a source tar package"
 	@echo "make deb - Generate Debian packages (NOT COMPLETED)"
 	@echo "make dist - Generate all packages"
+	@echo "make clean-pi - Clean all files on the pi"
 	@echo "make clean-all - Clean all files locally"
-	@echo "make clean-all-pi - Clean all files on the pi"
 	@echo "make clean - Get rid of all compiled files locally"
-	@echo "make clean-pi - Clean all compiled files on pi"
 	@echo "make clean-dist - Get rid of all package files locally"
-	@echo "make clean-dist-pi - Get rid of all package files on pi"
 	@echo "make release - Create and tag a new release"
 	@echo "make upload-all - Upload the new release to all repositories"
 	@echo "make upload-ppa - Upload the new release to ppa"
@@ -113,16 +110,21 @@ $(COMMANDS)::
 	ssh $(SSHFLAGS) -t -v $(PI) "cd rsinstall; $(MAKE) pi-$@ PI=$(PI) PYTHON=$(PYTHON)"
 	$(MAKE) pull
 
-pi-clean-pi: clean
+#pi-clean-dist-pi: clean-dist
 
-pi-clean-dist-pi: clean-dist
-
-pi-clean-all-pi: clean-all
+#pi-clean-all-pi: clean-all
 
 # on pi commands start with "pi-"
+
+clean-pi:
+	ssh $(SSHFLAGS) -t -v $(PI) "rm -rf ~/rsinstall"
+
+#pi-clean-pi:
+#	rm -rf ~/rsinstall
+
 pi-install:
-	$(MAKE)
-	$(PYTHON) $(PYFLAGS) ./setup.py install --user
+#	$(MAKE)
+	sudo $(PYTHON) $(PYFLAGS) ./setup.py install
 	$(MAKE) pi-install-projects
 	$(MAKE) pi-install-cellapps
 

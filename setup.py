@@ -75,5 +75,6 @@ setup(
     install_requires=[  # insert python packages as needed
     ],
     cmdclass={'install': install},  # overload install command
+    test_suite = 'tests',
     ext_modules = [led_driver]  # c extensions defined above
 )
