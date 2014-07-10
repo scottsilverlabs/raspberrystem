@@ -27,6 +27,7 @@ DIM_OF_MATRIX = 8     # 8x8 led matrix elements
 initialized = False   # flag to indicate if LED has been initialized
 contianer_width = 0    # indicates the maximum width and height of the LEDContainer
 container_height = 0
+container_math_coords = True
 
 # TODO: for unit testing, remove when done
 def valid_color(color):
@@ -80,11 +81,13 @@ def init_matrices(mat_list=[(0,0,0)], math_coords=True, spi_speed=500000, spi_po
     global initialized
     global container_width
     global container_height
+    global container_math_coords
     if initialized: # free previous memory before attempting to do it again
         shutdown_matrices()
                 
     container_width = max([matrix[0] for matrix in mat_list]) + DIM_OF_MATRIX
     container_height = max([matrix[1] for matrix in mat_list]) + DIM_OF_MATRIX
+    container_math_coords = math_coords
     if math_coords:
         for i in range(len(mat_list)):
             # convert y's to be standard programming coordinates
@@ -187,7 +190,7 @@ def _convert_to_std_angle(x, y, angle):
         x = (container_width - 1) - oldy
     return (x,y)
 
-def point(x, y=None, color=0xF, math_coords=True):
+def point(x, y=None, color=0xF):
     """Sends point to the framebuffer.
     Note: will not display the point until show() is called.
     """
@@ -200,30 +203,29 @@ def point(x, y=None, color=0xF, math_coords=True):
         if y is None and type(x) is tuple:
             x, y = x
         if x < 0 or x >= container_width or y < 0 or y >= container_height:
-            # TODO: just do nothing and return instead
 #            raise IndexError("Point given is not in framebuffer.")
             return
-        if math_coords:
+        if container_math_coords:
             x, y = _convert_to_std_coords(x, y)
         led_driver.point(int(x), int(y), color)
         return 1
 
-def rect(start, dimensions, color=0xF, math_coords=True):
+def rect(start, dimensions, color=0xF):
     """Creates a rectangle from start point using given dimensions"""
-    if math_coords: # convert it now so no need to do it anymore
+    if container_math_coords: # convert it now so no need to do it anymore
         start = _convert_to_std_coords(*start)
     x, y = start
     width, height = dimensions
-    line((x, y), (x, y + height), color, math_coords=False)
-    line((x, y + height), (x + width, y + height), color, math_coords=False)
-    line((x + width, y + height), (x + width, y), color, math_coords=False)
-    line((x + width, y), (x, y), color, math_coords=False)
+    line((x, y), (x, y + height), color)
+    line((x, y + height), (x + width, y + height), color)
+    line((x + width, y + height), (x + width, y), color)
+    line((x + width, y), (x, y), color)
 
 
 def _sign(n):
     return 1 if n >= 0 else -1
 
-def line(point_a, point_b, color=0xF, math_coords=True):
+def line(point_a, point_b, color=0xF):
     """Create a line from point_a to point_b.
     Uses Bresenham's Line Algorithm (http://en.wikipedia.org/wiki/Bresenham's_line_algorithm)
     """
@@ -235,7 +237,7 @@ def line(point_a, point_b, color=0xF, math_coords=True):
     sy = 1 if y1 < y2 else -1
     err = dx - dy
     while True:
-        point(x1, y1, color, math_coords=math_coords)
+        point(x1, y1, color)
         if ((x1 == x2 and y1 == y2) or x1 >= container_width or y1 >= container_height):
             break
         e2 = 2*err
@@ -246,15 +248,15 @@ def line(point_a, point_b, color=0xF, math_coords=True):
             err += dx
             y1 += sy
             
-def _line_fast(point_a, point_b, color=0xF, math_coords=True):
+def _line_fast(point_a, point_b, color=0xF):
     """A faster c implementation of line. Use if you need the speed."""
-    if math_coords:
+    if container_math_coords:
         point_a = _convert_to_std_coords(*point_a)
         point_b = _convert_to_std_coords(*point_b)
     led_driver.line(point_a[0], point_a[1], point_b[0], point_b[1], _convert_color(color))
 
 
-def text(text, position=(0,0), offset_into=(0,0), crop_into=None, math_coords=True, font_size="large"):
+def text(text, position=(0,0), offset_into=(0,0), crop_into=None, font_size="large"):
     """Sets given string to be displayed on LED Matrix
         - returns the LEDMessage sprite object used to create text
     """
@@ -262,11 +264,11 @@ def text(text, position=(0,0), offset_into=(0,0), crop_into=None, math_coords=Tr
         text = LEDMessage(text, font_size=font_size)
     elif type(text) != LEDMessage and type(text) != LEDSprite:
         raise ValueError("Invalid text")
-    sprite(text, position, offset_into, crop_into, math_coords)
+    sprite(text, position, offset_into, crop_into)
     return text
 
 
-def sprite(sprite, position=(0,0), offset_into=(0,0), crop_into=None, math_coords=True):
+def sprite(sprite, position=(0,0), offset_into=(0,0), crop_into=None):
     """Sets given sprite with top left corner at given position
         position = the (x,y) coordinates to start displaying the sprite 
             (bottom left for math_coords, top left for programming coords)
@@ -316,9 +318,9 @@ def sprite(sprite, position=(0,0), offset_into=(0,0), crop_into=None, math_coord
         while x < x_end:
             x_sprite = x - x_start + x_offset
             y_sprite = y - y_start + y_offset
-            if math_coords:
+            if container_math_coords:
                 y_sprite = sprite.height - 1 - y_sprite
-            point((x, y), color=sprite.bitmap[y_sprite][x_sprite], math_coords=math_coords)
+            point((x, y), color=sprite.bitmap[y_sprite][x_sprite])
             x += 1
         y += 1
 
