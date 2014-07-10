@@ -25,7 +25,7 @@ import led_driver     # c extension that controls led matrices and contains fram
 BITS_PER_PIXEL = 4     # 4 bits to represent color
 DIM_OF_MATRIX = 8     # 8x8 led matrix elements
 initialized = False   # flag to indicate if LED has been initialized
-contianer_width = 0    # indicates the maximum width and height of the LEDContainer
+container_width = 0    # indicates the maximum width and height of the LEDContainer
 container_height = 0
 container_math_coords = True
 
@@ -63,13 +63,21 @@ def _convert_color(color):
             " or a number 0-16 with 16 being transparent")
     if type(color) == int:
         return color
-    if color == '-':
-        return 0x10
-    return int(color, 16)
+    elif type(color) == str:
+        if color == '-':
+            return 0x10
+        return int(color, 16)
+    raise RuntimeError("Invalid color")
     
 def _convert_to_std_coords(x, y):
     """Converts given math coordinates to standard programming coordinates"""
     return (x, (container_height - 1 - y))
+    
+def width():
+    return container_width
+    
+def height():
+    return container_height
 
 def init_matrices(mat_list=[(0,0,0)], math_coords=True, spi_speed=500000, spi_port=0):
     """Create a chain of led matrices set at parti  cular offsets into the frame buffer
@@ -194,6 +202,9 @@ def _convert_to_std_angle(x, y, angle):
         y = x
         x = (container_width - 1) - oldy
     return (x,y)
+    
+def erase():
+    fill(0)
 
 def point(x, y=None, color=0xF):
     """Sends point to the framebuffer.
@@ -304,12 +315,11 @@ def sprite(sprite, position=(0,0), offset_into=(0,0), crop_into=None):
             raise ValueError("crop_into must be greater than offset_into")
         
     # set up start position
-    x_start = max(x_pos + x_offset, 0)
-    y_start = max(y_pos + y_offset, 0) 
+    x_start = x_pos + x_offset
+    y_start = y_pos + y_offset 
     
     if x_start >= container_width or y_start >= container_height:
-        # TODO: do nothing, return
-        raise ValueError("start position outside of container.")
+        return
         
     # set up end position
     x_end = min(x_pos + x_crop, container_width, x_pos + sprite.width)

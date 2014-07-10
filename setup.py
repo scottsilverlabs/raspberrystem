@@ -72,7 +72,7 @@ setup(
         "Programming Language :: Python :: 3.2",
         "Programming Language :: Python :: 3.3",
     ],
-    install_requires=[  # insert python packages as needed
+    install_requires=[ 'RPi'  # insert python packages as needed
     ],
     cmdclass={'install': install},  # overload install command
     test_suite = 'tests',

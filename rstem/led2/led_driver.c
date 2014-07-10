@@ -27,6 +27,13 @@
 #include <sys/ioctl.h>
 #include <linux/spi/spidev.h>
 
+// display current framebuffer during flush
+int display_on_terminal = 0;
+/*#if (display_on_terminal == 1)*/
+/*    #include <ncurses.h>*/
+/*    initscr();*/
+/*#endif*/
+
 #define DIM_OF_MATRIX 8
 #define BITS_PER_PIXEL 4
 
@@ -39,8 +46,7 @@
 int debug = 0;
 #define Debug(args...) if (debug) {printf("LED_DRIVER: " args); printf("\n");}
 
-// display current framebuffer during flush
-int display_on_terminal = 0;
+
 
 int spi;
 unsigned char spi_mode;
@@ -287,6 +293,7 @@ void print_framebuffer(void){
         }
         printf("\n");
     }
+/*    refresh();*/
 }
 
 

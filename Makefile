@@ -20,8 +20,8 @@ PYTHON=python3  # default python
 PYFLAGS=
 DESTDIR=/
 # install directories
-PROJECTSDIR=$$HOME/rstem/projects
-CELLAPPSDIR=$$HOME/rstem/cellapps
+PROJECTSDIR=$$HOME/rstem
+CELLAPPSDIR=$$HOME/rstem
 #BUILDIR=$(CURDIR)/debian/raspberrystem
 
 # Calculate the base names of the distribution, the location of all source,
@@ -117,7 +117,7 @@ $(COMMANDS)::
 # on pi commands start with "pi-"
 
 clean-pi:
-	ssh $(SSHFLAGS) -t -v $(PI) "rm -rf ~/rsinstall"
+	ssh $(SSHFLAGS) -t -v $(PI) "rm -rf ~/rsinstall; rm -rf ~/rstem"
 
 #pi-clean-pi:
 #	rm -rf ~/rsinstall
@@ -141,7 +141,7 @@ pi-test:
 	@echo "There are no test files at this time."
 
 upload-check:
-	# Check that we are in correct branch....
+	# Check that we are  in correct branch....
 	@if ! git branch | grep -q "* rel/$(VER)"; then \
 		echo "Not in the expected branch rel/$(VER)."; \
 		echo "Either change your branch to rel/$(VER) or update the version number in ./setup.py"; \
