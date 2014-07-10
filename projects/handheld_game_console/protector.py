@@ -17,7 +17,7 @@ import os
 import time
 import random
 import sys
-from rstem import led2
+from rstem import led_matrix
 #from rstem import accel
 import RPi.GPIO as GPIO
 #from rstem import gpio
@@ -154,7 +154,7 @@ class AudibleSprite(Sprite):
 class PointSprite(Sprite):
     """A single point of a sprite object in the game"""
     def draw(self):
-        led2.point(*self.origin, color=int(self.color))
+        led_matrix.point(*self.origin, color=int(self.color))
 
     def collision(self, other):
         # if both PointSprites then show if points have collided
@@ -233,7 +233,7 @@ class Wall(Sprite):
             for y in range(HEIGHT):
                 bottom, top = self.wall[x]
                 if y < bottom or y > top:
-                    led2.point(x, y, color=int(self.color)) # draw wall with less brightness
+                    led_matrix.point(x, y, color=int(self.color)) # draw wall with less brightness
 
     def collision(self, other):
         """If other element is a PointStripe, check if it hit the wall and return collision.
@@ -364,11 +364,11 @@ def protector(num_rows=1, num_cols=2, angle=180):
 
 
         # set up led matrix
-        led2.init_grid(num_rows, num_cols, angle)
+        led_matrix.init_grid(num_rows, num_cols, angle)
         global WIDTH
         global HEIGHT
-        WIDTH = led2.width()
-        HEIGHT = led2.height()
+        WIDTH = led_matrix.width()
+        HEIGHT = led_matrix.height()
         
         # define walls
         global wall_params
@@ -478,10 +478,10 @@ def protector(num_rows=1, num_cols=2, angle=180):
 
                     # Draw sprites
                     # TODO: use sprite objects in api to draw sprites or meh?
-                    led2.erase()
+                    led_matrix.erase()
                     for sprite in all_sprites:
                         sprite.draw()
-                    led2.show()
+                    led_matrix.show()
 
                     # Exit on collision
                     if ship.collided():
@@ -499,13 +499,13 @@ def protector(num_rows=1, num_cols=2, angle=180):
 
             elif state.current() == GAME_OVER:
                 # Scroll "GAME OVER" message
-                text = led2.LEDMessage("GAME OVER!!!  :)", font_size="small")
-                pos_x, pos_y = (led2.width(),0)
+                text = led_matrix.LEDMessage("GAME OVER!!!  :)", font_size="small")
+                pos_x, pos_y = (led_matrix.width(),0)
                 while -pos_x < text.width:
                     time.sleep(.1)
-                    led2.erase()
-                    led2.text(text, (pos_x, pos_y))
-                    led2.show()
+                    led_matrix.erase()
+                    led_matrix.text(text, (pos_x, pos_y))
+                    led_matrix.show()
                     pos_x -= 1
 
                 state.next()
@@ -517,7 +517,7 @@ def protector(num_rows=1, num_cols=2, angle=180):
 
     finally:
 #        music.kill()
-        led2.shutdown_matrices()
+        led_matrix.shutdown_matrices()
         GPIO.cleanup()
 
 #xbase, ybase =  accel.get_data()

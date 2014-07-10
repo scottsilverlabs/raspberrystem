@@ -161,7 +161,7 @@ def init_grid(num_rows=1, num_cols=1, angle=0, zigzag=True, math_coords=True, sp
     container_math_coords = math_coords
 
 def show():
-    """Tells the led_driver to send framebuffer to SPI port.
+    """Tells the led_driver to send framebuffer to SPI port.    
     Refreshes the display using current framebuffer.
     """
     _init_check()
