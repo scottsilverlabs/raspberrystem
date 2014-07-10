@@ -215,11 +215,11 @@ def point(x, y=None, color=0xF):
         led_driver.point(int(x), int(y), color)
         return 1
 
-def rect(start, dimensions, color=0xF):
+def rect(origin, dimensions, color=0xF):
     """Creates a rectangle from start point using given dimensions"""
     if container_math_coords: # convert it now so no need to do it anymore
-        start = _convert_to_std_coords(*start)
-    x, y = start
+        origin = _convert_to_std_coords(*origin)
+    x, y = origin
     width, height = dimensions
     line((x, y), (x, y + height), color)
     line((x, y + height), (x + width, y + height), color)
@@ -362,7 +362,6 @@ class LEDSprite(object):
         self.bitmap = bitmap
         self.height = bitmap_height
         self.width = bitmap_width
-        return 1
 
     def append(self, sprite):
         """Appends given sprite to the right of itself
@@ -436,12 +435,13 @@ class LEDMessage(LEDSprite):
             elif font_size == "small":
                 font_path += "/3x5"
             else:
+                # TODO: allow user generated font
                 raise ValueError("Invalid font size. Must be either 'large' or 'small'")
 
         message = message.strip()
         if len(message) == 0:
             super(LEDSprite, self).__init__()
-            return
+            return None
         # start with first character as intial sprite object
         init_sprite = _char_to_sprite(message[0], font_path)
         bitmap = init_sprite.bitmap
