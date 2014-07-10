@@ -71,11 +71,11 @@ COMMANDS=install local-install test source egg zip tar deb dist install-projects
 
 # update files on raspberry pi
 push:
-	rsync -azP --include-from='install_include.txt' --exclude='*' ./ $(PI):~/rsinstall
+	sshpass -p 'raspberry' rsync -azP --include-from='install_include.txt' --exclude='*' ./ $(PI):~/rsinstall
 
 # send changed files on pi back to user
 pull:
-	rsync -azP $(PI):~/rsinstall/* ./
+	sshpass -p 'raspberry' rsync -azP $(PI):~/rsinstall/* ./
 
 # all::
 
@@ -106,9 +106,9 @@ help:
 
 # for each command push new files to raspberry pi then run command on the pi
 $(COMMANDS)::
-	$(MAKE) push
-	ssh $(SSHFLAGS) -t -v $(PI) "cd rsinstall; $(MAKE) pi-$@ PI=$(PI) PYTHON=$(PYTHON)"
-	$(MAKE) pull
+	sshpass -p 'raspberry' $(MAKE) push
+	sshpass -p 'raspberry' ssh $(SSHFLAGS) -t -v $(PI) "cd rsinstall; $(MAKE) pi-$@ PI=$(PI) PYTHON=$(PYTHON)"
+#	$(MAKE) pull
 
 #pi-clean-dist-pi: clean-dist
 

@@ -88,7 +88,7 @@ def init_matrices(mat_list=[(0,0,0)], math_coords=True, spi_speed=500000, spi_po
     container_width = max([matrix[0] for matrix in mat_list]) + DIM_OF_MATRIX
     container_height = max([matrix[1] for matrix in mat_list]) + DIM_OF_MATRIX
     container_math_coords = math_coords
-    if math_coords:
+    if container_math_coords:
         for i in range(len(mat_list)):
             # convert y's to be standard programming coordinates
             # and also move position from bottom left to top left of matrix
@@ -96,12 +96,13 @@ def init_matrices(mat_list=[(0,0,0)], math_coords=True, spi_speed=500000, spi_po
                 mat_list[i] = (mat_list[i][0], (container_height-1 - mat_list[i][1]) - (DIM_OF_MATRIX-1), mat_list[i][2])
             else:
                 mat_list[i] = (mat_list[i][0], (container_height-1 - mat_list[i][1]) - (DIM_OF_MATRIX-1))
+        print("YOU SHOULDNT SEE MEE!!!!")   
     led_driver.init_matrices(mat_list, len(mat_list), \
         container_width, container_height) # flatten out tuple
     led_driver.init_SPI(spi_speed, spi_port)
     initialized = True
     
-def init_grid(num_rows=1, num_cols=1, angle=0, zigzag=True, spi_speed=500000, spi_port=0):
+def init_grid(num_rows=1, num_cols=1, angle=0, zigzag=True, math_coords=True, spi_speed=500000, spi_port=0):
     """Initiallizes led matrices in a grid pattern with the given number
     or rows and columns.
     zigzag=True means the ledmatrices have been placed in a zigzag fashion.
@@ -109,11 +110,11 @@ def init_grid(num_rows=1, num_cols=1, angle=0, zigzag=True, spi_speed=500000, sp
             represented in the grid
             (num_row and num_cols are representative of after the angle has been defined)
     """
+    # TODO: convert to before rotation
+    # num_rows, and num_cols are before rotation
     if num_rows <= 0 or num_cols <= 0:
         raise ValueError("num_rows and num_cols must be positive.")
     mat_list = []
-    # TODO: make this code more pretty? (kind of hard to do without loosing readability)
-    # TODO: need to test this with larger matrices
     if angle == 0:
         for row in range(num_rows): # increment through rows downward
             if zigzag and row % 2 == 1:
@@ -122,31 +123,35 @@ def init_grid(num_rows=1, num_cols=1, angle=0, zigzag=True, spi_speed=500000, sp
             else:
                 for column in range(num_cols): # if even, increment left to right
                     mat_list.append((column*DIM_OF_MATRIX, row*DIM_OF_MATRIX, 0))  # right side up
-    elif angle == 90: # 90 degrees counter-clockwise
-        for column in range(num_cols): # increment through columns left to right
-            if zigzag and column % 2 == 1:
-                for row in range(num_rows): # if odd, increment downward
-                    mat_list.append((column*DIM_OF_MATRIX, row*DIM_OF_MATRIX, 270)) # 180 + 90
+    elif angle == 90: # 90 degrees clockwise
+        for row in range(num_rows): 
+            if zigzag and row % 2 == 1:
+                for column in range(num_cols-1,-1,-1): # if odd, increment downward
+                    mat_list.append(((num_rows-row - 1)*DIM_OF_MATRIX, column*DIM_OF_MATRIX, 270)) # 180 + 90
             else:
-                for row in range(num_rows-1,-1,-1): # if even, increment upwards
-                    mat_list.append((column*DIM_OF_MATRIX, row*DIM_OF_MATRIX, 90))  # 0 + 90
+                for column in range(num_cols): # if even, increment upwards
+                    mat_list.append(((num_rows-row - 1)*DIM_OF_MATRIX, column*DIM_OF_MATRIX, 90))  # 0 + 90
     elif angle == 180:
         for row in range(num_rows-1,-1,-1): # increment through rows upwards
             if zigzag and row % 2 == 1:
-                for column in range(num_cols):  # if odd increment left to right
-                    mat_list.append((column*DIM_OF_MATRIX, row*DIM_OF_MATRIX, 0)) # 180 + 180
+                for column in range(num_cols-1,-1,-1):  # if odd increment right to left
+                    mat_list.append((column*DIM_OF_MATRIX, row*DIM_OF_MATRIX, 180)) # 180 + 180
             else:
-                for column in range(num_cols-1,-1,-1): # if even increment right to left
-                    mat_list.append((column*DIM_OF_MATRIX, row*DIM_OF_MATRIX, 180)) # 0 + 180
-    elif angle == 270: # 90 degrees clockwise
-        for column in range(num_cols-1,-1,-1): # increment columns right to left
-            if zigzag and column % 2 == 1:
-                for row in range(num_rows-1,-1,-1): # if odd increment through rows upwards
-                    mat_list.append((column*DIM_OF_MATRIX, row*DIM_OF_MATRIX, 90)) # 180 - 90
+                for column in range(num_cols): # if even increment left to right
+                    mat_list.append((column*DIM_OF_MATRIX, row*DIM_OF_MATRIX, 0)) # 0 + 180
+    elif angle == 270: # 90 degrees counter-clockwise
+        for row in range(num_rows): # increment columns right to left
+            if zigzag and row % 2 == 1:
+                for column in range(num_cols-1,-1,-1): # if odd increment through rows upwards
+                    mat_list.append((row*DIM_OF_MATRIX, (num_cols - 1- column)*DIM_OF_MATRIX, 90)) # 180 - 90
             else:
-                for row in range(num_rows): # increment through rows downwards
-                    mat_list.append((column*DIM_OF_MATRIX, row*DIM_OF_MATRIX, 270)) # 0 - 90 = 270
-    init_matrices(mat_list, spi_speed=spi_speed, spi_port=spi_port)
+                for column in range(num_cols): # increment through rows downwards
+                    mat_list.append((row*DIM_OF_MATRIX, (num_cols - 1 - column)*DIM_OF_MATRIX, 270)) # 0 - 90 = 270
+                  
+    print(mat_list)  
+    global container_math_coords
+    init_matrices(mat_list, math_coords=False, spi_speed=spi_speed, spi_port=spi_port)
+    container_math_coords = math_coords
 
 def show():
     """Tells the led_driver to send framebuffer to SPI port.

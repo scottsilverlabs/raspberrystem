@@ -302,21 +302,21 @@ static PyObject *py_init_matrices(PyObject *self, PyObject *args){
     }
     Debug("container_width = %d, container_height = %d, num_matrices = %d", 
         container_width, container_height, num_matrices);
-    int listSize = PyList_Size(mat_list);
-    if (!PyList_Check(mat_list) || listSize < 0){
-        PyErr_SetString(PyExc_TypeError, "Not a list");
-        return NULL;
-    }
+/*    int num_matrices = PyList_Size(mat_list);*/
+/*    if (!PyList_Check(mat_list) || num_matrices < 0){*/
+/*        PyErr_SetString(PyExc_TypeError, "Not a list");*/
+/*        return NULL;*/
+/*    }*/
     // get led_list ready
-    led_list = (struct Matrix *) malloc((listSize)*sizeof(struct Matrix));
+    led_list = (struct Matrix *) malloc((num_matrices)*sizeof(struct Matrix));
     if (led_list == 0){
         PyErr_NoMemory();
         return NULL;
     }
-    memset(led_list, '\0', (listSize)*sizeof(struct Matrix));
+    memset(led_list, '\0', (num_matrices)*sizeof(struct Matrix));
     // iterate through list object and place items in led_list
     int i;
-    for (i = 0; i < listSize; i++){
+    for (i = 0; i < num_matrices; i++){
         int x_offset, y_offset;
         int angle = 0;  // set angle to be 0 by default if not changed in tuple
         if (!PyArg_ParseTuple(PyList_GetItem(mat_list, i), "ii|i", &x_offset, &y_offset, &angle)){
