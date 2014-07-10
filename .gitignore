@@ -1,2 +1,4 @@
 *.tar
 *.pyc
+/build/
+*.egg-info/
