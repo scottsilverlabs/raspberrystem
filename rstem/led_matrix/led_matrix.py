@@ -336,12 +336,12 @@ def sprite(sprite, origin=(0,0), crop_origin=(0,0), crop_dimensions=None):
         y += 1
         
         
-    def frame(bitmap):
-        """Sends the entire frame (represented in a bitmap) to the led matrix.
-        Note: bitmap dimensions must be the same as the dimensions of the container (non rotated).
-        """
-        pass
-        # TODO
+def frame(bitmap):
+    """Sends the entire frame (represented in a bitmap) to the led matrix.
+    Note: bitmap dimensions must be the same as the dimensions of the container (non rotated).
+    """
+    pass
+    # TODO
 
 
 class LEDSprite(object):
