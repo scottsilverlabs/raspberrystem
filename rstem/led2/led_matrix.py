@@ -1,4 +1,19 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
+#
+# Copyright (c) 2014, Scott Silver Labs, LLC.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#       http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
 
 import os
 import re
@@ -13,6 +28,13 @@ initialized = False   # flag to indicate if LED has been initialized
 contianer_width = 0    # indicates the maximum width and height of the LEDContainer
 container_height = 0
 
+# TODO: for unit testing, remove when done
+def valid_color(color):
+    return valid_color(color)
+def convert_color(color):
+    return convert_color(color)
+def convert_to_std_coords(x,y):
+    return _convert_to_std_coords(x,y)
 
 
 def _init_check():
@@ -20,6 +42,7 @@ def _init_check():
     global initialized
     if not initialized:
         raise RuntimeError("Matrices must be initialized first.")
+    
 
 def _valid_color(color):
     """Checks if given color is number between 0-16 if an int or 0-f, or - if string"""
@@ -128,6 +151,7 @@ def show():
     """
     _init_check()
     led_driver.flush()
+    return 1
 
 def shutdown_matrices():
     """Unintializes matrices and frees all memory. 
@@ -176,10 +200,13 @@ def point(x, y=None, color=0xF, math_coords=True):
         if y is None and type(x) is tuple:
             x, y = x
         if x < 0 or x >= container_width or y < 0 or y >= container_height:
-            raise IndexError("Point given is not in framebuffer.")
+            # TODO: just do nothing and return instead
+#            raise IndexError("Point given is not in framebuffer.")
+            return
         if math_coords:
             x, y = _convert_to_std_coords(x, y)
-        led_driver.point(x, y, color)
+        led_driver.point(int(x), int(y), color)
+        return 1
 
 def rect(start, dimensions, color=0xF, math_coords=True):
     """Creates a rectangle from start point using given dimensions"""
@@ -196,35 +223,35 @@ def rect(start, dimensions, color=0xF, math_coords=True):
 def _sign(n):
     return 1 if n >= 0 else -1
 
-# TODO: write this in the led_driver ?
 def line(point_a, point_b, color=0xF, math_coords=True):
-    """Create a line from point_a to point_b"""
+    """Create a line from point_a to point_b.
+    Uses Bresenham's Line Algorithm (http://en.wikipedia.org/wiki/Bresenham's_line_algorithm)
+    """
+    x1, y1 = point_a
+    x2, y2 = point_b
+    dx = abs(x2 - x1)
+    dy = abs(y2 - y1)
+    sx = 1 if x1 < x2 else -1
+    sy = 1 if y1 < y2 else -1
+    err = dx - dy
+    while True:
+        point(x1, y1, color, math_coords=math_coords)
+        if ((x1 == x2 and y1 == y2) or x1 >= container_width or y1 >= container_height):
+            break
+        e2 = 2*err
+        if (e2 > -dy):
+            err -= dy
+            x1 += sx
+        if (e2 < dx):
+            err += dx
+            y1 += sy
+            
+def _line_fast(point_a, point_b, color=0xF, math_coords=True):
+    """A faster c implementation of line. Use if you need the speed."""
     if math_coords:
         point_a = _convert_to_std_coords(*point_a)
         point_b = _convert_to_std_coords(*point_b)
-    x_diff = point_a[0] - point_b[0]
-    y_diff = point_a[1] - point_b[1]
-    step = _sign(x_diff) * _sign(y_diff)
-    width = abs(x_diff) + 1
-    height = abs(y_diff) + 1
-    if (width > height):
-        start_point = point_a if x_diff < 0 else point_b
-        start_x, start_y = start_point
-        for x_offset in range(width):
-            led_driver.point(
-                start_x + x_offset,
-                start_y + step*(x_offset*height/width),
-                color
-            )
-    else:
-        start_point = point_a if y_diff < 0 else point_b
-        start_x, start_y = start_point
-        for y_offset in range(height):
-            led_driver.point(
-                start_x + step*(y_offset*width/height),
-                start_y + y_offset,
-                color
-            )
+    led_driver.line(point_a[0], point_a[1], point_b[0], point_b[1], _convert_color(color))
 
 
 def text(text, position=(0,0), offset_into=(0,0), crop_into=None, math_coords=True, font_size="large"):
@@ -235,7 +262,7 @@ def text(text, position=(0,0), offset_into=(0,0), crop_into=None, math_coords=Tr
         text = LEDMessage(text, font_size=font_size)
     elif type(text) != LEDMessage and type(text) != LEDSprite:
         raise ValueError("Invalid text")
-    sprite(text, position, offset_into, crop, crop_into, math_coords)
+    sprite(text, position, offset_into, crop_into, math_coords)
     return text
 
 
@@ -253,29 +280,13 @@ def sprite(sprite, position=(0,0), offset_into=(0,0), crop_into=None, math_coord
     _init_check()
     global container_width
     global container_height
-    # convert coordinates if math_coords
-    if math_coords:
-        position = (position[0], sprite.height - 1 + position[1])  # convert to top left corner
-        position = _convert_to_std_coords(*position)
+    
     x_pos, y_pos = position
-    if offset_into is None: # fix bug
-        offset_into = (0,0)
     x_offset, y_offset = offset_into
     
     # set up offset
     if x_offset < 0 or y_offset < 0:
         raise ValueError("offset_into must be positive numbers")
-    if (x_pos + x_offset) >= container_width or (y_pos + y_offset) >= container_height:
-        raise ValueError("offset_into is outside of framebuffer space") 
-    # move offset into framebuffer if outside (negative-wise)
-    if x_pos + x_offset < 0:
-        x_offset = abs(x_pos)
-    if math_coords:
-        if y_pos - y_offset < 0:
-            y_offset = abs(y_pos)
-    else:
-        if y_pos + y_offset < 0:
-            y_offset = abs(y_pos)
     
     # set up crop
     if crop_into is None:
@@ -287,23 +298,27 @@ def sprite(sprite, position=(0,0), offset_into=(0,0), crop_into=None, math_coord
         
     # set up start position
     x_start = max(x_pos + x_offset, 0)
-    if math_coords:
-        y_start = max(y_pos - y_offset, 0)
-    else:
-        y_start = max(y_pos + y_offset, 0) 
+    y_start = max(y_pos + y_offset, 0) 
+    
+    if x_start >= container_width or y_start >= container_height:
+        # TODO: do nothing, return
+        raise ValueError("start position outside of container.")
         
     # set up end position
-    x_end = min(x_pos + x_crop, container_width)
-    y_end = min(y_pos + y_crop, container_height)
+    x_end = min(x_pos + x_crop, container_width, x_pos + sprite.width)
+    y_end = min(y_pos + y_crop, container_height, y_pos + sprite.height)
     
-    print("start : ", (x_start, y_start), "end : ", (x_end, y_end))
     
     # iterate through sprite and set points to led_driver
     y = y_start
     while y < y_end:
         x = x_start
         while x < x_end:
-            point((x, y), color=sprite.bitmap[y - y_start + y_offset][x - x_start + x_offset], math_coords=False)
+            x_sprite = x - x_start + x_offset
+            y_sprite = y - y_start + y_offset
+            if math_coords:
+                y_sprite = sprite.height - 1 - y_sprite
+            point((x, y), color=sprite.bitmap[y_sprite][x_sprite], math_coords=math_coords)
             x += 1
         y += 1
 
@@ -340,6 +355,7 @@ class LEDSprite(object):
         self.bitmap = bitmap
         self.height = bitmap_height
         self.width = bitmap_width
+        return 1
 
     def append(self, sprite):
         """Appends given sprite to the right of itself
@@ -390,8 +406,8 @@ def _char_to_sprite(char, font_path):
         return LEDSprite(font_path + "/lower/" + char)
     elif char.isspace():
         return LEDSprite(font_path + "/space") # return a space 
-    elif os.path.isfile(font_path + "/misc/" + ord(char)): # add if exist in misc folder
-        return LEDSprite(font_path + "/misc/" + ord(char))
+    elif os.path.isfile(font_path + "/misc/" + str(ord(char))): # add if exist in misc folder
+        return LEDSprite(font_path + "/misc/" + str(ord(char)))
     else:
         return LEDSprite(font_path + "/unknown") # return generic box character
 
