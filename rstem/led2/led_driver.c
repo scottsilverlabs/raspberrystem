@@ -1,3 +1,25 @@
+/*
+ * led_driver.c
+ *
+ * Copyright (c) 2014, Scott Silver Labs, LLC.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * This code originally used the SPI testing utility included with Linux as a
+ * reference.
+ */
+
+
 #include <Python.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -12,11 +34,13 @@
 #define NUM_BYTES_MATRIX ((DIM_OF_MATRIX*DIM_OF_MATRIX)/2)
 #define bitstream_SIZE (num_matrices*NUM_BYTES_MATRIX)
 
+#define SIGN(x) (((x) >= 0) ? 1 : -1)
+
 int debug = 0;
 #define Debug(args...) if (debug) {printf("LED_DRIVER: " args); printf("\n");}
 
 // display current framebuffer during flush
-int display_on_terminal = 1;
+int display_on_terminal = 0;
 
 int spi;
 unsigned char spi_mode;
@@ -94,6 +118,8 @@ int write_bytes(int dev, unsigned char* val, int len) {
 
 int point(int x, int y, unsigned int color) {
     Debug("Setting point at (%d,%d) with color %d", x, y, color);
+    if (x >= container_width || x < 0 || y >= container_height || y < 0)
+        return -1;
     framebuffer[x][y] = color;
     return 0;
 }
@@ -111,7 +137,27 @@ int fill(unsigned int color){
 
 
 int line(int x1, int y1, int x2, int y2, unsigned int color){
-    // TODO: if the python version isn't fast enough
+    int dx = abs(x2 - x1);
+    int dy = abs(y2 - y1);
+    int sx = (x1 < x2) ? 1 : -1;
+    int sy = (y1 < y2) ? 1 : -1;
+    int err = dx - dy;
+    Debug("dx = %d, dy = %d, sx = %d, sy = %d, err = %d", dx, dy, sx, sy, err);
+    while (1) {
+        Debug(" x1, y1 = %d,%d   err = %d", x1, y1, err);
+        point(x1, y1, color);
+        if ((x1 == x2 && y1 == y2) || x1 >= container_width || y1 >= container_height)
+            break;
+        int e2 = 2*err;
+        if (e2 > -dy) {
+            err -= dy;
+            x1 += sx;
+        }
+        if (e2 < dx) {
+            err += dx;
+            y1 += sy;
+        }
+    }
     return 0;
 }
 
@@ -228,7 +274,7 @@ int close_and_free(void){
 }
 
 void print_framebuffer(void){
-    rewind(stdout);  // clear terminal
+    system("clear");  // clear terminal
     int y;
     for (y = 0; y < container_height; y++){
         int x;
@@ -304,13 +350,10 @@ static PyObject *py_fill(PyObject *self, PyObject *args){
 
 static PyObject *py_line(PyObject *self, PyObject *args){
     int x1, y1, x2, y2;
-    unsigned int color = 17; // if still 17 after parsing, color wasn't given
-	if(!PyArg_ParseTuple(args, "iiii|I", &x1, &y1, &x2, &y2, &color)){
+    unsigned int color;
+	if(!PyArg_ParseTuple(args, "iiiiI", &x1, &y1, &x2, &y2, &color)){
 		PyErr_SetString(PyExc_TypeError, "Not ints!");
 		return NULL;
-	}
-	if (color == 17){
-	    color = 0xF;
 	}
 	int ret = line(x1, y1, x2, y2, color);
 	if(ret < 0){
