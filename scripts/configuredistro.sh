@@ -18,6 +18,10 @@ if [[ -z $DISPLAY && $(tty) = /dev/tty1 ]]; then
 	cat /etc/null > .config/openbox/autostart
 fi' > /root/.profile #Ask to boot into the IDE if there is no X server and they are in TTY1
 sudo cat /dev/null > /etc/X11/default-display-manager #default-display-manager is lightdm, which was removed
+sed -i "/^overscan_.*/d" /boot/config.txt
+sed -i "s/^#disable_overscan/disable_overscan/" /boot/config.txt
+sed -i "s/^gpu_mem=.*/gpu_mem=16/" /boot/config.txt
+set_config_var
 echo "en_US.UTF-8 UTF-8" > /etc/locale.gen
 sudo locale-gen
 sudo dpkg-reconfigure keyboard-configuration
