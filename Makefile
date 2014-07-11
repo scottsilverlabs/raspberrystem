@@ -4,15 +4,15 @@
 # Builds all software needed on target.  Optionally installs them.
 #
 SHELL = /bin/bash
-export PRE_MAK=$(CURDIR)/make/prerules.mak
-export POST_MAK=$(CURDIR)/make/postrules.mak
+export PRE_MAK=$(CURDIR)/pkg/make/prerules.mak
+export POST_MAK=$(CURDIR)/pkg/make/postrules.mak
 include $(PRE_MAK)
 
 export TOPDIR=$(CURDIR)
 
 DIRS=
 DIRS+=rstem
-DIRS+=cellapps
+DIRS+=cells
 DIRS+=projects
 DIRS+=misc
 
@@ -21,7 +21,7 @@ PYFLAGS=
 DESTDIR=/
 # install directories
 PROJECTSDIR=$$HOME/rstem
-CELLAPPSDIR=$$HOME/rstem
+cellsDIR=$$HOME/rstem
 #BUILDIR=$(CURDIR)/debian/raspberrystem
 
 # Calculate the base names of the distribution, the location of all source,
@@ -44,11 +44,11 @@ DEB_SOURCES:=debian/changelog \
 #	$(wildcard debian/*.docs) \
 	$(wildcard debian/*.doc-base) \
 	$(wildcard debian/*.desktop)
-DOC_SOURCES:=docs/conf.py \
-	$(wildcard docs/*.png) \
-	$(wildcard docs/*.svg) \
-	$(wildcard docs/*.rst) \
-	$(wildcard docs/*.pdf)
+#DOC_SOURCES:=docs/conf.py \
+#	$(wildcard docs/*.png) \
+#	$(wildcard docs/*.svg) \
+#	$(wildcard docs/*.rst) \
+#	$(wildcard docs/*.pdf)
 
 # Types of dist files all located in dist folder
 DIST_EGG=dist/$(NAME)-$(VER)-$(PYVER).egg
@@ -61,17 +61,14 @@ DIST_DSC=dist/$(NAME)_$(VER).tar.gz \
 	dist/$(NAME)_$(VER).dsc \
 	dist/$(NAME)_$(VER)_source.changes
 
-# files needed to be sent over to pi for local installation
-PI_TAR_FILES=rstem cellapps misc projects Makefile MANIFEST.in setup.py README.md make
-
-COMMANDS=install local-install test source egg zip tar deb dist install-projects install-cellapps
+COMMANDS=install local-install test source egg zip tar deb dist install-projects install-cells
 
 .PHONY: all pi-install upload-check help clean push pull $(COMMANDS) $(addprefix pi-, $(COMMANDS))
 
 
 # update files on raspberry pi
 push:
-	rsync -azP --include-from='install_include.txt' --exclude='*' ./ $(PI):~/rsinstall
+	rsync -azP --include-from='pkg/install_include.txt' --exclude='*' ./ $(PI):~/rsinstall
 
 # send changed files on pi back to user
 pull:
@@ -86,7 +83,7 @@ help:
 	@echo "make install - Install onto remote Raspberry Pi"
 	@echo "make local-install - Install onto local machine"
 	@echo "make install-projects - Install projects to home folder"
-	@echo "make install-cellapps - Install cellapps to home folder"
+	@echo "make install-cells - Install cells to home folder"
 	@echo "make test - Run tests"
 #	@echo "make doc - Generate HTML and PDF documentation"
 	@echo "make source - Create source package"
@@ -115,19 +112,19 @@ $(COMMANDS)::
 clean-pi:
 	ssh $(SSHFLAGS) -t -v $(PI) "rm -rf ~/rsinstall; rm -rf ~/rstem"
 
-#pi-clean-pi:
-#	rm -rf ~/rsinstall
-
 pi-install:
-#	$(MAKE)
+	@cp pkg/setup.py ./
+	@cp pkg/MANIFEST.in ./
 	sudo $(PYTHON) $(PYFLAGS) ./setup.py install
 	$(MAKE) pi-install-projects
-	$(MAKE) pi-install-cellapps
+	$(MAKE) pi-install-cells
+	@rm ./setup.py
+	@rm ./MANIFEST.in
 
 
-pi-install-cellapps:
-	mkdir -p $(CELLAPPSDIR)
-	cp -r ./cellapps $(CELLAPPSDIR)
+pi-install-cells:
+	mkdir -p $(cellsDIR)
+	cp -r ./cells $(cellsDIR)
 
 pi-install-projects:
 	mkdir -p $(PROJECTSDIR)
@@ -188,6 +185,8 @@ pi-dist: $(DIST_EGG) $(DIST_DEB) $(DIST_DSC) $(DIST_TAR) $(DIST_ZIP)
 clean-all: clean clean-dist
 
 clean-dist:
+	@cp pkg/setup.py ./
+	@cp pkg/MANIFEST.in ./
 	$(PYTHON) $(PYFLAGS) setup.py clean
 	$(MAKE) -f $(CURDIR)/debian/rules clean
 	rm -rf build/ dist/ $(NAME).egg-info/ $(NAME)-$(VER)
@@ -197,38 +196,62 @@ clean-dist:
 	rm -f ../python-$(NAME)_$(VER)_armhf.deb ../python3-$(NAME)_$(VER)_armhf.deb
 	rm -f ../$(NAME)_$(VER).dsc ../$(NAME)_$(VER).tar.gz ../$(NAME)_$(VER)_source.changes
 	find $(CURDIR) -name '*.pyc' -delete
-	rm -f debian/files
 	touch debian/files
+	rm -f debian/files
+	@rm ./setup.py
+	@rm ./MANIFEST.in
 
 
 $(DIST_TAR): $(PY_SOURCES)
+	@cp pkg/setup.py ./
+	@cp pkg/MANIFEST.in ./
 	$(PYTHON) $(PYFLAGS) setup.py sdist --formats gztar
+	@rm ./setup.py
+	@rm ./MANIFEST.in
 
 $(DIST_ZIP): $(PY_SOURCES)
+	@cp pkg/setup.py ./
+	@cp pkg/MANIFEST.in ./
 	$(PYTHON) $(PYFLAGS) setup.py sdist --formats zip
+	@rm ./setup.py
+	@rm ./MANIFEST.in
 
 $(DIST_EGG): $(PY_SOURCES)
+	@cp pkg/setup.py ./
+	@cp pkg/MANIFEST.in ./
 	$(PYTHON) $(PYFLAGS) setup.py bdist_egg
+	@rm ./setup.py
+	@rm ./MANIFEST.in
 
 $(DIST_DEB): $(PY_SOURCES) $(DEB_SOURCES)
-#	$(MAKE)
 	# build the binary package in the parent directory then rename it to
 	# project_version.orig.tar.gz
+	@cp pkg/setup.py ./
+	@cp pkg/MANIFEST.in ./
+	cp -r  pkg/debian debian
 	$(PYTHON) $(PYFLAGS) setup.py sdist --dist-dir=../
 	rename -f 's/$(NAME)-(.*)\.tar\.gz/$(NAME)_$$1\.orig\.tar\.gz/' ../*
 	debuild -b -i -I -Idist -Ibuild -Idocs/_build -Icoverage -I__pycache__ -I.coverage -Itags -I*.pyc -I*.vim -I*.xcf -aarmhf -rfakeroot
 	mkdir -p dist/
 	for f in $(DIST_DEB); do cp ../$${f##*/} dist/; done
+	rm -rf debian
+	@rm ./setup.py
+	@rm ./MANIFEST.in
 
 $(DIST_DSC): $(PY_SOURCES) $(DEB_SOURCES)
-#	$(MAKE)
 	# build the source package in the parent directory then rename it to
 	# project_version.orig.tar.gz
+	@cp pkg/setup.py ./
+	@cp pkg/MANIFEST.in ./
+	cp -r  pkg/debian debian
 	$(PYTHON) $(PYFLAGS) setup.py sdist --dist-dir=../
 	rename -f 's/$(NAME)-(.*)\.tar\.gz/$(NAME)_$$1\.orig\.tar\.gz/' ../*
 	debuild -S -i -I -Idist -Ibuild -Idocs/_build -Icoverage -I__pycache__ -I.coverage -Itags -I*.pyc -I*.vim -I*.xcf -aarmhf -rfakeroot
 	mkdir -p dist/
 	for f in $(DIST_DSC); do cp ../$${f##*/} dist/; done
+	rm -rf debian
+	@rm ./setup.py
+	@rm ./MANIFEST.in
 
 
 include $(POST_MAK)
