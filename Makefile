@@ -113,7 +113,7 @@ $(COMMANDS)::
 # on pi commands start with "pi-"
 
 clean-pi:
-	ssh $(SSHFLAGS) -t -v $(PI) "rm -rf ~/rsinstall; rm -rf ~/rstem"
+	ssh $(SSHFLAGS) -t -v $(PI) "sudo rm -rf ~/rsinstall; sudo rm -rf ~/rstem"
 
 #pi-clean-pi:
 #	rm -rf ~/rsinstall
