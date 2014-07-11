@@ -19,8 +19,8 @@ def init():
 	time.sleep(10.0/1000.0)
 	command(XYZ_DATA_CFG, 0x01)
 	time.sleep(1.0/1000.0)
-	command(CTRL_REG1, 0x01)
-	time.sleep(1.0/1000.0)
+#	command(CTRL_REG1, 0x01)
+#	time.sleep(1.0/1000.0)
 
 def read():
 	global data
