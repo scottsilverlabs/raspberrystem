@@ -203,7 +203,7 @@ clean-dist:
 
 
 $(DIST_TAR): $(PY_SOURCES)
-	@cp pkg/setup.py ./
+	@cp pkg/setup.py ./ 
 	@cp pkg/MANIFEST.in ./
 	$(PYTHON) $(PYFLAGS) setup.py sdist --formats gztar
 	@rm ./setup.py
