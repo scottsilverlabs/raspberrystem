@@ -18,12 +18,8 @@ import time
 import random
 import sys
 from rstem import led_matrix
-#from rstem import accel
 import RPi.GPIO as GPIO
-#from rstem import gpio
 from collections import deque
-#from subprocess import Popen
-
 
 
 POLL_PERIOD=0.020
@@ -44,7 +40,6 @@ wall_params = None
 no_wall_params = None
 
 def clamp(val, minimum, maximum):
-    # TODO: don't know what this does???
     return min(maximum, max(minimum, val))
 
 def randint(min, max):
@@ -341,8 +336,7 @@ class States(object):
             self.next()
 
 
-
-# TODO: seperate this protector game from the game engine
+# TODO: add music when sound api is developed
 def protector(num_rows=1, num_cols=2, angle=180):
     try:
 #        music_cmd = "exec mpg123 /usr/share/scratch/Media/Sounds/Music\ Loops/Cave.mp3 -g 50 -l 0"
@@ -360,7 +354,6 @@ def protector(num_rows=1, num_cols=2, angle=180):
         for g in [SHOOT, LEFT, DOWN, UP, RIGHT]:
             GPIO.setup(g, GPIO.IN, pull_up_down = GPIO.PUD_UP)
             GPIO.add_event_detect(g, GPIO.FALLING, callback=button_handler, bouncetime=100)
-        #    gpio.configure(g, gpio.INPUT)
 
 
         # set up led matrix
@@ -456,28 +449,12 @@ def protector(num_rows=1, num_cols=2, angle=180):
                     elif state.current() == BIG_BOSS:
                         pass
                 else:
-                    # Adjust sprites based on user input
-                    # TODO: set up as callback functions instead?
-#                    for c in [SHOOT, LEFT, DOWN, UP, RIGHT]:
-#                        if GPIO.input(c) == 1:  # TODO: debounce input
-#                            if c in [LEFT, RIGHT, UP, DOWN]:
-#                                ship.deferred_adjust(c)
-#                            if c in [SHOOT]:
-#                                missiles.new(ship.origin)
-                                
-#                    clicks = gpio.was_clicked()
-#                    for c in clicks:
-#                        if c in [LEFT, RIGHT, UP, DOWN]:
-#                            ship.deferred_adjust(c)
-#                        if c in [SHOOT]:
-#                            missiles.new(ship.origin)
 
                     # Move sprites
                     for sprite in all_sprites:
                         sprite.trystep()
 
                     # Draw sprites
-                    # TODO: use sprite objects in api to draw sprites or meh?
                     led_matrix.erase()
                     for sprite in all_sprites:
                         sprite.draw()
@@ -499,7 +476,7 @@ def protector(num_rows=1, num_cols=2, angle=180):
 
             elif state.current() == GAME_OVER:
                 # Scroll "GAME OVER" message
-                text = led_matrix.LEDMessage("GAME OVER!!!  :)", font_size="small")
+                text = led_matrix.LEDText("GAME OVER!!!", font_size="small")
                 pos_x, pos_y = (led_matrix.width(),0)
                 while -pos_x < text.width:
                     time.sleep(.1)
@@ -520,34 +497,6 @@ def protector(num_rows=1, num_cols=2, angle=180):
         led_matrix.shutdown_matrices()
         GPIO.cleanup()
 
-#xbase, ybase =  accel.get_data()
-#def balancing_dot():
-#    x, y = (4, 4)
-#    presses = 0
-#    while True:
-#        # Adjust sprites based on user input
-#        clicks = gpio.was_clicked()
-#        for c in clicks:
-#            if c in [LEFT, RIGHT, UP, DOWN, SHOOT]:
-#                presses += 1
-#        if presses > 3:
-#            break
-
-#        xaccel, yaccel =  accel.get_data()
-#        xchg = (xaccel - xbase)/20.0
-#        ychg = (yaccel - ybase)/20.0
-#        x, y = led.bound(x + xchg, y + ychg)
-
-#        led.erase()
-#        led.point(int(x), int(y))
-#        led.show()
-#        time.sleep(0.1)
-
-#time.sleep(3)
-
-
-
 while True:
-#    balancing_dot()
     protector()
 
