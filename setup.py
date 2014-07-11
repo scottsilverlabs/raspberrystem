@@ -48,7 +48,7 @@ class install(_install):
         self.execute(_post_install, (self.install_lib,), msg="Running post install task...")
 
 # C extension wrappers
-led_driver =  Extension('led_driver', sources = ['rstem/led2/led_driver.c'])
+led_driver =  Extension('led_driver', sources = ['rstem/led_matrix/led_driver.c'])
 
 setup(
     name = "raspberrystem",
@@ -72,7 +72,7 @@ setup(
         "Programming Language :: Python :: 3.2",
         "Programming Language :: Python :: 3.3",
     ],
-    install_requires=[  # insert python packages as needed
+    install_requires=[ 'RPi'  # insert python packages as needed
     ],
     cmdclass={'install': install},  # overload install command
     test_suite = 'tests',
