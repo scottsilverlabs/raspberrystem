@@ -430,20 +430,20 @@ def _char_to_sprite(char, font_path):
         
     orig_font_path = font_path
     if char.isdigit():
-        font_path += "/number/" + char + ".spr"
+        font_path = os.path.join(font_path, "number", char + ".spr")
     elif char.isupper():
-        font_path += "/upper/" + char + ".spr"
+        font_path = os.path.join(font_path, "upper", char + ".spr")
     elif char.islower():
-        font_path += "/lower/" + char + ".spr"
+        font_path = os.path.join(font_path, "lower", char + ".spr")
     elif char.isspace():
-        font_path += "/space.spr"
+        font_path = os.path.join(font_path, "space.spr")
     else:
-        font_path += "/misc/" + str(ord(char)) + ".spr"
+        font_path = os.path.join(font_path, "misc", str(ord(char)) + ".spr")
         
     if os.path.isfile(font_path):
         return LEDSprite(font_path)
     else:
-        return LEDSprite(orig_font_path + "/unknown.spr")
+        return LEDSprite(os.path.join(orig_font_path, "unknown.spr"))
         
         
 
@@ -461,13 +461,18 @@ class LEDText(LEDSprite):
             # only use font_name if no custom font_path was given
             font_path = os.path.join(this_dir, "font")
             
-        # if 'large' or 'small' given change font_name
-        if font_name == "large":
-            font_path += "/5x7"
-        elif font_name == "small":
-            font_path += "/3x5"
-        else:
-            font_path += "/" + font_name
+        if not os.path.isdir(font_path):
+            raise IOError("Font path does not exist.")
+        orig_font_path = font_path
+
+        # attach font_name to font_path
+        font_path = os.path.join(font_path, font_name)
+        
+        # if font subdirectory doesn exist, attempt to open a .font file
+        if not os.path.isdir(font_path):
+            f = open(os.path.join(orig_font_path, font_name + ".font"), 'r')
+            font_path = os.path.join(orig_font_path, f.read().strip())
+            f.close()
 
         message = message.strip()
         if len(message) == 0:
