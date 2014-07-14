@@ -8,6 +8,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <math.h>
 
 #define STATUS 0x00
 #define OUT_X_MSB 0x01
@@ -44,7 +45,7 @@ unsigned char int_enable = 0x00;
 unsigned char int_pins = 0x00;
 
 //By default the range is +- 4G
-float range = 4.0;
+double range = 4.0;
 
 int init_i2c(){
 	adapter_number = adapter_number;
@@ -210,7 +211,6 @@ static PyObject* set_freefall_motion_debounce(PyObject *self, PyObject *args){
 }
 
 static PyObject * update_data(PyObject *self, PyObject *args){
-	usleep(1000);
 	int ret;
 	ret = i2c_smbus_read_i2c_block_data(file, 0x00, 7, rawData);
         if(ret < 0){
@@ -224,12 +224,35 @@ static PyObject * update_data(PyObject *self, PyObject *args){
 			accelData[i] -= 1025;
 		}
 	}
-	float x = ((float) accelData[0])/(512.0/range);
-	float y = ((float) accelData[1])/(512.0/range);
-	float z = ((float) accelData[2])/(512.0/range);
-	return Py_BuildValue("fff", x, y, z);
+	double x = ((double) accelData[0])/(512.0/range);
+	double y = ((double) accelData[1])/(512.0/range);
+	double z = ((double) accelData[2])/(512.0/range);
+	return Py_BuildValue("ddd", x, y, z);
 }
 
+static PyObject * angles(PyObject *self, PyObject *args){
+	int ret = i2c_smbus_read_i2c_block_data(file, 0x00, 7, rawData);
+	if(ret < 0){
+		PyErr_SetString(PyExc_IOError, "Could not update data!");
+		return NULL;
+	}
+	int i;
+        for(i = 0; i < 3; i++){
+                accelData[i] = (int) ((rawData[2*i+1] << 2) | ((rawData[2*i+2] >> 6) & 0x03));
+                if(accelData[i] > 1024/2) {
+                        accelData[i] -= 1025;
+                }
+        }
+        double x = ((double) accelData[0])/(512.0/range);
+        double y = ((double) accelData[1])/(512.0/range);
+        double z = ((double) accelData[2])/(512.0/range);
+
+	double yaw = atan2(z, sqrt(x*x + y*y));
+	double pitch = atan2(x, sqrt(z*z + y*y));
+	double roll = atan2(y, sqrt(x*x + z*z));
+
+	return Py_BuildValue("ddd", pitch, roll, yaw);
+}
 /*
 static PyObject * enable_tilt(PyObject *self, PyObject *args){
 	int ret;
@@ -399,8 +422,9 @@ static PyMethodDef accel_methods[] = {
 	{"freefall_motion_debounce", set_freefall_motion_debounce, METH_VARARGS, "Sets number of debounce counts for interrupt to fire."},
 //	{"enable_tilt", enable_tilt, METH_VARARGS, "Enables tile interrupt on input pin with input debounce samples."},
 	{"enable_data_ready", enable_data_ready, METH_VARARGS, "Enables the data ready interrupt on input pin."},
-	{"set_sample_rate_prescaler", set_sample_rate_prescaler, METH_VARARGS, "Sets the prescalers for the sample rate"},
-	{"set_range", set_range, METH_VARARGS, "Sets the range of the accelerometer"},
+	{"set_sample_rate_prescaler", set_sample_rate_prescaler, METH_VARARGS, "Sets the prescalers for the sample rate."},
+	{"set_range", set_range, METH_VARARGS, "Sets the range of the accelerometer."},
+	{"angles", angles, METH_NOARGS, "Returns yaw, pitch, and roll."},
 	{NULL, NULL, 0, NULL} // Sentinal
 };
 
