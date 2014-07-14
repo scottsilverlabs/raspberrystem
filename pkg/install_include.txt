@@ -1,11 +1,11 @@
 rstem/***
-cellapps/***
+cells/***
 debian/***
-ide/***
 misc/***
 projects/***
-make/***
 tests/***
+pkg/***
+scripts/***
 /Makefile
 /install_include.txt
 /LICENSE.txt

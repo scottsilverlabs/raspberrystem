@@ -1,32 +1,17 @@
-#
-# Master Makefile
-#
-# Builds all software needed on target.  Optionally installs them.
-#
 SHELL = /bin/bash
-export PRE_MAK=$(CURDIR)/pkg/make/prerules.mak
-export POST_MAK=$(CURDIR)/pkg/make/postrules.mak
-include $(PRE_MAK)
-
-export TOPDIR=$(CURDIR)
-
-DIRS=
-DIRS+=rstem
-DIRS+=cells
-DIRS+=projects
-DIRS+=misc
 
 PYTHON=python3  # default python
 PYFLAGS=
 DESTDIR=/
 # install directories
 PROJECTSDIR=$$HOME/rstem
-cellsDIR=$$HOME/rstem
+CELLSDIR=$$HOME/rstem
 #BUILDIR=$(CURDIR)/debian/raspberrystem
 
 # Calculate the base names of the distribution, the location of all source,
 NAME:=$(shell $(PYTHON) $(PYFLAGS) setup.py --name)
 VER:=$(shell $(PYTHON) $(PYFLAGS) setup.py --version)
+PI=pi@raspberrypi
 
 
 PYVER:=$(shell $(PYTHON) $(PYFLAGS) -c "import sys; print('py%d.%d' % sys.version_info[:2])")
@@ -61,23 +46,13 @@ DIST_DSC=dist/$(NAME)_$(VER).tar.gz \
 	dist/$(NAME)_$(VER).dsc \
 	dist/$(NAME)_$(VER)_source.changes
 
-COMMANDS=install local-install test source egg zip tar deb dist install-projects install-cells
+COMMANDS=install local-install test source egg zip tar deb dist install-projects install-cells \
+    upload-all upload-ppa upload-cheeseshop
 
 .PHONY: all pi-install upload-check help clean push pull $(COMMANDS) $(addprefix pi-, $(COMMANDS))
 
-
-# update files on raspberry pi
-push:
-	rsync -azP --include-from='pkg/install_include.txt' --exclude='*' ./ $(PI):~/rsinstall
-
-# send changed files on pi back to user
-pull:
-	rsync -azP $(PI):~/rsinstall/* ./
-
-# all::
-
 help:
-	@echo "make - Compile sources locally"
+#	@echo "make - Compile sources locally"
 	@echo "make push - Push changes on local computer onto pi"
 	@echo "make pull - Pull changes on pi onto local computer (BE CAREFULL!!!)"
 	@echo "make install - Install onto remote Raspberry Pi"
@@ -93,13 +68,30 @@ help:
 	@echo "make deb - Generate Debian packages (NOT COMPLETED)"
 	@echo "make dist - Generate all packages"
 	@echo "make clean-pi - Clean all files on the pi"
-	@echo "make clean-all - Clean all files locally"
-	@echo "make clean - Get rid of all compiled files locally"
-	@echo "make clean-dist - Get rid of all package files locally"
+	@echo "make clean - Get rid of all files locally"
 	@echo "make release - Create and tag a new release"
 	@echo "make upload-all - Upload the new release to all repositories"
 	@echo "make upload-ppa - Upload the new release to ppa"
 	@echo "make upload-cheeseshop - Upload the new release to cheeseshop"
+
+# update files on raspberry pi
+push:
+	cp pkg/setup.py ./
+	cp pkg/MANIFEST.in ./
+	cp -r  pkg/debian debian
+	rsync -azP --include-from='pkg/install_include.txt' --exclude='*' ./ $(PI):~/rsinstall
+	rm ./setup.py
+	rm ./MANIFEST.in
+	rm -rf debian
+
+
+# send changed files on pi back to user
+pull:
+	rsync -azP $(PI):~/rsinstall/* ./
+	rm ./setup.py
+	rm ./MANIFEST.in
+	rm -rf debian
+
 
 # for each command push new files to raspberry pi then run command on the pi
 $(COMMANDS)::
@@ -109,22 +101,17 @@ $(COMMANDS)::
 
 # on pi commands start with "pi-"
 
-clean-pi:
-	ssh $(SSHFLAGS) -t -v $(PI) "rm -rf ~/rsinstall; rm -rf ~/rstem"
 
 pi-install:
-	@cp pkg/setup.py ./
-	@cp pkg/MANIFEST.in ./
 	sudo $(PYTHON) $(PYFLAGS) ./setup.py install
 	$(MAKE) pi-install-projects
 	$(MAKE) pi-install-cells
-	@rm ./setup.py
-	@rm ./MANIFEST.in
+
 
 
 pi-install-cells:
-	mkdir -p $(cellsDIR)
-	cp -r ./cells $(cellsDIR)
+	mkdir -p $(CELLSDIR)
+	cp -r ./cells $(CELLSDIR)
 
 pi-install-projects:
 	mkdir -p $(PROJECTSDIR)
@@ -147,20 +134,18 @@ pi-upload-all:
 	$(MAKE) pi-upload-ppa
 	$(MAKE) pi-upload-cheeseshop
 
-upload-ppa: $(DIST_DSC)
+pi-upload-ppa: $(DIST_DSC)
 	# TODO: change this from raspberrystem-test ppa to an official one
 	# (to add this repo on raspberrypi type: sudo add-apt-repository ppa:r-jon-s/ppa)
 	$(MAKE) upload-check
 	dput ppa:r-jon-s/ppa dist/$(NAME)_$(VER)_source.changes
 
-upload-cheeseshop: $(PY_SOURCES)
-#	$(MAKE)
+pi-upload-cheeseshop: $(PY_SOURCES)
 	# update the package's registration on PyPI (in case any metadata's changed)
 	$(MAKE) upload-check
 	$(PYTHON) $(PYFLAGS) setup.py register
 
-release: $(PY_SOURCES) $(DOC_SOURCES)
-	$(MAKE) clean-all-pi	
+pi-release: $(PY_SOURCES) $(DOC_SOURCES)
 	$(MAKE) upload-check
 	# update the debian changelog with new release information
 	dch --newversion $(VER) --controlmaint
@@ -182,14 +167,18 @@ pi-deb:
 
 pi-dist: $(DIST_EGG) $(DIST_DEB) $(DIST_DSC) $(DIST_TAR) $(DIST_ZIP)
 
-clean-all: clean clean-dist
+# clean all files from raspberry pi
+clean-pi:
+	ssh $(SSHFLAGS) -t -v $(PI) "rm -rf ~/rsinstall; rm -rf ~/rstem"
 
-clean-dist:
-	@cp pkg/setup.py ./
-	@cp pkg/MANIFEST.in ./
+# clean all files locally
+clean:
+	cp pkg/setup.py ./
+	cp pkg/MANIFEST.in ./
+	cp -r  pkg/debian debian
 	$(PYTHON) $(PYFLAGS) setup.py clean
 	$(MAKE) -f $(CURDIR)/debian/rules clean
-	rm -rf build/ dist/ $(NAME).egg-info/ $(NAME)-$(VER)
+	sudo rm -rf build/ dist/ $(NAME).egg-info/ $(NAME)-$(VER)
 	rm -rf debian/python3-$(NAME) debian/python-$(NAME)
 	rm -f debian/python*
 	rm -f ../$(NAME)_$(VER).orig.tar.gz ../$(NAME)_$(VER)_armhf.build ../$(NAME)_$(VER)_armhf.changes ../$(NAME)_$(VER)_source.build
@@ -198,60 +187,36 @@ clean-dist:
 	find $(CURDIR) -name '*.pyc' -delete
 	touch debian/files
 	rm -f debian/files
-	@rm ./setup.py
-	@rm ./MANIFEST.in
+	rm ./setup.py
+	rm ./MANIFEST.in
+	rm -rf debian
 
 
 $(DIST_TAR): $(PY_SOURCES)
-	@cp pkg/setup.py ./ 
-	@cp pkg/MANIFEST.in ./
 	$(PYTHON) $(PYFLAGS) setup.py sdist --formats gztar
-	@rm ./setup.py
-	@rm ./MANIFEST.in
 
 $(DIST_ZIP): $(PY_SOURCES)
-	@cp pkg/setup.py ./
-	@cp pkg/MANIFEST.in ./
 	$(PYTHON) $(PYFLAGS) setup.py sdist --formats zip
-	@rm ./setup.py
-	@rm ./MANIFEST.in
 
 $(DIST_EGG): $(PY_SOURCES)
-	@cp pkg/setup.py ./
-	@cp pkg/MANIFEST.in ./
 	$(PYTHON) $(PYFLAGS) setup.py bdist_egg
-	@rm ./setup.py
-	@rm ./MANIFEST.in
 
 $(DIST_DEB): $(PY_SOURCES) $(DEB_SOURCES)
 	# build the binary package in the parent directory then rename it to
 	# project_version.orig.tar.gz
-	@cp pkg/setup.py ./
-	@cp pkg/MANIFEST.in ./
-	cp -r  pkg/debian debian
 	$(PYTHON) $(PYFLAGS) setup.py sdist --dist-dir=../
 	rename -f 's/$(NAME)-(.*)\.tar\.gz/$(NAME)_$$1\.orig\.tar\.gz/' ../*
 	debuild -b -i -I -Idist -Ibuild -Idocs/_build -Icoverage -I__pycache__ -I.coverage -Itags -I*.pyc -I*.vim -I*.xcf -aarmhf -rfakeroot
 	mkdir -p dist/
 	for f in $(DIST_DEB); do cp ../$${f##*/} dist/; done
-	rm -rf debian
-	@rm ./setup.py
-	@rm ./MANIFEST.in
 
 $(DIST_DSC): $(PY_SOURCES) $(DEB_SOURCES)
 	# build the source package in the parent directory then rename it to
 	# project_version.orig.tar.gz
-	@cp pkg/setup.py ./
-	@cp pkg/MANIFEST.in ./
 	cp -r  pkg/debian debian
 	$(PYTHON) $(PYFLAGS) setup.py sdist --dist-dir=../
 	rename -f 's/$(NAME)-(.*)\.tar\.gz/$(NAME)_$$1\.orig\.tar\.gz/' ../*
 	debuild -S -i -I -Idist -Ibuild -Idocs/_build -Icoverage -I__pycache__ -I.coverage -Itags -I*.pyc -I*.vim -I*.xcf -aarmhf -rfakeroot
 	mkdir -p dist/
 	for f in $(DIST_DSC); do cp ../$${f##*/} dist/; done
-	rm -rf debian
-	@rm ./setup.py
-	@rm ./MANIFEST.in
 
-
-include $(POST_MAK)
