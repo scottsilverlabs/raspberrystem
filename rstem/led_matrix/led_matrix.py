@@ -78,9 +78,12 @@ def width():
     
 def height():
     return container_height
+    
+def display_on_terminal():
+    led_driver.display_on_terminal()
 
 def init_matrices(mat_list=[(0,0,0)], math_coords=True, spi_speed=500000, spi_port=0):
-    """Create a chain of led matrices set at parti  cular offsets into the frame buffer
+    """Create a chain of led matrices set at particular offsets into the frame buffer
     The order of the led matrices in the list indicate the order they are
     physically hooked up with the first one connected to Pi.
     mat_list = list of tuple that contains led matrix and offset
