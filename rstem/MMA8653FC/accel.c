@@ -84,6 +84,11 @@ static PyObject* init_accel(PyObject *self, PyObject *args) {
                 PyErr_SetString(PyExc_IOError, "Could not initialize accel!");
                 return NULL;
         }
+	ret = write_command(CTRL_REG2, (1 << 4) | (1 << 3) | (1 << 1) | 1);
+	if(ret < 0) {
+		PyErr_SetString(PyExc_IOError, "Could not initialize accel!");
+		return NULL;
+	}
 	ret = write_command(CTRL_REG1, prescale);
         if(ret < 0){
                 PyErr_SetString(PyExc_IOError, "Could not initialize accel!");
@@ -225,7 +230,7 @@ static PyObject * update_data(PyObject *self, PyObject *args){
 	return Py_BuildValue("fff", x, y, z);
 }
 
-
+/*
 static PyObject * enable_tilt(PyObject *self, PyObject *args){
 	int ret;
 	int pin;
@@ -272,7 +277,7 @@ static PyObject * enable_tilt(PyObject *self, PyObject *args){
         }
 	return Py_BuildValue("i", ret);
 }
-
+*/
 
 static PyObject * enable_data_ready(PyObject *self, PyObject *args){
 	int pin;
@@ -351,21 +356,34 @@ static PyObject * set_sample_rate_prescaler(PyObject *self, PyObject *args){
 
 static PyObject * set_range(PyObject *self, PyObject *args){
 	int ret;
-	int range;
-	if(!PyArg_ParseTuple(args, "i", &range)){
+	int in_range;
+	if(!PyArg_ParseTuple(args, "i", &in_range)){
 		PyErr_SetString(PyExc_TypeError, "Not an int!");
 		return NULL;
 	}
-	if(range == 2){
+	ret = write_command(CTRL_REG1, 0x00);
+	if(ret < 0){
+		PyErr_SetString(PyExc_IOError, "Failed to set range!");
+		return NULL;
+	}
+	if(in_range == 2){
+		range = 2;
 		ret = write_command(XYZ_DATA_CFG, 0x00);
-	} else if(range == 4){
+	} else if(in_range == 4){
+		range = 4;
 		ret = write_command(XYZ_DATA_CFG, 0x01);
-	} else if(range == 8){
+	} else if(in_range == 8){
+		range = 8;
 		ret = write_command(XYZ_DATA_CFG, 0x02);
 	} else {
 		PyErr_SetString(PyExc_Exception, "Invalid range! (Valid: 2, 4, 8)");
 		return NULL;
 	}
+	if(ret < 0){
+		PyErr_SetString(PyExc_IOError, "Failed to set range!");
+		return NULL;
+	}
+	ret = write_command(CTRL_REG1, prescale);
 	if(ret < 0){
 		PyErr_SetString(PyExc_IOError, "Failed to set range!");
 		return NULL;
@@ -379,7 +397,7 @@ static PyMethodDef accel_methods[] = {
 	{"read", update_data, METH_NOARGS, "Updates and returns accelerometer data."},
 	{"freefall_motion_threshold", set_freefall_motion_threshold, METH_VARARGS, "Sets debounce mode and threshold in Gs"},
 	{"freefall_motion_debounce", set_freefall_motion_debounce, METH_VARARGS, "Sets number of debounce counts for interrupt to fire."},
-	{"enable_tilt", enable_tilt, METH_VARARGS, "Enables tile interrupt on input pin with input debounce samples."},
+//	{"enable_tilt", enable_tilt, METH_VARARGS, "Enables tile interrupt on input pin with input debounce samples."},
 	{"enable_data_ready", enable_data_ready, METH_VARARGS, "Enables the data ready interrupt on input pin."},
 	{"set_sample_rate_prescaler", set_sample_rate_prescaler, METH_VARARGS, "Sets the prescalers for the sample rate"},
 	{"set_range", set_range, METH_VARARGS, "Sets the range of the accelerometer"},
