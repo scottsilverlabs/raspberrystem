@@ -65,6 +65,14 @@ int write_command(char reg, char value){
 
 static PyObject* init_accel(PyObject *self, PyObject *args) {
 	int ret;
+	if(!PyArg_ParseTuple(args, "i", &adapter_number)){
+		PyErr_SetString(PyExc_TypeError, "Not an int!");
+		return NULL;
+	}
+	if(adapter_number != 0 && adapter_number != 1){
+		PyErr_SetString(PyExc_IOError, "Not a valid I2C bus!");
+		return NULL;
+	}
 	ret = init_i2c();
 	if(ret < 0){
 		PyErr_SetString(PyExc_IOError, "Could not initialize accel!");
@@ -459,7 +467,7 @@ static struct module_state _state;
 
 #if PY_MAJOR_VERSION >= 3
 
-static int accel__traverse(PyObject *m, visitproc visit, void *arg) {
+static int accel_traverse(PyObject *m, visitproc visit, void *arg) {
     Py_VISIT(GETSTATE(m)->error);
     return 0;
 }
