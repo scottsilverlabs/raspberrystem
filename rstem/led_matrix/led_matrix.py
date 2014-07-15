@@ -430,7 +430,7 @@ def _char_to_sprite(char, font_path):
         
     orig_font_path = font_path
     if char.isdigit():
-        font_path = os.path.join(font_path, "number", char + ".spr")
+        font_path = os.path.join(font_path, "numbers", char + ".spr")
     elif char.isupper():
         font_path = os.path.join(font_path, "upper", char + ".spr")
     elif char.islower():
