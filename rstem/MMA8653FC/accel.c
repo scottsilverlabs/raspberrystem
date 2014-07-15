@@ -106,6 +106,9 @@ static PyObject * enable_freefall_motion(PyObject *self, PyObject *args){
 		PyErr_SetString(PyExc_TypeError, "Not two ints!");
 		return NULL;
 	}
+	if(pin != 1 && pin !=2){
+		PyErr_SetString(PyExc_Exception, "Not a pin!");
+	}
 	int_enable |= (1 << 2);
 	int ret;
 	ret = write_command(CTRL_REG1, 0x00);
@@ -163,6 +166,13 @@ static PyObject* set_freefall_motion_threshold(PyObject *self, PyObject *args){
 	if(!PyArg_ParseTuple(args, "Bf", &debounce_mode, &f_thresh)){
 		PyErr_SetString(PyExc_TypeError, "Not a byte and a float!");
 		return NULL;
+	}
+	if(f_thresh > 8){
+		PyErr_SetString(PyExc_Exception, "Not a valid range! (Valid: 0-8)");
+		return NULL;
+	}
+	if(debounce_mode != 1 && debounce_mode != 0){
+		PyErr_SetString(PyExc_Exception, "Not a valid debounce mode! (Valid: 1 0)");
 	}
 	thresh = (unsigned char) ((f_thresh/8.0)*127.0);
 	int ret;
@@ -310,7 +320,7 @@ static PyObject * enable_data_ready(PyObject *self, PyObject *args){
 		return NULL;
 	}
 	if(pin != 1 & pin != 2){
-		PyErr_SetString(PyExc_Exception, "Invalid interrupt pin!");
+		PyErr_SetString(PyExc_Exception, "Invalid interrupt pin! (Valid: 1 2)");
 		return NULL;
 	}
 	int_enable |= 1;
