@@ -1,6 +1,6 @@
 import os
 import pygame.mixer
-import pyttsx
+#import pyttsx
 import subprocess
 import time
 
@@ -21,29 +21,37 @@ def _init():
         initialized = True
         
 def say(text):
-    global voice_engine
-#    if voice_engine is None:
-    voice_engine = pyttsx.init()
-    voice_engine.say(text)
-    voice_engine.runAndWait()
-#    else:
-#        print("here")
-#        voice_engine.say(text)
-
+    proc = subprocess.Popen('espeak "' + text + '"', shell=True)
+    proc.wait()
     
 def get_volume():
     proc = subprocess.Popen('amixer sget Master', shell=True, stdout=subprocess.PIPE)
-    amixer_stdout = proc.comunicate()[0].split('\n')[4]
+    amixer_stdout = proc.communicate()[0].split('\n')[4]
     proc.wait()
     find_start = amixer_stdout.find('[') + 1
     find_end = amixer_stdout.find('%]', find_start)
-    
     return float(amixer_stdout[find_start:find_end])
     
 def set_volume(value):
     value = float(int(value))
     proc = subprocess.Popen('amixer sset Master ' + str(value) + '%', shell=True, stdout=subprocess.PIPE)
     proc.wait()
+    
+def stop(background=True):
+    """Stops all playback including background music unless background = False"""
+    pygame.mixer.stop()
+    if background:
+        pygame.mixer.music.stop()
+    
+def pause(background=True):
+    pygame.mixer.pause()
+    if background:
+        pygame.mixer.music.pause()
+    
+def play(background=True):
+    pygame.mixer.unpause()
+    if background:
+        pygame.mixer.music.play()
     
     
 class Sound(object):
@@ -60,6 +68,24 @@ class Sound(object):
         
     def play(self):
         self.sound.play()
+        
+    def stop(self):
+        self.sound.stop()
+        
+    def get_volume(self):
+        return self.sound.get_volume()*100
+        
+    def set_volume(self, value):
+        if not (0 <= value <= 100):
+            raise ValueError("Volume must be between 0 and 100.")
+        self.sound.set_volume(float(value/100.))
+        
+    def get_length(self):
+        return self.sound.get_length
+
+
+
+currently_playing_file = None
 
 class Music(Sound):
     
@@ -71,28 +97,74 @@ class Music(Sound):
         if not os.path.isfile(filename):
             raise IOError("Filename doesn't exist.")
             
-        sound.filename = filename
+        self.filename = filename
+        self.volume = None
         
-        
-    def play(self):
-        pygame.mixer.music.load(self.filename)
-        pygame.mixer.music.play()
+    def play(self, loops=0, start=0.0):
+        global currently_playing_file
+        if currently_playing_file == self.filename and (pygame.mixer.music.get_busy()):
+            pygame.mixer.music.unpause()
+        else:
+            pygame.mixer.music.load(self.filename)
+            pygame.mixer.music.play(loops, start)
+            currently_playing_file = self.filename
+            self.volume = pygame.mixer.music.get_volume()*100
         
     def queue(self):
         if pygame.mixer.music.get_busy():
             pygame.mixer.music.queue(self.filename)
+        else:
+            pygame.mixer.music.load(self.filename)
             
-    def set_volume(value):
-        pygame.mixer.music.set_volume(value)
+    def stop(self):
+        if currently_playing_file == self.filename:
+            pygame.mixer.music.stop()
         
+    def pause(self):
+        if currently_playing_file == self.filename:
+            pygame.mixer.music.pause()
+            
+    def set_volume(self, value):
+        if not (0 <= value <= 100):
+            raise ValueError("Volume must be between 0 and 100.")
+        self.volume = value
+        if currently_playing_file == self.filename:
+            pygame.mixer.music.set_volume(float(self.volume/100.))
+        
+    def get_volume(self):
+        if self.volume is None:
+            self.volume = pygame.mixer.music.get_volume()*100  # volume is set to default
+        return self.volume
+             
         
 if __name__ == '__main__':
         say("Hello World")
         say("How are you today?")
-        time.sleep(2)
-        
-        
-        
+        print(get_volume())
+        print("Playing wiggle.mp3")
+        wiggle = Music("wiggle.mp3")
+        wiggle.play()
+        time.sleep(10)
+        print("Background music volume is " + str(wiggle.get_volume()))
+        print("Playing 'front_center'")
+        fc = Sound("Front_Center.wav")
+        fc.play()
+        print("Sound volume is " + str(fc.get_volume()))
+        print("Master volume is " + str(get_volume()))
+        time.sleep(5)
+        print("Now play front_center again with volume down")
+        fc.set_volume(20)
+        fc.play()
+        time.sleep(1)
+        print("Turn background music down...")
+#        set_volume(20)
+        wiggle.set_volume(20)
+        print("Volume: " + str(wiggle.get_volume()))
+        time.sleep(10)
+        print("Play that jazzy tune again!!! On infinite loop!! MUHAHAHA!!!")
+        wiggle.play(-1)
+        while 1:
+            pass
         
         
         
