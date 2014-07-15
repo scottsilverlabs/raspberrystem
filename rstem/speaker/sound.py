@@ -24,6 +24,15 @@ def say(text):
     proc = subprocess.Popen('espeak "' + text + '"', shell=True)
     proc.wait()
     
+def tone(frequency=800, time=0.5):
+    num_periods = frequency*time
+    proc = subprocess.Popen('speaker-test  -f %f -r %f -t sine -p 0 -P %f -l 1 & P=$! && sleep' % (frequency, FREQ, num_periods), shell=True, stdout=subprocess.PIPE)
+    proc.wait()
+    
+def beep(number=1):
+    beep = Sound("/beeps/beep-" + number + ".wav")
+    beep.play()
+    
 def get_volume():
     proc = subprocess.Popen('amixer sget Master', shell=True, stdout=subprocess.PIPE)
     amixer_stdout = proc.communicate()[0].split('\n')[4]
@@ -138,33 +147,34 @@ class Music(Sound):
              
         
 if __name__ == '__main__':
-        say("Hello World")
-        say("How are you today?")
-        print(get_volume())
-        print("Playing wiggle.mp3")
-        wiggle = Music("wiggle.mp3")
-        wiggle.play()
-        time.sleep(10)
-        print("Background music volume is " + str(wiggle.get_volume()))
-        print("Playing 'front_center'")
-        fc = Sound("Front_Center.wav")
-        fc.play()
-        print("Sound volume is " + str(fc.get_volume()))
-        print("Master volume is " + str(get_volume()))
-        time.sleep(5)
-        print("Now play front_center again with volume down")
-        fc.set_volume(20)
-        fc.play()
-        time.sleep(1)
-        print("Turn background music down...")
-#        set_volume(20)
-        wiggle.set_volume(20)
-        print("Volume: " + str(wiggle.get_volume()))
-        time.sleep(10)
-        print("Play that jazzy tune again!!! On infinite loop!! MUHAHAHA!!!")
-        wiggle.play(-1)
-        while 1:
-            pass
+    tone()
+#        say("Hello World")
+#        say("How are you today?")
+#        print(get_volume())
+#        print("Playing wiggle.mp3")
+#        wiggle = Music("wiggle.mp3")
+#        wiggle.play()
+#        time.sleep(10)
+#        print("Background music volume is " + str(wiggle.get_volume()))
+#        print("Playing 'front_center'")
+#        fc = Sound("Front_Center.wav")
+#        fc.play()
+#        print("Sound volume is " + str(fc.get_volume()))
+#        print("Master volume is " + str(get_volume()))
+#        time.sleep(5)
+#        print("Now play front_center again with volume down")
+#        fc.set_volume(20)
+#        fc.play()
+#        time.sleep(1)
+#        print("Turn background music down...")
+##        set_volume(20)
+#        wiggle.set_volume(20)
+#        print("Volume: " + str(wiggle.get_volume()))
+#        time.sleep(10)
+#        print("Play that jazzy tune again!!! On infinite loop!! MUHAHAHA!!!")
+#        wiggle.play(-1)
+#        while 1:
+#            pass
         
         
         
