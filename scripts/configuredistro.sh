@@ -3,7 +3,7 @@ if [ "$USER" = "root" ]; then
 	apt-get -y dist-upgrade
 	apt-get -y autoremove wolfram-engine pistore dillo lxsession lxterminal lightdm scratch sonic-pi rsync cron triggerhappy #Remove uneeded programs 
 	apt-get -y install chromium
-	update-rc.d ssh start
+	update-rc.d ssh enable
 	echo "spi-dev\ni2c-dev" >> /etc/modules
 	sed -i "s/^exit 0/sudo \/usr\/bin\/ideserver \&\nnetpd -gqx \&\nexit 0/" /etc/rc.local #Start IDE server and set time on boot
 	update-rc.d -f ntp disable #Disable the time daemon, it's pointless on the Pi
