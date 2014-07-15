@@ -1,24 +1,25 @@
 import os
 import pygame.mixer
+import pygame.sndarray
+from array import array
+import math
+import numpy
 #import pyttsx
 import subprocess
 import time
 
-initialized = False
 voice_engine = None
 
 # global constants
-FREQ = 48000
+SAMPLERATE = 48000
 BITSIZE = -16  # unsigned 16 bit
 CHANNELS = 2   # 1 == mono, 2 == stereo
 BUFFER = 1024  # audio buffer size in no. of samples
 FRAMERATE = 30 # how often to check if playback has finished
 
 def _init():
-    global initialized
-    if not initialized:
-        pygame.mixer.init(FREQ, BITSIZE, CHANNELS, BUFFER)
-        initialized = True
+    if pygame.mixer.get_init() is None:
+        pygame.mixer.init(SAMPLERATE, BITSIZE, CHANNELS, BUFFER)
         
 def say(text):
     proc = subprocess.Popen('espeak "' + text + '"', shell=True)
@@ -26,7 +27,7 @@ def say(text):
     
 def tone(frequency=800, time=0.5):
     num_periods = frequency*time
-    proc = subprocess.Popen('speaker-test  -f %f -r %f -t sine -p 0 -P %f -l 1 & P=$! && sleep' % (frequency, FREQ, num_periods), shell=True, stdout=subprocess.PIPE)
+    proc = subprocess.Popen('speaker-test  -f %f -r %f -t sine -p 0 -P %f -l 1 & P=$! && sleep -s 0.1; kill $P' % (frequency, SAMPLERATE, num_periods), shell=True, stdout=subprocess.PIPE)
     proc.wait()
     
 def beep(number=1):
@@ -63,6 +64,7 @@ def play(background=True):
         pygame.mixer.music.play()
     
     
+    
 class Sound(object):
     
     def __init__(self, filename):
@@ -75,7 +77,7 @@ class Sound(object):
         self.filename = filename
         self.sound = pygame.mixer.Sound(filename)
         
-    def play(self):
+    def play(self, loops=1):
         self.sound.play()
         
     def stop(self):
@@ -92,7 +94,34 @@ class Sound(object):
     def get_length(self):
         return self.sound.get_length
 
-
+class Note(Sound):
+    def __init__(self, frequency, amplitude=16000, duration=1):
+        _init()
+        self.filename = None
+        self.frequency = frequency
+        self.amplitude = amplitude
+        self.duration = duration
+        self.sound = pygame.sndarray.make_sound(self._build_samples())
+        
+    def _build_samples(self):
+        num_steps = self.duration*SAMPLERATE
+        s = []
+        for n in range(num_steps):
+            value = int(math.sin(n * self.frequency * (6.28318/SAMPLERATE)) * self.amplitude)
+            s.append([value,value])
+        x_arr = numpy.array(s)
+        return x_arr
+        
+#        period = int(round(pygame.mixer.get_init()[0] / self.frequency))
+#        samples = array("h", [0]*period)
+#        amplitude = 2 ** (abs(pygame.mixer.get_init()[1]) - 1) - 1
+#        for time in xrange(period):
+#            if time < period / 2:
+#                samples[time] = amplitude  # upper half of sine wave
+#            else:
+#                samples[time] = -amplitude  # lower half of sine wave
+#        print samples
+#        return samples
 
 currently_playing_file = None
 
@@ -147,7 +176,8 @@ class Music(Sound):
              
         
 if __name__ == '__main__':
-    tone()
+    Note(5000, duration=3).play(1)
+    time.sleep(10)
 #        say("Hello World")
 #        say("How are you today?")
 #        print(get_volume())
