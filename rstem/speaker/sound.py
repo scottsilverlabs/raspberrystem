@@ -1,6 +1,7 @@
 import os
 import pygame.mixer
 import pygame.sndarray
+import pygame.time
 import math
 import numpy
 import subprocess
@@ -24,9 +25,6 @@ def say(text, wait=True):
     if wait:
         proc.wait()
     
-def beep(number=1):
-    beep = Sound("/beeps/beep-" + number + ".wav")
-    beep.play()
     
 def get_volume():
     proc = subprocess.Popen('amixer sget Master', shell=True, stdout=subprocess.PIPE)
@@ -56,11 +54,14 @@ def play(background=True):
     pygame.mixer.unpause()
     if background:
         pygame.mixer.music.play()
+        
+def shutdown():
+    if pygame.mixer.get_init():
+        pygame.mixer.quit()
     
     
     
 class Sound(object):
-    
     def __init__(self, filename):
         # initialize if the first time
         _init()
@@ -71,8 +72,12 @@ class Sound(object):
         self.filename = filename
         self.sound = pygame.mixer.Sound(filename)
         
-    def play(self, loops=0):
+    def play(self, loops=0, wait=False):
+        clock = pygame.time.Clock()
         self.sound.play(loops)
+        if wait:
+            while pygame.mixer.get_busy():
+                clock.tick(FRAMERATE)
         
     def stop(self):
         self.sound.stop()
@@ -105,7 +110,14 @@ class Note(Sound):
             s.append([value,value])
         x_arr = numpy.array(s)
         return x_arr
-
+        
+class Beep(Sound):
+    # TODO: beep sounds came from here: http://www.soundjay.com/beep-sounds-1.html
+    #  - need to find royalty free sounds that are allowed to be distributed
+    def __init__(self, number=1):
+        self.number = number
+#        self.sound = Sound("beeps/beep-" + str(number) + ".wav")
+        super(Beep, self).__init__("beeps/beep-" + str(number) + ".wav")
 
 currently_playing_file = None
 
@@ -122,15 +134,21 @@ class Music(Sound):
         self.filename = filename
         self.volume = None
         
-    def play(self, loops=0, start=0.0):
+    def play(self, loops=0, start=0.0, wait=False):
         global currently_playing_file
-        if currently_playing_file == self.filename and (pygame.mixer.music.get_busy()):
+        clock = pygame.time.Clock()
+        # unpause if currently loaded
+        if currently_playing_file == self.filename and pygame.mixer.music.get_busy():
             pygame.mixer.music.unpause()
         else:
-            pygame.mixer.music.load(self.filename)
+            pygame.mixer.music.load(self.filename)  # insert that tape deck
             pygame.mixer.music.play(loops, start)
             currently_playing_file = self.filename
-            self.volume = pygame.mixer.music.get_volume()*100
+            self.volume = pygame.mixer.music.get_volume()*100  # update volume
+
+        if wait:
+            while pygame.mixer.music.get_busy():
+                clock.tick(FRAMERATE)
         
     def queue(self):
         if pygame.mixer.music.get_busy():
@@ -160,8 +178,17 @@ class Music(Sound):
              
         
 if __name__ == '__main__':
-    Note(440, duration=5).play()
-    time.sleep(100)
+#    Note(440, duration=5).play()
+    wiggle = Music("wiggle.mp3")
+#    wiggle.play(wait=True)
+    beep = Beep(2)
+#    beep = Note(800)
+    while 1:
+        beep.set_volume(20)
+        beep.play(wait=True)
+        beep.set_volume(50)
+        beep.play(wait=True)
+    
 #        say("Hello World")
 #        say("How are you today?")
 #        print(get_volume())
