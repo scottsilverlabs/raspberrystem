@@ -1,10 +1,8 @@
 import os
 import pygame.mixer
 import pygame.sndarray
-from array import array
 import math
 import numpy
-#import pyttsx
 import subprocess
 import time
 
@@ -21,14 +19,10 @@ def _init():
     if pygame.mixer.get_init() is None:
         pygame.mixer.init(SAMPLERATE, BITSIZE, CHANNELS, BUFFER)
         
-def say(text):
+def say(text, wait=True):
     proc = subprocess.Popen('espeak "' + text + '"', shell=True)
-    proc.wait()
-    
-def tone(frequency=800, time=0.5):
-    num_periods = frequency*time
-    proc = subprocess.Popen('speaker-test  -f %f -r %f -t sine -p 0 -P %f -l 1 & P=$! && sleep -s 0.1; kill $P' % (frequency, SAMPLERATE, num_periods), shell=True, stdout=subprocess.PIPE)
-    proc.wait()
+    if wait:
+        proc.wait()
     
 def beep(number=1):
     beep = Sound("/beeps/beep-" + number + ".wav")
@@ -77,8 +71,8 @@ class Sound(object):
         self.filename = filename
         self.sound = pygame.mixer.Sound(filename)
         
-    def play(self, loops=1):
-        self.sound.play()
+    def play(self, loops=0):
+        self.sound.play(loops)
         
     def stop(self):
         self.sound.stop()
@@ -104,24 +98,14 @@ class Note(Sound):
         self.sound = pygame.sndarray.make_sound(self._build_samples())
         
     def _build_samples(self):
-        num_steps = self.duration*SAMPLERATE
+        num_steps = (self.duration/5.)*SAMPLERATE
         s = []
-        for n in range(num_steps):
-            value = int(math.sin(n * self.frequency * (6.28318/SAMPLERATE)) * self.amplitude)
+        for t in range(int(num_steps)):
+            value = int(self.amplitude * math.sin(self.frequency * ((2 * math.pi)/SAMPLERATE) * t))
             s.append([value,value])
         x_arr = numpy.array(s)
         return x_arr
-        
-#        period = int(round(pygame.mixer.get_init()[0] / self.frequency))
-#        samples = array("h", [0]*period)
-#        amplitude = 2 ** (abs(pygame.mixer.get_init()[1]) - 1) - 1
-#        for time in xrange(period):
-#            if time < period / 2:
-#                samples[time] = amplitude  # upper half of sine wave
-#            else:
-#                samples[time] = -amplitude  # lower half of sine wave
-#        print samples
-#        return samples
+
 
 currently_playing_file = None
 
@@ -176,8 +160,8 @@ class Music(Sound):
              
         
 if __name__ == '__main__':
-    Note(5000, duration=3).play(1)
-    time.sleep(10)
+    Note(440, duration=5).play()
+    time.sleep(100)
 #        say("Hello World")
 #        say("How are you today?")
 #        print(get_volume())
