@@ -27,6 +27,7 @@ def say(text, wait=True):
     
     
 def get_volume():
+    """Gets the master volume"""
     proc = subprocess.Popen('amixer sget Master', shell=True, stdout=subprocess.PIPE)
     amixer_stdout = proc.communicate()[0].split('\n')[4]
     proc.wait()
@@ -35,6 +36,7 @@ def get_volume():
     return float(amixer_stdout[find_start:find_end])
     
 def set_volume(value):
+    """Set the master volume"""
     value = float(int(value))
     proc = subprocess.Popen('amixer sset Master ' + str(value) + '%', shell=True, stdout=subprocess.PIPE)
     proc.wait()
@@ -46,22 +48,26 @@ def stop(background=True):
         pygame.mixer.music.stop()
     
 def pause(background=True):
+    """Pauses all playback including background music unless background = False"""
     pygame.mixer.pause()
     if background:
         pygame.mixer.music.pause()
     
 def play(background=True):
+    """Unpauses all playback including background music unless background = False"""
     pygame.mixer.unpause()
     if background:
-        pygame.mixer.music.play()
+        pygame.mixer.music.unpause()
         
 def shutdown():
+    """Clean up initialization"""
     if pygame.mixer.get_init():
         pygame.mixer.quit()
     
     
     
 class Sound(object):
+    """Basic foreground sound from a file"""
     def __init__(self, filename):
         # initialize if the first time
         _init()
@@ -73,6 +79,7 @@ class Sound(object):
         self.sound = pygame.mixer.Sound(filename)
         
     def play(self, loops=0, wait=False):
+        """Plays sound a certain number of times. Blocks if wait == True"""
         clock = pygame.time.Clock()
         self.sound.play(loops)
         if wait:
@@ -83,9 +90,11 @@ class Sound(object):
         self.sound.stop()
         
     def get_volume(self):
+        """Gets the volume of individual sound"""
         return self.sound.get_volume()*100
         
     def set_volume(self, value):
+        """Sets teh volume of individual sound"""
         if not (0 <= value <= 100):
             raise ValueError("Volume must be between 0 and 100.")
         self.sound.set_volume(float(value/100.))
@@ -94,6 +103,7 @@ class Sound(object):
         return self.sound.get_length
 
 class Note(Sound):
+    """Creates a sine wave of given frequeny"""
     def __init__(self, frequency, amplitude=16000, duration=1):
         _init()
         self.filename = None
@@ -112,17 +122,20 @@ class Note(Sound):
         return x_arr
         
 class Beep(Sound):
+    """Creates a sound from premade sound files in the beeps folder"""
     # TODO: beep sounds came from here: http://www.soundjay.com/beep-sounds-1.html
     #  - need to find royalty free sounds that are allowed to be distributed
     def __init__(self, number=1):
         self.number = number
-#        self.sound = Sound("beeps/beep-" + str(number) + ".wav")
         super(Beep, self).__init__("beeps/beep-" + str(number) + ".wav")
 
 currently_playing_file = None
 
 class Music(Sound):
-    
+    """Background music. 
+    NOTE: Only a single background music can be played at once.
+    Uses the Sounds object if you need simultaneous playback.
+    """
     def __init__(self, filename):
         # initialize if the first time
         _init()
@@ -184,10 +197,20 @@ if __name__ == '__main__':
     beep = Beep(2)
 #    beep = Note(800)
     while 1:
-        beep.set_volume(20)
-        beep.play(wait=True)
-        beep.set_volume(50)
-        beep.play(wait=True)
+        for j in range(0,100,5):
+            set_volume(j)
+#            for i in range(10):
+            beep.set_volume(20)
+            beep.play(wait=True)
+            beep.set_volume(50)
+            beep.play(wait=True)
+        for j in range(100,-1,-5):
+            set_volume(j)
+#            for i in range(10):
+            beep.set_volume(20)
+            beep.play(wait=True)
+            beep.set_volume(50)
+            beep.play(wait=True)
     
 #        say("Hello World")
 #        say("How are you today?")
