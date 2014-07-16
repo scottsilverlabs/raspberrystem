@@ -411,8 +411,15 @@ class LEDSprite(object):
 
     
     def save_to_file(self, filename):
-        pass
-        # TODO: make this
+        f = open(filename, 'w')
+        for line in self.bitmap:
+            for pixel in line:
+                if pixel > 15:
+                    f.write("- ")
+                else:
+                    f.write(hex(pixel)[2] + " ")
+            f.write("\n")
+        f.close()
         
     def rotate(self, angle):
         pass
