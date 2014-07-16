@@ -21,6 +21,7 @@ import time
 from itertools import islice
 import led_driver     # c extension that controls led matrices and contains framebuffer
 import magic
+import copy
 
 # global variables for use
 BITS_PER_PIXEL = 4     # 4 bits to represent color
@@ -449,12 +450,39 @@ class LEDSprite(object):
         f.close()
         
     def rotate(self, angle):
-        pass
-        # TODO
+        if angle % 90 != 0:
+            raise ValueError("Angle must be a multiple of 90.")
+            
+        angle = angle % 360    
+        if angle == 90:
+            bitmap = []
+            for i in range(self.width):
+                bitmap.append([row[i] for row in reversed(self.bitmap)])
+            self.bitmap = bitmap
+            # swap height and width
+            temp = self.width
+            self.width = self.height
+            self.height = temp
+            
+        elif angle == 180:
+            self.bitmap.reverse()
+            for row in self.bitmap:
+                row.reverse()
+                
+        elif angle == 270:
+            bitmap = []
+            for i in range(self.width-1,-1,-1):
+                bitmap.append([row[i] for row in self.bitmap])
+            self.bitmap = bitmap
+            # swap height and width
+            temp = self.width
+            self.width = self.height
+            self.height = temp
         
     def rotated(self, angle):
-        pass
-        # TODO
+        sprite_copy = copy.deepcopy(self)
+        sprite_copy.rotate(angle)
+        return sprite_copy
 
 
 def _char_to_sprite(char, font_path):
