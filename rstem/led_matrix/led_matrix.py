@@ -411,6 +411,9 @@ class LEDSprite(object):
 
     
     def save_to_file(self, filename):
+        filename = filename.strip()
+        if filename[-4:] != ".spr"
+            raise ValueError("Filename must have '.spr' extension.")
         f = open(filename, 'w')
         for line in self.bitmap:
             for pixel in line:
