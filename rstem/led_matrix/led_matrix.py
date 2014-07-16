@@ -20,6 +20,7 @@ import re
 import time
 from itertools import islice
 import led_driver     # c extension that controls led matrices and contains framebuffer
+import magic
 
 # global variables for use
 BITS_PER_PIXEL = 4     # 4 bits to represent color
@@ -355,19 +356,42 @@ class LEDSprite(object):
         bitmap_width = 0  # keep track of width and height
         bitmap_height = 0
         if filename is not None:
-            f = open(filename, 'r')
-            # TODO: implement creating bitmaps from image files
-            for line in f:
-                leds = [_convert_color(char) for char in line.split()]
-                # Determine if widths are consistent
-                if bitmap_width != 0:
-                    if len(leds) != bitmap_width:
-                        raise ValueError("Sprite has different widths")
-                else:
-                    bitmap_width = len(leds)
-                bitmap.append(leds)
-                bitmap_height += 1
-            f.close()
+            filetype = magic.Magic(mime=True).from_file(filename)
+        	image_file = (filetype.find("image") != -1)
+        	txt_file = (filetype == "text/plain")
+            if txt_file:
+                f = open(filename, 'r')
+                for line in f:
+                    leds = [_convert_color(char) for char in line.split()]
+                    # Determine if widths are consistent
+                    if bitmap_width != 0:
+                        if len(leds) != bitmap_width:
+                            raise ValueError("Sprite has different widths")
+                    else:
+                        bitmap_width = len(leds)
+                    bitmap.append(leds)
+                    bitmap_height += 1
+                f.close()
+            elif image_file:
+                import scipy, numpy
+                # if no height or width given try to fill as much of the display
+                # with the image without stretching it
+        		if height <= 0 or width <= 0:
+	                from PIL import Image
+                    im = Image.open(filename)
+                    im_width, im_height = im.size
+                    bitmap_height = min(container_height, im_height)
+                    bitmap_width = min(container_width, bitmap_height * (im_width / im_height))
+                    # TODO: double check this logic
+    			else:
+    			    bitmap_height = height
+    			    bitmap_width = width
+    			# pixelize and resize image with scipy
+        		image = scipy.misc.imread(filename)
+        		con_image = scipy.misc.imresize(image, (bitmap_width, bitmap_height), interp='cubic')
+        		bitmap = [[(pixel*16/255) for pixel in line] for line in con_image]
+            else:
+				raise IOError("Unsupported filetype")
         else:
             # create an empty sprite of given height and width
             bitmap = [[color for i in range(width)] for j in range(height)]
