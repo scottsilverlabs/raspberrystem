@@ -20,8 +20,8 @@ import re
 import time
 from itertools import islice
 import led_driver     # c extension that controls led matrices and contains framebuffer
-import magic
 import copy
+import subprocess
 
 # global variables for use
 BITS_PER_PIXEL = 4     # 4 bits to represent color
@@ -157,7 +157,6 @@ def init_grid(num_rows=1, num_cols=1, angle=0, zigzag=True, math_coords=True, sp
                 for column in range(num_cols): # increment through rows downwards
                     mat_list.append((row*DIM_OF_MATRIX, (num_cols - 1 - column)*DIM_OF_MATRIX, 270)) # 0 - 90 = 270
                   
-    print(mat_list)  
     global container_math_coords
     init_matrices(mat_list, math_coords=False, spi_speed=spi_speed, spi_port=spi_port)
     container_math_coords = math_coords
@@ -293,6 +292,11 @@ def sprite(sprite, origin=(0,0), crop_origin=(0,0), crop_dimensions=None):
                 Note: crop_origin is relative to origin
         crop_dimensions = the number of pixels (x, y) inside the sprite to display (None for no crop)
     """
+    if type(sprite) == str:
+        sprite = LEDSprite(sprite)
+    elif type(sprite) != LEDText and type(sprite) != LEDSprite:
+        raise ValueError("Invalid sprite")
+    
     _init_check()
     global container_width
     global container_height
@@ -352,15 +356,26 @@ class LEDSprite(object):
         - The hex number indicates pixel color and "-" indicates a transparent pixel
     """
     def __init__(self, filename=None, height=0, width=0, color=0x0):
-        self.filename = filename
         bitmap = []
         bitmap_width = 0  # keep track of width and height
         bitmap_height = 0
         if filename is not None:
-            filetype = magic.Magic(mime=True).from_file(filename)
-            image_file = (filetype.find("image") != -1)
-            txt_file = (filetype == "text/plain")
-            if txt_file:
+            filename = filename.strip()
+            self.filename = filename    
+            # get filetype
+            print ("ABOUT TO CALL: file " + filename)
+            print (type("file "))
+            print (type(filename))
+            proc = subprocess.Popen("file " + str(filename), shell=True, stdout=subprocess.PIPE)
+            output, errors = proc.communicate()
+            if type(output) == bytes:  # convert from byte to a string (happens if using python3)
+                output = output.decode() 
+            if errors is not None or (output.find("ERROR") != -1):
+                raise IOError(output)
+                
+            if output.find("text") != -1:  # file is a text file
+                if filename[-4:] != ".spr":
+                    raise ValueError("Filename must have '.spr' extension.")
                 f = open(filename, 'r')
                 for line in f:
                     leds = [_convert_color(char) for char in line.split()]
@@ -373,7 +388,8 @@ class LEDSprite(object):
                     bitmap.append(leds)
                     bitmap_height += 1
                 f.close()
-            elif image_file:
+                
+            elif output.find("image") != -1:  # file is an image file
                 import scipy, numpy
                 # if no height or width given try to fill as much of the display
                 # with the image without stretching it
