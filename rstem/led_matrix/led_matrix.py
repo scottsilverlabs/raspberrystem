@@ -363,9 +363,6 @@ class LEDSprite(object):
             filename = filename.strip()
             self.filename = filename    
             # get filetype
-            print ("ABOUT TO CALL: file " + filename)
-            print (type("file "))
-            print (type(filename))
             proc = subprocess.Popen("file " + str(filename), shell=True, stdout=subprocess.PIPE)
             output, errors = proc.communicate()
             if type(output) == bytes:  # convert from byte to a string (happens if using python3)
@@ -390,7 +387,9 @@ class LEDSprite(object):
                 f.close()
                 
             elif output.find("image") != -1:  # file is an image file
-                import scipy, numpy
+                import scipy.misc, numpy, sys
+                if sys.version_info[0] > 2:
+                    raise ValueError("As of now, only python 2 supports images to sprites.")
                 # if no height or width given try to fill as much of the display
                 # with the image without stretching it
                 if height <= 0 or width <= 0:
@@ -399,14 +398,16 @@ class LEDSprite(object):
                     im_width, im_height = im.size
                     bitmap_height = min(container_height, im_height)
                     bitmap_width = min(container_width, bitmap_height * (im_width / im_height))
-                    # TODO: double check this logic
                 else:
                     bitmap_height = height
                     bitmap_width = width
                 # pixelize and resize image with scipy
-                image = scipy.misc.imread(filename)
+                image = scipy.misc.imread(filename, flatten=True)
                 con_image = scipy.misc.imresize(image, (bitmap_width, bitmap_height), interp='cubic')
-                bitmap = [[(pixel*16/255) for pixel in line] for line in con_image]
+                con_image = numpy.transpose(con_image)  # convert from column-wise to row-wise
+                con_image = numpy.fliplr(con_image)  # re-orient the image
+                con_image = numpy.rot90(con_image, k=1)
+                bitmap = [[int(pixel*16/255) for pixel in line] for line in con_image]  # convert to bitmap
             else:
                 raise IOError("Unsupported filetype")
         else:
@@ -465,7 +466,7 @@ class LEDSprite(object):
             f.write("\n")
         f.close()
         
-    def rotate(self, angle):
+    def rotate(self, angle=90):
         if angle % 90 != 0:
             raise ValueError("Angle must be a multiple of 90.")
             
@@ -495,7 +496,7 @@ class LEDSprite(object):
             self.width = self.height
             self.height = temp
         
-    def rotated(self, angle):
+    def rotated(self, angle=90):
         sprite_copy = copy.deepcopy(self)
         sprite_copy.rotate(angle)
         return sprite_copy
