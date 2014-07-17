@@ -31,14 +31,6 @@ container_width = 0    # indicates the maximum width and height of the LEDContai
 container_height = 0
 container_math_coords = True
 
-# TODO: for unit testing, remove when done
-def valid_color(color):
-    return valid_color(color)
-def convert_color(color):
-    return convert_color(color)
-def convert_to_std_coords(x,y):
-    return _convert_to_std_coords(x,y)
-
 
 def _init_check():
     """Checks that init_matrices has been called and throws an error if not"""
@@ -188,20 +180,6 @@ def fill(color=0xF):
     _init_check()
     led_driver.fill(_convert_color(color))
 
-# TODO: remove this?
-def _convert_to_std_angle(x, y, angle):
-    if angle == 90:
-        oldx = x
-        x = y
-        y = (container_height - 1) - oldx
-    elif angle == 180:
-        x = (container_width - 1) - x
-        y = (container_height - 1) - x
-    elif angle == 270:
-        oldy = y
-        y = x
-        x = (container_width - 1) - oldy
-    return (x,y)
     
 def erase():
     fill(0)
@@ -219,7 +197,6 @@ def point(x, y=None, color=0xF):
         if y is None and type(x) is tuple:
             x, y = x
         if x < 0 or x >= container_width or y < 0 or y >= container_height:
-#            raise IndexError("Point given is not in framebuffer.")
             return
         if container_math_coords:
             x, y = _convert_to_std_coords(x, y)
@@ -272,7 +249,7 @@ def _line_fast(point_a, point_b, color=0xF):
     led_driver.line(point_a[0], point_a[1], point_b[0], point_b[1], _convert_color(color))
 
 
-def text(text, origin=(0,0), crop_origin=(0,0), crop_dimensions=None, font_name="large", font_path=None):
+def text(text, origin=(0,0), crop_origin=(0,0), crop_dimensions=None, font_name="small", font_path=None):
     """Sets given string to be displayed on LED Matrix
         - returns the LEDText sprite object used to create text
     """
@@ -467,6 +444,9 @@ class LEDSprite(object):
         f.close()
         
     def rotate(self, angle=90):
+        """Rotates sprite at 90 degree intervals. 
+        If no angle given, will rotate sprite 90 degrees.
+        """
         if angle % 90 != 0:
             raise ValueError("Angle must be a multiple of 90.")
             
@@ -497,6 +477,7 @@ class LEDSprite(object):
             self.height = temp
         
     def rotated(self, angle=90):
+        """Returns a rotated LEDSprite of self. Does not change self."""
         sprite_copy = copy.deepcopy(self)
         sprite_copy.rotate(angle)
         return sprite_copy
@@ -506,7 +487,6 @@ def _char_to_sprite(char, font_path):
     """Returns the LEDSprite object of given character."""
     if not (type(char) == str and len(char) == 1):
         raise ValueError("Not a character")
-        
     orig_font_path = font_path
     if char.isdigit():
         font_path = os.path.join(font_path, "numbers", char + ".spr")
@@ -591,7 +571,7 @@ def _main():
                 point(x, y)
                 show()
                 time.sleep(0.5);
-                point(x, y, color=0)
+                erase()
 
 if __name__ == "__main__":
     _main()
