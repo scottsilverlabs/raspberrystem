@@ -47,6 +47,10 @@ unsigned char int_pins = 0x00;
 //By default the range is +- 4G
 double range = 4.0;
 
+double sign(double x){
+	return (double)((x > 0) - (x <= 0));
+}
+
 int init_i2c(){
 	adapter_number = adapter_number;
 	char filename[20];
@@ -266,8 +270,9 @@ static PyObject * angles(PyObject *self, PyObject *args){
         double z = ((double) accelData[2])/(512.0/range);
 
 	double yaw = atan2(z, sqrt(x*x + y*y));
+//	double tilt = acos(-y / sqrt(x*x + y*y + z*z));
 	double pitch = atan2(x, sqrt(z*z + y*y));
-	double roll = atan2(y, sqrt(x*x + z*z));
+	double roll = atan2(y, sqrt(z*z + x*x));
 
 	return Py_BuildValue("ddd", pitch, roll, yaw);
 }
