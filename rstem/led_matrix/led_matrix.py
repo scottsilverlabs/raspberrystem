@@ -358,8 +358,8 @@ class LEDSprite(object):
         bitmap_height = 0
         if filename is not None:
             filetype = magic.Magic(mime=True).from_file(filename)
-        	image_file = (filetype.find("image") != -1)
-        	txt_file = (filetype == "text/plain")
+            image_file = (filetype.find("image") != -1)
+            txt_file = (filetype == "text/plain")
             if txt_file:
                 f = open(filename, 'r')
                 for line in f:
@@ -377,22 +377,22 @@ class LEDSprite(object):
                 import scipy, numpy
                 # if no height or width given try to fill as much of the display
                 # with the image without stretching it
-        		if height <= 0 or width <= 0:
-	                from PIL import Image
+                if height <= 0 or width <= 0:
+                    from PIL import Image
                     im = Image.open(filename)
                     im_width, im_height = im.size
                     bitmap_height = min(container_height, im_height)
                     bitmap_width = min(container_width, bitmap_height * (im_width / im_height))
                     # TODO: double check this logic
-    			else:
-    			    bitmap_height = height
-    			    bitmap_width = width
-    			# pixelize and resize image with scipy
-        		image = scipy.misc.imread(filename)
-        		con_image = scipy.misc.imresize(image, (bitmap_width, bitmap_height), interp='cubic')
-        		bitmap = [[(pixel*16/255) for pixel in line] for line in con_image]
+                else:
+                    bitmap_height = height
+                    bitmap_width = width
+                # pixelize and resize image with scipy
+                image = scipy.misc.imread(filename)
+                con_image = scipy.misc.imresize(image, (bitmap_width, bitmap_height), interp='cubic')
+                bitmap = [[(pixel*16/255) for pixel in line] for line in con_image]
             else:
-				raise IOError("Unsupported filetype")
+                raise IOError("Unsupported filetype")
         else:
             # create an empty sprite of given height and width
             bitmap = [[color for i in range(width)] for j in range(height)]
@@ -437,7 +437,7 @@ class LEDSprite(object):
     
     def save_to_file(self, filename):
         filename = filename.strip()
-        if filename[-4:] != ".spr"
+        if filename[-4:] != ".spr":
             raise ValueError("Filename must have '.spr' extension.")
         f = open(filename, 'w')
         for line in self.bitmap:
