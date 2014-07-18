@@ -93,7 +93,7 @@ try:
     curr_state = State.IDLE  # current state used for state machine
     blocks = []              # current block elements on screen
     start_width = 3           # pixel width of block on start
-    start_speed = 5           # current speed on start (in pixel/sec)
+    start_speed = 1           # current speed on start (in pixel/sec)
     change_level = int(HEIGHT*(1/3.))  # number of blocks before upping difficulty
     curr_width, curr_speed = start_width, start_speed
     curr_direction = Direction.RIGHT  # current direction top block is moving

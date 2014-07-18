@@ -108,11 +108,7 @@ help:
 $(COMMANDS)::
 	$(MAKE) push
 	ssh $(SSHFLAGS) -t -v $(PI) "cd rsinstall; $(MAKE) pi-$@ PI=$(PI) PYTHON=$(PYTHON)"
-	$(MAKE) pull
 
-#pi-clean-dist-pi: clean-dist
-
-#pi-clean-all-pi: clean-all
 
 # on pi commands start with "pi-"
 
