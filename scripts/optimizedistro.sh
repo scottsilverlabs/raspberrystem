@@ -6,7 +6,6 @@ if [ "$USER" = "root" ]; then
 	sudo apt-get -y install dropbear openssh-client inetutils-syslogd
 	sudo apt-get clean
 	sed -i "/[3-6]:23:respawn:\/sbin\/getty 38400 tty[3-6]/s%^%#%g" /etc/inittab
-	dpkg-reconfigure dash
 	/etc/init.d/ssh stop
 	sed -i "s/NO_START=1/NO_START=0/g" /etc/default/dropbear
 	/etc/init.d/dropbear start
