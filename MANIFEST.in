@@ -1,5 +1,0 @@
-include rstem/accel/accel_server.c
-include rstem/gpio/pullup.*
-include rstem/led2/led_server.c
-include rstem/led2/matDriver.c
-recursive-include rstem/led2/font *
