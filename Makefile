@@ -101,7 +101,6 @@ $(COMMANDS)::
 
 # on pi commands start with "pi-"
 
-
 pi-install:
 	sudo $(PYTHON) $(PYFLAGS) ./setup.py install
 	$(MAKE) pi-install-projects

@@ -271,12 +271,12 @@ def _line_fast(point_a, point_b, color=0xF):
     led_driver.line(point_a[0], point_a[1], point_b[0], point_b[1], _convert_color(color))
 
 
-def text(text, origin=(0,0), crop_origin=(0,0), crop_dimensions=None, font_size="large"):
+def text(text, origin=(0,0), crop_origin=(0,0), crop_dimensions=None, font_name="large", font_path=None):
     """Sets given string to be displayed on LED Matrix
         - returns the LEDText sprite object used to create text
     """
     if type(text) == str:
-        text = LEDText(text, font_size=font_size)
+        text = LEDText(text, font_name=font_name, font_path=font_path)
     elif type(text) != LEDText and type(text) != LEDSprite:
         raise ValueError("Invalid text")
     sprite(text, origin, crop_origin, crop_dimensions)
@@ -427,39 +427,52 @@ def _char_to_sprite(char, font_path):
     """Returns the LEDSprite object of given character."""
     if not (type(char) == str and len(char) == 1):
         raise ValueError("Not a character")
+        
+    orig_font_path = font_path
     if char.isdigit():
-        return LEDSprite(font_path + "/number/" + char)
+        font_path = os.path.join(font_path, "numbers", char + ".spr")
     elif char.isupper():
-        return LEDSprite(font_path + "/upper/" + char)
+        font_path = os.path.join(font_path, "upper", char + ".spr")
     elif char.islower():
-        return LEDSprite(font_path + "/lower/" + char)
+        font_path = os.path.join(font_path, "lower", char + ".spr")
     elif char.isspace():
-        return LEDSprite(font_path + "/space") # return a space 
-    elif os.path.isfile(font_path + "/misc/" + str(ord(char))): # add if exist in misc folder
-        return LEDSprite(font_path + "/misc/" + str(ord(char)))
+        font_path = os.path.join(font_path, "space.spr")
     else:
-        return LEDSprite(font_path + "/unknown") # return generic box character
-
+        font_path = os.path.join(font_path, "misc", str(ord(char)) + ".spr")
+        
+    if os.path.isfile(font_path):
+        return LEDSprite(font_path)
+    else:
+        return LEDSprite(os.path.join(orig_font_path, "unknown.spr"))
+        
+        
 
 class LEDText(LEDSprite):
 
-    def __init__(self, message, char_spacing=1, font_size="large", font_path=None):
+    def __init__(self, message, char_spacing=1, font_name="small", font_path=None):
         """Creates a text sprite of the given string
             - This object can be used the same way a sprite is used
             char_spacing = number pixels between characters
-            font_path = location of folder where font bitmaps are located
+            font_path = location of folder where font sprites are located
+                        leave as None to use default system fonts
         """
         if font_path is None: # if none, set up default font location
             this_dir, this_filename = os.path.split(__file__)
-            # only use font_size if no custom font_path was given
+            # only use font_name if no custom font_path was given
             font_path = os.path.join(this_dir, "font")
-            if font_size == "large":
-                font_path += "/5x7"
-            elif font_size == "small":
-                font_path += "/3x5"
-            else:
-                # TODO: allow user generated font
-                raise ValueError("Invalid font size. Must be either 'large' or 'small'")
+            
+        if not os.path.isdir(font_path):
+            raise IOError("Font path does not exist.")
+        orig_font_path = font_path
+
+        # attach font_name to font_path
+        font_path = os.path.join(font_path, font_name)
+        
+        # if font subdirectory doesn exist, attempt to open a .font file
+        if not os.path.isdir(font_path):
+            f = open(os.path.join(orig_font_path, font_name + ".font"), 'r')
+            font_path = os.path.join(orig_font_path, f.read().strip())
+            f.close()
 
         message = message.strip()
         if len(message) == 0:
