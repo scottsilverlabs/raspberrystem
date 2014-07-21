@@ -15,6 +15,7 @@
 #
 
 import time
+import random # use this?
 from rstem import led_matrix
 import RPi.GPIO as GPIO
 
@@ -44,10 +45,8 @@ class Block(object):
         """Returns true if self and other are touching"""
         if (self.origin[0] > (other.origin[0]+other.width))  \
             or ((self.origin[0]+self.width-1) < other.origin[0]):
-            print("False")
             return False
         else:
-            print("True")
             return True
                     
     def crop(self, other):
@@ -55,13 +54,12 @@ class Block(object):
         offset = self.origin[0] - other.origin[0]
         loffset = (self.origin[0]+self.width) - (other.origin[0]+other.width)
         if offset >= 0:  # crop rightmost
-            width = self.width - loffset
-            origin = self.origin
+            self.width = self.width - loffset
+            self.origin = self.origin
         elif offset < 0:  # crop left most
-            width = self.width + offset  # chop off offset amount
-            origin = [other.origin[0], self.origin[1]]
+            self.width = self.width + offset  # chop off offset amount
+            self.origin = [other.origin[0], self.origin[1]]
 #            self.origin[0] = other.origin[0] # move to right
-        return Block(origin, width)
             
         
 #        self.origin = (other.origin[0], self.origin[1])  # set x param to be same
@@ -84,8 +82,8 @@ try:
     # SETUP ==========================
 
     # setup led matrix
-    led_matrix.init_grid(2,1,270)
-    HEIGHT = led_matrix.height()
+    led_matrix.init_grid(1,2,270)
+    HEIGHT = led_matrix.height()  # TODO: led_matrix oblivious to height as width...
     WIDTH = led_matrix.width()
     
     # initialize variables
@@ -100,6 +98,7 @@ try:
     last_input = 1
     last_time = 0
     locked = False  # spin lock for interrupt handler
+    button_pressed = False
     
     # helper functions
     def draw_blocks():
@@ -115,43 +114,48 @@ try:
         global curr_width
         global curr_direction
         global blocks
-        if not locked:
-            if curr_state == State.PLAYING:
-                # stop the block
-                if len(blocks) > 1:
-                    if blocks[-1].adjacent(blocks[-2]):
-                        blocks[-1] = blocks[-1].crop(blocks[-2])
-                    else:
-                        curr_state = State.LOSE
-                        return
-                
-                # show stopped block for a couple seconds
-                draw_blocks()
-                led_matrix.show()
-#                time.sleep(1)
-                
-                # if hit the ceiling, display win screen 
-                if len(blocks) == HEIGHT:
-                    curr_state = State.WIN
+        global button_pressed
+        button_pressed = True
+        if curr_state == State.PLAYING:
+            # stop the block
+            if len(blocks) > 1:
+                top_block = blocks[-1]
+                base_block = blocks[-2]
+                if top_block.adjacent(base_block):
+                    # crop block only if it hangs off the edge
+                    if (top_block.origin[0] + top_block.width - 1) > (base_block.origin[0] + base_block.width - 1):
+                        blocks[-1].crop(blocks[-2])
+                else:
+                    # top block was not touching bas block, so we lose
+                    curr_state = State.LOSE
                     return
-                    
-                # create new block
-                if len(blocks) % change_level == 0:  # check if to up difficulty
-                    if curr_width > 1:
-                        curr_width -= 1
-                    curr_speed += 5  # update current speed
-                curr_width = min(blocks[-1].width, curr_width)
-                blocks.append(Block([0, blocks[-1].origin[1]+1], curr_width))
+            
+            # if hit the ceiling, display win screen 
+            if len(blocks) == HEIGHT:
+                curr_state = State.WIN
+                return
                 
-            elif curr_state in [State.IDLE, State.WIN, State.LOSE]:
-                # set up game
-                blocks = [Block([0,0], start_width)]  # set up first block
-                curr_width = start_width
-                curr_speed = start_speed
-                led_matrix.erase()
-                draw_blocks()
-                led_matrix.show()
-                curr_state = State.PLAYING
+            # create new block
+            if len(blocks) % change_level == 0:  # check if to up difficulty
+                if curr_width > 1:
+                    curr_width -= 1
+                curr_speed += 5  # update current speed
+            curr_width = min(blocks[-1].width, curr_width)
+#                if len(blocks) % 2 == 0:  # alternate between starting from left or right
+#                    x = 0
+#                else:
+#                    x = WIDTH
+            blocks.append(Block([0, blocks[-1].origin[1]+1], curr_width))
+            
+        elif curr_state in [State.IDLE, State.WIN, State.LOSE]:
+            # set up game
+            blocks = [Block([0,0], start_width)]  # set up first block
+            curr_width = start_width
+            curr_speed = start_speed
+            led_matrix.erase()
+            draw_blocks()
+            led_matrix.show()
+            curr_state = State.PLAYING
 
     GPIO.setmode(GPIO.BCM)
     GPIO.setup(BUTTON, GPIO.IN, pull_up_down=GPIO.PUD_UP)
@@ -177,32 +181,31 @@ try:
             led_matrix.show()
 
         elif curr_state == State.PLAYING:
-            # change direction if hit edge of screen
-            if curr_direction == Direction.RIGHT:
-                if blocks[-1].origin[0] + blocks[-1].width == WIDTH:
-                    curr_direction = Direction.LEFT
-            elif blocks[-1].origin[0] == 0:
-                curr_direction = Direction.RIGHT
-                
-            # move top block in curr_direction at curr_speed
-            locked = True
-            blocks[-1].move(curr_direction)
-            locked = False
+            # show the blocks
             led_matrix.erase()
             draw_blocks()
             led_matrix.show()
-            time.sleep(1/curr_speed)
+            time.sleep(1.0/curr_speed)
+        
+            global button_pressed
+            if not button_pressed:  # skip moving the block if button pressed
+                # change direction if hit edge of screen
+                if curr_direction == Direction.RIGHT:
+                    if blocks[-1].origin[0] + blocks[-1].width == WIDTH:
+                        curr_direction = Direction.LEFT
+                elif blocks[-1].origin[0] == 0:
+                    curr_direction = Direction.RIGHT
+                    
+                # move top block in curr_direction at curr_speed
+                blocks[-1].move(curr_direction)
             
         elif curr_state == State.WIN:
-            print("IN WIN")
             led_matrix.erase()
             led_matrix.text("WIN!", font_size="small")
             led_matrix.show()
-            time.sleep(1)
 
         elif curr_state == State.LOSE:
             # blink failing block
-            print("IN LOSE")
             blocks[-1].color = 0
             led_matrix.erase()
             draw_blocks()
@@ -216,6 +219,9 @@ try:
 
         else:
             raise RuntimeError("Invalid State")
+            
+        global button_pressed
+        button_pressed = False
         
 finally:
     led_matrix.shutdown_matrices()
