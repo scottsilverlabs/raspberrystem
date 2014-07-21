@@ -114,13 +114,47 @@ int write_bytes(int dev, unsigned char* val, int len) {
 	struct spi_ioc_transfer tr = {
 		.tx_buf = (unsigned long)val,
 		.len = len,
-		.delay_usecs = 100,
+//		.delay_usecs = 100,
 	};
 	int ret = ioctl(dev, SPI_IOC_MESSAGE(1), &tr);
-    return ret;
+	return ret;
 }
 
+int rw_bytes(int dev, unsigned char* val, unsigned char* buff, int len){
+	struct spi_ioc_transfer tr = {
+		.tx_buf = (unsigned long)val,
+		.rx_buf = (unsigned long)buff,
+		.len = len
+	};
+	int ret = ioctl(dev, SPI_IOC_MESSAGE(1), &tr);
+	return ret;
+}
 // led_driver commands =======================================
+
+int number_of_matrices(){
+	unsigned char* rx = (unsigned char*) malloc(32);
+	unsigned char* tran = (unsigned char*) malloc(32);
+	memset(rx, 0, 32);
+	memset(tran, 0, 32);
+	tran[0] = 0xFF;
+	int count = 0;
+	int ret = 0;
+	while(rx[0] != 0xFF && count < 100){
+		ret = rw_bytes(spi, tran, rx, 32);
+		count++;
+	}
+	free(rx);
+	free(tran);
+	if(ret < 0 || count == 999){
+		return -1;
+	} else {
+		tran = (unsigned char*) malloc(32*(count-1));
+		memset(tran, 0, 32*(count - 1));
+		ret = write_bytes(spi, tran, 32*(count - 1));
+		free(tran);
+		return count - 1;
+	}
+}
 
 int point(int x, int y, unsigned int color) {
     Debug("Setting point at (%d,%d) with color %d", x, y, color);
@@ -299,6 +333,10 @@ void print_framebuffer(void){
 
 // Python Wrappers =================================================
 
+static PyObject *num_of_matrices(PyObject *self, PyObject *args){
+	return Py_BuildValue("i", number_of_matrices());
+}
+
 static PyObject *py_init_matrices(PyObject *self, PyObject *args){
     PyObject *mat_list;  // the list object
     // grab mat_list and global variables
@@ -413,12 +451,13 @@ static PyObject *py_shutdown_matrices(PyObject *self, PyObject *args){
 
 static PyMethodDef led_driver_methods[] = {
 	{"init_SPI", py_init_SPI, METH_VARARGS, "Initialize the SPI with given speed and port."},
-    {"init_matrices", py_init_matrices, METH_VARARGS, "Initializes the give LED matrices in the list."},
-    {"flush", py_flush, METH_NOARGS, "Converts current frame buffer to a bistream and then sends it to SPI port."},
+	{"init_matrices", py_init_matrices, METH_VARARGS, "Initializes the give LED matrices in the list."},
+	{"flush", py_flush, METH_NOARGS, "Converts current frame buffer to a bistream and then sends it to SPI port."},
 	{"shutdown_matrices", py_shutdown_matrices, METH_NOARGS, "Closes the SPI and frees all memory."},
 	{"point", py_point, METH_VARARGS, "Sets a point in the frame buffer."},
 	{"line", py_line, METH_VARARGS, "Sets a line from given source to destination."},
-    {"fill", py_fill, METH_VARARGS, "Fills all matrices with the given color."},
+	{"fill", py_fill, METH_VARARGS, "Fills all matrices with the given color."},
+	{"num_of_matrices", num_of_matrices, METH_NOARGS, "Returns the number of matrices connected"},
 	{NULL, NULL, 0, NULL}  /* Sentinal */
 };
 
