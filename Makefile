@@ -114,7 +114,7 @@ $(COMMANDS)::
 	# Run make on target - note: don't use $(MAKE), as host and target "make"s
 	# may differ.
 	ssh $(SSHFLAGS) -t $(PI) "cd rsinstall; make pi-$@ PI=$(PI) ON_PI=1"
-	$(MAKE) pull
+	@#$(MAKE) pull
 
 #pi-clean-dist-pi: clean-dist
 

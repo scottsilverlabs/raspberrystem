@@ -29,7 +29,7 @@ step = 0
 sprites = cycle([LEDSprite("ball%d.txt" % i) for i in range(4)])
 sprite = sprites.next()
 while True:
-    # Draw the ball (which is just a point)
+    # Draw the ball
     led.erase()
     led.sprite(sprite, (int(x), int(y)))
     led.show()

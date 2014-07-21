@@ -18,39 +18,47 @@ from itertools import cycle
 from rstem import led
 from rstem import accel
 
-x = 0.0
-y = 0.0
-xdist = 0.1
-ydist = 0.5
 period = 0.01
-sprite_period = 0.2
-sprite_steps = sprite_period/period
-step = 0
-sprites = cycle([LEDSprite("ball%d.txt" % i) for i in range(4)])
-sprite = sprites.next()
+
+class Ball():
+    next_color = 1
+
+    def __init__(self, position=(0,0), dist=(0.1,0.1)):
+        self.x, self.y = position
+        self.xdist, self.ydist = dist
+
+        # Init the ball with a different color from the last one
+        self.color = Ball.next_color
+        Ball.next_color = (Ball.next_color % 15) + 1
+
+    def draw(self):
+        led.point(int(self.x), int(self.y))
+
+    def move(self, angle=None):
+        # Gravity
+        if angle:
+            xangle, yangle, zangle = angle
+            self.xdist += self.xangle/90
+            self.ydist += self.yangle/90
+
+        # Move the point to a new position.  If it hits a wall, reverse the
+        # direction of the ball.
+        self.x, self.y = (self.x+self.xdist, self.y+self.ydist)
+        if self.x >= led.width() or self.x < 0:
+            self.xdist = - self.xdist
+        if self.y >= led.height() or self.y < 0:
+            self.ydist = - self.ydist
+
+
+ball = Ball()
 while True:
-    # Draw the ball (which is just a point)
+    # Draw the ball
     led.erase()
-    led.sprite(sprite, (int(x), int(y)))
+    ball.draw()
     led.show()
 
-    # Change to next sprite, once every sprite_steps
-    step += 1
-    if step % sprite_steps == 0:
-        sprite = sprites.next()
-
-    # Gravity
-    xangle, yangle, zangle = accel.get_angle()
-    xdist += xangle/90
-    ydist += yangle/90
-
-    # Move the point to a new position.  If it hits a wall, reverse the
-    # direction of the ball.
-    x, y = (x+xdist, y+ydist)
-    if x >= (led.width() - (sprite.width() - 1)) or x < 0:
-        xdist = - xdist
-    if y >= (led.height() - (sprite.height() - 1)) or y < 0:
-        ydist = - ydist
+    # Move it (in the presense of gravity)
+    ball.move(accel.get_angle())
 
     time.sleep(period)
 

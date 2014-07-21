@@ -26,7 +26,7 @@ sprite_steps = sprite_period/period
 step = 0
 sprites = [LEDSprite("ball%d.txt" % i) for i in range(4)]
 while True:
-    # Draw the ball (which is just a point)
+    # Draw the ball
     sprite = sprites[n]
     led.erase()
     led.sprite(sprite, (int(x), int(y)))

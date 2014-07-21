@@ -14,7 +14,17 @@
 # limitations under the License.
 #
 import time
-from rstem import led
+from rstem import led2
+led = led2
+
+def width():
+	return 8
+
+def height():
+	return 8
+led.init_matrices([(0,0,90)])
+led.width = width
+led.height = height
 
 x = 0.0
 y = 0.0
@@ -23,8 +33,9 @@ ydist = 0.5
 period = 0.01
 while True:
     # Draw the ball (which is just a point)
-    led.erase()
-    led.point(int(x), int(y))
+    led.fill(0)
+    if (0 <= int(x) < 8 and 0 <= int(y) < 8):
+        led.point(int(x), int(y))
     led.show()
 
     # Move the point to a new position.  If it hits a wall, reverse the
