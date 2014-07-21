@@ -78,9 +78,12 @@ def width():
     
 def height():
     return container_height
+    
+def display_on_terminal():
+    led_driver.display_on_terminal()
 
 def init_matrices(mat_list=[(0,0,0)], math_coords=True, spi_speed=500000, spi_port=0):
-    """Create a chain of led matrices set at parti  cular offsets into the frame buffer
+    """Create a chain of led matrices set at particular offsets into the frame buffer
     The order of the led matrices in the list indicate the order they are
     physically hooked up with the first one connected to Pi.
     mat_list = list of tuple that contains led matrix and offset
@@ -155,7 +158,6 @@ def init_grid(num_rows=1, num_cols=1, angle=0, zigzag=True, math_coords=True, sp
                 for column in range(num_cols): # increment through rows downwards
                     mat_list.append((row*DIM_OF_MATRIX, (num_cols - 1 - column)*DIM_OF_MATRIX, 270)) # 0 - 90 = 270
                   
-    print(mat_list)  
     global container_math_coords
     init_matrices(mat_list, math_coords=False, spi_speed=spi_speed, spi_port=spi_port)
     container_math_coords = math_coords
@@ -227,14 +229,14 @@ def point(x, y=None, color=0xF):
 
 def rect(origin, dimensions, color=0xF):
     """Creates a rectangle from start point using given dimensions"""
-    if container_math_coords: # convert it now so no need to do it anymore
-        origin = _convert_to_std_coords(*origin)
     x, y = origin
     width, height = dimensions
-    line((x, y), (x, y + height), color)
-    line((x, y + height), (x + width, y + height), color)
-    line((x + width, y + height), (x + width, y), color)
-    line((x + width, y), (x, y), color)
+    if container_math_coords: 
+        y = y + height - 1  # move from bottom left to top left
+    line((x, y), (x, y + height - 1), color)
+    line((x, y + height - 1), (x + width - 1, y + height - 1), color)
+    line((x + width - 1, y + height - 1), (x + width - 1, y), color)
+    line((x + width - 1, y), (x, y), color)
 
 
 def _sign(n):
