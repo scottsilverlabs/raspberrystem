@@ -139,13 +139,13 @@ int number_of_matrices(){
 	tran[0] = 0xFF;
 	int count = 0;
 	int ret = 0;
-	while(rx[0] != 0xFF && count < 100){
+	while(rx[0] != 0xFF && count < 10){
 		ret = rw_bytes(spi, tran, rx, 32);
 		count++;
 	}
 	free(rx);
 	free(tran);
-	if(ret < 0 || count == 999){
+	if(ret < 0 || count > 9){
 		return -1;
 	} else {
 		tran = (unsigned char*) malloc(32*(count-1));
@@ -334,7 +334,12 @@ void print_framebuffer(void){
 // Python Wrappers =================================================
 
 static PyObject *num_of_matrices(PyObject *self, PyObject *args){
-	return Py_BuildValue("i", number_of_matrices());
+	int ret = number_of_matrices();
+	if(ret < 0){
+		PyErr_SetString(PyExc_IOError, "Number of matrices out of valid range (Valid: 1-8)");
+		return NULL;
+	}
+	return Py_BuildValue("i", ret);
 }
 
 static PyObject *py_init_matrices(PyObject *self, PyObject *args){
@@ -465,7 +470,7 @@ static PyMethodDef led_driver_methods[] = {
 	{"point", py_point, METH_VARARGS, "Sets a point in the frame buffer."},
 	{"line", py_line, METH_VARARGS, "Sets a line from given source to destination."},
 	{"fill", py_fill, METH_VARARGS, "Fills all matrices with the given color."},
-	{"num_of_matrices", num_of_matrices, METH_NOARGS, "Returns the number of matrices connected"},
+	{"detect", num_of_matrices, METH_NOARGS, "Returns the number of matrices connected"},
 	{"display_on_terminal", py_display_on_terminal, METH_NOARGS, "Toggles on and off display_on_terminal mode"},
 	{NULL, NULL, 0, NULL}  /* Sentinal */
 };
