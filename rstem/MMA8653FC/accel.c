@@ -269,12 +269,12 @@ static PyObject * angles(PyObject *self, PyObject *args){
         double y = ((double) accelData[1])/(512.0/range);
         double z = ((double) accelData[2])/(512.0/range);
 
-	double yaw = atan2(z, sqrt(x*x + y*y));
+	double elevation = atan2(z, sqrt(x*x + y*y));
 //	double tilt = acos(-y / sqrt(x*x + y*y + z*z));
-	double pitch = atan2(x, sqrt(z*z + y*y));
-	double roll = atan2(y, sqrt(z*z + x*x));
+	double roll = atan2(x, sqrt(z*z + y*y));
+	double pitch = atan2(y, sqrt(z*z + x*x));
 
-	return Py_BuildValue("ddd", pitch, roll, yaw);
+	return Py_BuildValue("ddd", roll, pitch, elevation);
 }
 /*
 static PyObject * enable_tilt(PyObject *self, PyObject *args){
