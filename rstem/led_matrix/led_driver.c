@@ -449,6 +449,14 @@ static PyObject *py_shutdown_matrices(PyObject *self, PyObject *args){
 	return Py_BuildValue("i", close_and_free());
 }
 
+static PyObject *py_display_on_terminal(PyObject *self, PyObject *args){
+    if (display_on_terminal)
+        display_on_terminal = 0;
+    else
+        display_on_terminal = 1;
+	return Py_BuildValue("i", 1);
+}
+
 static PyMethodDef led_driver_methods[] = {
 	{"init_SPI", py_init_SPI, METH_VARARGS, "Initialize the SPI with given speed and port."},
 	{"init_matrices", py_init_matrices, METH_VARARGS, "Initializes the give LED matrices in the list."},
@@ -458,6 +466,7 @@ static PyMethodDef led_driver_methods[] = {
 	{"line", py_line, METH_VARARGS, "Sets a line from given source to destination."},
 	{"fill", py_fill, METH_VARARGS, "Fills all matrices with the given color."},
 	{"num_of_matrices", num_of_matrices, METH_NOARGS, "Returns the number of matrices connected"},
+	{"display_on_terminal", py_display_on_terminal, METH_NOARGS, "Toggles on and off display_on_terminal mode"},
 	{NULL, NULL, 0, NULL}  /* Sentinal */
 };
 
