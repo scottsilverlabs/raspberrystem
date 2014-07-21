@@ -84,7 +84,7 @@ help:
 	@echo "make push - Push changes on local computer onto pi"
 	@echo "make pull - Pull changes on pi onto local computer (BE CAREFULL!!!)"
 	@echo "make install - Install onto remote Raspberry Pi"
-	@echo "make local-install - Install onto local machine (Still needs a raspbeery pi to compile.)"
+	@echo "make local-install - Install onto local machine (Still needs a raspberry pi to compile.)"
 	@echo "make install-projects - Install projects to home folder"
 	@echo "make install-cellapps - Install cellapps to home folder"
 	@echo "make test - Run tests"
