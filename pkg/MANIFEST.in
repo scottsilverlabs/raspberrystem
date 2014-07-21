@@ -1,0 +1,4 @@
+include rstem/accel/accel_server.c
+include rstem/gpio/pullup.*
+include rstem/led_matrix/led_server.c
+recursive-include rstem/led_matrix/font *

@@ -14,6 +14,6 @@
 # limitations under the License.
 #
 
-__all__ = ['accel', 'gpio', 'led2']
+__all__ = ['accel', 'led_matrix']
 
 from rstem import *
