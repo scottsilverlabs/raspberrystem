@@ -43,12 +43,16 @@ int accelData[3];
 int file;
 unsigned char int_enable = 0x00;
 unsigned char int_pins = 0x00;
-
+int rad = 0;
 //By default the range is +- 4G
 double range = 4.0;
 
 double sign(double x){
 	return (double)((x > 0) - (x <= 0));
+}
+
+double rad2deg(double x){
+	return x*180.0/3.141592654;
 }
 
 int init_i2c(){
@@ -108,6 +112,17 @@ static PyObject* init_accel(PyObject *self, PyObject *args) {
                 return NULL;
         }
 	return Py_BuildValue("i", ret);
+}
+
+static PyObject *use_radians(PyObject *self, PyObject *args){
+	if(!PyArg_ParseTuple(args, "i", &rad)){
+		PyErr_SetString(PyExc_TypeError, "Not a boolean!");
+		return NULL;
+	}
+	if(rad != 0){
+		rad = 1;
+	}
+	return Py_BuildValue("i", rad);
 }
 
 //Mode is 0 for free fall, 1 for motion detect
@@ -270,9 +285,14 @@ static PyObject * angles(PyObject *self, PyObject *args){
         double z = ((double) accelData[2])/(512.0/range);
 
 	double elevation = atan2(z, sqrt(x*x + y*y));
-//	double tilt = acos(-y / sqrt(x*x + y*y + z*z));
 	double roll = atan2(x, sqrt(z*z + y*y));
 	double pitch = atan2(y, sqrt(z*z + x*x));
+
+	if(rad == 0){
+		elevation = rad2deg(elevation);
+		roll = rad2deg(roll);
+		pitch = rad2deg(pitch);
+	}
 
 	return Py_BuildValue("ddd", roll, pitch, elevation);
 }
@@ -448,6 +468,7 @@ static PyMethodDef accel_methods[] = {
 	{"set_sample_rate_prescaler", set_sample_rate_prescaler, METH_VARARGS, "Sets the prescalers for the sample rate."},
 	{"set_range", set_range, METH_VARARGS, "Sets the range of the accelerometer."},
 	{"angles", angles, METH_NOARGS, "Returns yaw, pitch, and roll."},
+	{"use_radians", use_radians, METH_VARARGS, "Sets mode between radians or degrees."},
 	{NULL, NULL, 0, NULL} // Sentinal
 };
 
