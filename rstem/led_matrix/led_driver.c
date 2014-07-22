@@ -46,7 +46,7 @@ int display_on_terminal = 0;
 
 #define SIGN(x) (((x) >= 0) ? 1 : -1)
 
-int debug = 1;
+int debug = 0;
 #define Debug(args...) if (debug) {printf("LED_DRIVER: " args); printf("\n");}
 
 
@@ -66,7 +66,7 @@ struct Matrix {
 struct Matrix *led_list;       // information on led matrix elements
 unsigned int *framebuffer;   // information on all pixels (physical or not)
 int framebuffer_size;
-PyObject *numpy_framebuffer = NULL;  // if null we are using original framebuffer
+PyObject *numpy_array = NULL;  // if null we are using original framebuffer
 unsigned char *bitstream;     // data given to SPI port
 int num_matrices, container_width, container_height;
 
@@ -128,16 +128,10 @@ int write_bytes(int dev, unsigned char* val, int len) {
 // memory commands ===========================================
 
 void free_framebuffer(void){
-    if (numpy_framebuffer) {
-        Py_DECREF(numpy_framebuffer);
-        numpy_framebuffer = NULL;
+    if (numpy_array) {
+        Py_DECREF(numpy_array);
+        numpy_array = NULL;
     } else {
-/*        int i;*/
-/*        if (framebuffer){*/
-/*            for (i = 0; i < container_width; i++){*/
-/*                free(framebuffer[i]);*/
-/*            }*/
-/*        }*/
         free(framebuffer);
     }
 }
@@ -213,25 +207,14 @@ int line(int x1, int y1, int x2, int y2, unsigned int color){
 int init_framebuffer_and_bitstream(void){
     Debug("framebuffer_size = %d*%d*%d", container_height, container_width, sizeof(unsigned int));
     framebuffer_size = container_height*container_width*sizeof(unsigned int);
+    
     Debug("Initializing framebuffer with size %d", framebuffer_size);
     framebuffer = (unsigned int *) malloc(framebuffer_size);
     memset(framebuffer, 0, framebuffer_size);
-/*    memset(framebuffer, 0, framebuffer_size);*/
-/*    framebuffer = (unsigned int **) malloc(container_width*sizeof(unsigned int *));*/
     if (framebuffer == 0){
         Debug("Error mallocing framebuffer");
         goto freeLEDList;
     }
-/*    int i;*/
-/*    for (i = 0; i < container_width; i++){*/
-/*        Debug("Initializing framebuffer[%d]", i);*/
-/*        framebuffer[i] = (unsigned int *) malloc(container_height*sizeof(unsigned int));*/
-/*        if (framebuffer[i] == 0){*/
-/*            Debug("Error mallocing framebuffer[%d]", i);*/
-/*            goto freeframebuffer;*/
-/*        }*/
-/*        memset(framebuffer[i], 0, container_height*sizeof(unsigned int));*/
-/*    }*/
     Debug("Initializing bitstream with size %d", num_matrices*NUM_BYTES_MATRIX);
     bitstream = (unsigned char *) malloc(num_matrices*NUM_BYTES_MATRIX);
     if (bitstream == 0){
@@ -243,10 +226,6 @@ int init_framebuffer_and_bitstream(void){
 
     // Clean up on malloc error
     freeframebuffer:
-/*        for (i--; i >= 0; i--){*/
-/*            free(framebuffer[i]);*/
-/*        }*/
-/*        free(framebuffer);*/
         free_framebuffer();
     freeLEDList:
         free(led_list);
@@ -315,7 +294,6 @@ void print_framebuffer(void){
     for (y = 0; y < container_height; y++){
         int x;
         for (x = 0; x < container_width; x++){
-/*            Debug("printing point (%d,%d) = %d", x, y, COORDS_TO_INDEX(x,y));*/
             int pixel = framebuffer[COORDS_TO_INDEX(x,y)];
             if (pixel == 0) {
                 printf(". ", pixel);
@@ -436,7 +414,7 @@ static PyObject *py_init_SPI(PyObject *self, PyObject *args){
 	}
 	import_array();
 	return Py_BuildValue("i", start_SPI(speed, mode));
-}
+}   
 
 static PyObject *py_flush(PyObject *self, PyObject *args){
     // show on terminal if flag enabled
@@ -461,8 +439,6 @@ static PyObject *py_display_on_terminal(PyObject *self, PyObject *args){
 
 static PyObject *py_frame(PyObject *self, PyObject *args){
     PyObject *input_array = NULL;
-/*    Debug("Parsetuple return: %p", PyArg_ParseTuple(args, "O", &input_array));*/
-    Debug("in here");
     if (!PyArg_ParseTuple(args, "O!", &PyArray_Type, &input_array)){
         Debug("Not an array.");
 		PyErr_SetString(PyExc_TypeError, "Not an array!");
@@ -471,22 +447,33 @@ static PyObject *py_frame(PyObject *self, PyObject *args){
 	Debug("Passed args parsing, now freeing old framebuffer.");
 	free_framebuffer();
 	framebuffer = NULL;
+	
 	Debug("Attempt to get numpy array object.");
-	numpy_framebuffer = PyArray_FROM_OTF(input_array, NPY_INT, NPY_INOUT_ARRAY);
-	if (numpy_framebuffer == NULL) goto fail;
+	numpy_array = PyArray_FROM_OTF(input_array, NPY_INT, NPY_INOUT_ARRAY);
+	if (numpy_array == NULL) {
+	    Py_XDECREF(numpy_array);
+	    numpy_array = NULL;
+	    PyErr_SetString(PyExc_RuntimeError, "Could not get numpy array!");
+	    return NULL;
+    }
+	
+	// checking stuff
+	if (PyArray_NDIM(numpy_array) != 2){
+	    PyErr_SetString(PyExc_ValueError, "Numpy array must be 2D!");
+	    return NULL;
+	}
+	if (PyArray_DIM(numpy_array, 0) != container_width
+	    || PyArray_DIM(numpy_array, 1) != container_height){
+	    PyErr_SetString(PyExc_ValueError, "Numpy array dimensions must be the same as container!");
+	    return NULL;   
+	}
+	
 	Debug("Attempt to cast a framebuffer.");
-	framebuffer = (unsigned int *) PyArray_DATA(numpy_framebuffer);
-	// TODO: check dimensions and stuff
+	framebuffer = (unsigned int *) PyArray_DATA(numpy_array);
+
 	Debug("Current framebuffer pointer %p", framebuffer);
 	print_framebuffer();
 	return Py_BuildValue("i", 1);
-	
-	fail:
-	    Debug("In fail!");
-	    Py_XDECREF(numpy_framebuffer);
-	    numpy_framebuffer = NULL;
-	    PyErr_SetString(PyExc_RuntimeError, "I'm not sure what happened, thats embarrassing....");
-	    return NULL;
 }
 
 static PyMethodDef led_driver_methods[] = {

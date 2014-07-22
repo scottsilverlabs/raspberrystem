@@ -210,8 +210,6 @@ def rect(origin, dimensions, fill=True, color=0xF):
     """Creates a rectangle from start point using given dimensions"""
     x, y = origin
     width, height = dimensions
-#    if container_math_coords: 
-#        y = y + height - 1  # move from bottom left to top left
 
     if fill:
         for x_offset in range(width):
@@ -327,18 +325,11 @@ def sprite(sprite, origin=(0,0), crop_origin=(0,0), crop_dimensions=None):
             x += 1
         y += 1
         
-        
-def frame(numpy_bitmap=None):
+def frame(numpy_bitmap):
     """Sends the entire frame (represented in a bitmap) to the led matrix.
     Note: bitmap dimensions must be the same as the dimensions of the container (non rotated).
     """
-    import numpy
-    numpy_bitmap = numpy.array([[1,2,3,4,5,6,7,8],[1,2,3,4,5,6,7,8],[1,2,3,4,5,6,7,8],[1,2,3,4,5,6,7,8],[1,2,3,4,5,6,7,8],[1,2,3,4,5,6,7,8],[1,2,3,4,5,6,7,8],[1,2,3,4,5,6,7,8]])
-    print(numpy_bitmap)
-    print(type(numpy_bitmap))
-    print("Adding numpy_bitmap")
     led_driver.frame(numpy_bitmap)
-    # TODO
 
 
 class LEDSprite(object):
