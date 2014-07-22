@@ -36,6 +36,7 @@ int display_on_terminal = 0;
 
 #define DIM_OF_MATRIX 8
 #define BITS_PER_PIXEL 4
+#define MAX_MATRICES 50
 
 // number of bytes in a matrix
 #define NUM_BYTES_MATRIX ((DIM_OF_MATRIX*DIM_OF_MATRIX)/2)
@@ -136,6 +137,10 @@ int number_of_matrices(){
 	unsigned char* tran = (unsigned char*) malloc(32);
 	memset(rx, 0, 32);
 	memset(tran, 0, 32);
+	int i = 0;
+	for(i = 0; i < MAX_MATRICES; i++){
+		write_bytes(spi, tran, 32);
+	}
 	tran[0] = 0xFF;
 	int count = 0;
 	int ret = 0;
