@@ -206,16 +206,22 @@ def point(x, y=None, color=0xF):
         led_driver.point(int(x), int(y), color)
         return 1
 
-def rect(origin, dimensions, color=0xF):
+def rect(origin, dimensions, fill=True, color=0xF):
     """Creates a rectangle from start point using given dimensions"""
     x, y = origin
     width, height = dimensions
-    if container_math_coords: 
-        y = y + height - 1  # move from bottom left to top left
-    line((x, y), (x, y + height - 1), color)
-    line((x, y + height - 1), (x + width - 1, y + height - 1), color)
-    line((x + width - 1, y + height - 1), (x + width - 1, y), color)
-    line((x + width - 1, y), (x, y), color)
+#    if container_math_coords: 
+#        y = y + height - 1  # move from bottom left to top left
+
+    if fill:
+        for x_offset in range(width):
+            line((x + x_offset, y), (x + x_offset, y + height - 1), color)
+    else:
+        line((x, y), (x, y + height - 1), color)
+        line((x, y + height - 1), (x + width - 1, y + height - 1), color)
+        line((x + width - 1, y + height - 1), (x + width - 1, y), color)
+        line((x + width - 1, y), (x, y), color)
+    
 
 
 def _sign(n):

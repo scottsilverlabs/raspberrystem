@@ -172,14 +172,13 @@ int point(int x, int y, unsigned int color) {
 }
 
 int fill(unsigned int color){
-    memset(framebuffer, color, framebuffer_size);
-/*    int y;*/
-/*    for (y = 0; y < container_height; y++){*/
-/*        int x;*/
-/*        for (x = 0; x < container_width; x++){*/
-/*            point(x, y, color);*/
-/*        }*/
-/*    }*/
+    int y;
+    for (y = 0; y < container_height; y++){
+        int x;
+        for (x = 0; x < container_width; x++){
+            point(x, y, color);
+        }
+    }
     return 0;
 }
 
@@ -216,7 +215,7 @@ int init_framebuffer_and_bitstream(void){
     framebuffer_size = container_height*container_width*sizeof(unsigned int);
     Debug("Initializing framebuffer with size %d", framebuffer_size);
     framebuffer = (unsigned int *) malloc(framebuffer_size);
-    fill(0);
+    memset(framebuffer, 0, framebuffer_size);
 /*    memset(framebuffer, 0, framebuffer_size);*/
 /*    framebuffer = (unsigned int **) malloc(container_width*sizeof(unsigned int *));*/
     if (framebuffer == 0){
