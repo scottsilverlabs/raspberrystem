@@ -26,6 +26,7 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <linux/spi/spidev.h>
+#include <numpy/arrayobject.h>
 
 // display current framebuffer during flush
 int display_on_terminal = 0;
@@ -43,7 +44,7 @@ int display_on_terminal = 0;
 
 #define SIGN(x) (((x) >= 0) ? 1 : -1)
 
-int debug = 0;
+int debug = 1;
 #define Debug(args...) if (debug) {printf("LED_DRIVER: " args); printf("\n");}
 
 
@@ -62,6 +63,7 @@ struct Matrix {
 
 struct Matrix *led_list;       // information on led matrix elements
 unsigned int **framebuffer;   // information on all pixels (physical or not)
+PyObject *numpy_framebuffer = NULL;  // if null we are using original framebuffer
 unsigned char *bitstream;     // data given to SPI port
 int num_matrices, container_width, container_height;
 
@@ -259,25 +261,38 @@ int update_bitstream(void){
     return 0;
 }
 
+void free_framebuffer(void){
+    if (numpy_framebuffer) {
+        Py_DECREF(numpy_framebuffer);
+        numpy_framebuffer = NULL;
+    } else {
+        int i;
+        if (framebuffer){
+            for (i = 0; i < container_width; i++){
+                free(framebuffer[i]);
+            }
+        }
+        free(framebuffer);
+    }
+}
+
 // closes SPI port and frees all allocated memory
 int close_and_free(void){
     Debug("Closing and freeing.")
-    int i;
-    if (framebuffer){
-        for (i = 0; i < container_width; i++){
-            free(framebuffer[i]);
-        }
-    }
-    free(framebuffer);
+    free_framebuffer();
+    framebuffer = NULL;
     if (led_list){
         free(led_list);
     }
+    led_list = NULL;
     if (bitstream){
         free(bitstream);
     }
+    bitstream = NULL;
     close(spi);
     return 0;
 }
+
 
 void print_framebuffer(void){
     int y;
@@ -297,7 +312,6 @@ void print_framebuffer(void){
         }
         printf("\n");
     }
-/*    refresh();*/
 }
 
 
@@ -399,6 +413,7 @@ static PyObject *py_init_SPI(PyObject *self, PyObject *args){
 		PyErr_SetString(PyExc_TypeError, "Not an unsigned int and int!");
 		return NULL;
 	}
+	import_array();
 	return Py_BuildValue("i", start_SPI(speed, mode));
 }
 
@@ -423,6 +438,37 @@ static PyObject *py_display_on_terminal(PyObject *self, PyObject *args){
 	return Py_BuildValue("i", 1);
 }
 
+static PyObject *py_frame(PyObject *self, PyObject *args){
+    PyObject *input_array = NULL;
+/*    Debug("Parsetuple return: %p", PyArg_ParseTuple(args, "O", &input_array));*/
+    Debug("in here");
+    if (!PyArg_ParseTuple(args, "O!", &PyArray_Type, &input_array)){
+        Debug("Not an array.");
+		PyErr_SetString(PyExc_TypeError, "Not an array!");
+		return NULL;
+	}
+	Debug("Passed args parsing, now freeing old framebuffer.");
+	free_framebuffer();
+	framebuffer = NULL;
+	Debug("Attempt to get numpy array object.");
+	numpy_framebuffer = PyArray_FROM_OTF(input_array, NPY_INT, NPY_INOUT_ARRAY);
+	if (numpy_framebuffer == NULL) goto fail;
+	Debug("Attempt to cast a framebuffer.");
+	framebuffer = (unsigned int **) PyArray_DATA(numpy_framebuffer);
+	// TODO: check dimensions and stuff
+	Debug("Current framebuffer pointer %p", framebuffer);
+	Debug("first element %d", framebuffer[0][0]);
+	print_framebuffer();
+	return Py_BuildValue("i", 1);
+	
+	fail:
+	    Debug("In fail!");
+	    Py_XDECREF(numpy_framebuffer);
+	    numpy_framebuffer = NULL;
+	    PyErr_SetString(PyExc_RuntimeError, "I'm not sure what happened, thats embarrassing....");
+	    return NULL;
+}
+
 static PyMethodDef led_driver_methods[] = {
 	{"init_SPI", py_init_SPI, METH_VARARGS, "Initialize the SPI with given speed and port."},
     {"init_matrices", py_init_matrices, METH_VARARGS, "Initializes the give LED matrices in the list."},
@@ -431,6 +477,7 @@ static PyMethodDef led_driver_methods[] = {
 	{"point", py_point, METH_VARARGS, "Sets a point in the frame buffer."},
 	{"line", py_line, METH_VARARGS, "Sets a line from given source to destination."},
     {"fill", py_fill, METH_VARARGS, "Fills all matrices with the given color."},
+    {"frame", py_frame, METH_VARARGS, "Exchanges current framebuffer for a numpy framebuffer."},
     {"display_on_terminal", py_display_on_terminal, METH_NOARGS, "Toggles on and off display_on_terminal mode"}, 
 	{NULL, NULL, 0, NULL}  /* Sentinal */
 };

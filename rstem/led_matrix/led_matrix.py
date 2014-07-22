@@ -322,11 +322,16 @@ def sprite(sprite, origin=(0,0), crop_origin=(0,0), crop_dimensions=None):
         y += 1
         
         
-def frame(bitmap):
+def frame(numpy_bitmap=None):
     """Sends the entire frame (represented in a bitmap) to the led matrix.
     Note: bitmap dimensions must be the same as the dimensions of the container (non rotated).
     """
-    pass
+    import numpy
+    numpy_bitmap = numpy.array([[1,2,3,4,5,6,7,8],[1,2,3,4,5,6,7,8],[1,2,3,4,5,6,7,8],[1,2,3,4,5,6,7,8],[1,2,3,4,5,6,7,8],[1,2,3,4,5,6,7,8],[1,2,3,4,5,6,7,8],[1,2,3,4,5,6,7,8]])
+    print(numpy_bitmap)
+    print(type(numpy_bitmap))
+    print("Adding numpy_bitmap")
+    led_driver.frame(numpy_bitmap)
     # TODO
 
 
