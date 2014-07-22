@@ -117,10 +117,13 @@ try:
             pipes = []
             pipe_start = led_matrix.width()
             state = State.IDLE
+            pipe_clock = 0
+            
         elif state == State.IDLE:
             led_matrix.erase()
             bird.draw()
             led_matrix.show()
+            
         elif state == State.PLAYING:
             led_matrix.erase()
         
