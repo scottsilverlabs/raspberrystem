@@ -2,20 +2,26 @@
 from rstem import led_matrix
 import RPi.GPIO as GPIO
 import time
+import random
 
 BUTTON=4
 
 # initialization
-led_matrix.init_grid(1,2,270)
+led_matrix.init_grid(1,2)
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(BUTTON, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
+def randint(min, max):
+    return int(random.random() * (max - min + 1)) + min
+
 class Bird(object):
 
-    def __init__(self, position=[3,3], speed=1, gravity_speed=1):
+    def __init__(self, position=[3,3], speed=5, gravity_speed=1, flap_distance=2):
         self.speed = speed
         self.position = position
-        self.flapping = False
+        self.gravity_speed = gravity_speed
+        self.flap_distance = flap_distance
+        self.flap_tick = 0
         
     def x(self):
         return self.position[0]
@@ -23,28 +29,38 @@ class Bird(object):
     def y(self):
         return self.position[1]
         
-    def flap(self, distance=3):
-        distance = min(distance, led_matrix.height() - self.y())
-        orig_x, orig_y = self.position
-        self.flapping = True
+    def start_flap(self):
+        self.flap_tick = self.flap_distance
+        
+    def flapping(self):
+        return (self.flap_tick > 0)
+        
+    def flap(self, distance=1):
+        self.position[1] += 1
+        self.flap_tick -= 1
+#        distance = min(distance, led_matrix.height() - self.y())
+#        orig_x, orig_y = self.position
         # flap up
-        while self.y() <= (orig_y + distance):
-            self.position[1] += 1
-            time.sleep(1./self.speed)   # TODO: this probably doesn't work
-        self.flapping = False
+#        while self.y() <= (orig_y + distance):
+#            self.position[1] += 1
+#            time.sleep(1./self.speed)   # TODO: this probably doesn't work
+#        self.flapping = False
             
-    def falldown(self):
-        self.position[1] -= 1
-        time.sleep(1./self.gravity_speed)
+    def fall(self):
+        if self.position[1] > 0:
+            self.position[1] -= 1
         
     def draw(self):
         led_matrix.point(self.x(), self.y())
         
 class Pipe(object):
 
-    def __init__(self, x_position=None, width=2, opening_height=4, opening_location=3):
+    def __init__(self, x_position=None, width=2, opening_height=3, opening_location=3):
         if x_position is None:
             self.x_position = led_matrix.width()
+        self.width = width
+        self.opening_height = opening_height      # height of opening from opening_location
+        self.opening_location = opening_location  # y coordinate of opening
             
     def move_left(self, num_pixels=1):
         self.x_position -= num_pixels
@@ -52,7 +68,7 @@ class Pipe(object):
     def collided_with(self, bird):
         """Checks if bird collided with pipe"""
         if self.x_position < bird.x() < (self.x_position + self.width):
-            if (self.opening_location) < bird.y() < (self.opening_location + opening_height):
+            if (self.opening_location) < bird.y() < (self.opening_location + self.opening_height):
                 return False
             else:
                 return True
@@ -68,29 +84,35 @@ class Pipe(object):
 # initialize variables        
 class State():
     RESET, IDLE, PLAYING, END = range(4)
-    
-state = State.RESET
-bird = None
-pipes = []
-pipe_start = 0
-pipe_spacing = 3
-pipe_tick = 0
-
-def button_handler(channel):
-    if state == State.RESET:
-        pass  # do nothing
-    elif state == State.IDLE:
-        state = State.PLAYING
-    elif state == State.PLAYING:
-        bird.flap()
-    elif state == State.END:
-        state = State.RESET
-        
-GPIO.add_event_detect(BUTTON, GPIO.FALLING, callback=button_handler, bouncetime=300)
-            
+  
+  
 try:
+    state = State.RESET
+    bird = None
+    pipes = []
+    pipe_start = 0
+    pipe_spacing = 13  # number of cycles between forming another pipe
+    pipe_tick = 0
+    pipe_clock = 0
+    pipe_interval = 2  # the lower the number the faster the pipes
+    speed = 6
+
+    def button_handler(channel):
+        global state
+        if state == State.RESET:
+            pass  # do nothing
+        elif state == State.IDLE:
+            state = State.PLAYING
+        elif state == State.PLAYING:
+            bird.start_flap()
+        elif state == State.END:
+            state = State.RESET
+            
+    GPIO.add_event_detect(BUTTON, GPIO.FALLING, callback=button_handler, bouncetime=300)
+            
     while True:
         if state == State.RESET:
+            bird = None
             bird = Bird()
             pipes = []
             pipe_start = led_matrix.width()
@@ -105,30 +127,32 @@ try:
             # draw pipes
             for pipe in pipes:
                 pipe.draw()
-#            x = pipe_pos
-#            for pipe in reversed(pipes):
-#                if x < (-pipe.width): # stop drawing if off screen
-#                    break
-#                pipe.draw(x)
-#                x -= pipe.width + pipe_spacing
                 
-            # let bird fall if not flapping up
-            if not bird.flapping:
-                bird.falldown()
+            # draw bird
+            if bird.flapping():
+                bird.flap()
+            else:
+                bird.fall()
             bird.draw()
             
+            # display on matrix
             led_matrix.show()
+            time.sleep(1./speed)
             
-            # move all pipes to the left one
-            for pipe in pipes:
-                pipe.move_left()
-            pipe_tick += 1
+            # move all pipes to the left one at certain interval
+            # the certain interval allows the pipes to be slower than the bird
+            if pipe_clock % pipe_interval == 0:
+                for pipe in pipes:
+                    pipe.move_left()
             
             # add a new pipe
-            if pipe_tick == pipe_spacing:
-                pipe_tick = 0
+            if pipe_clock % pipe_spacing == 0:
                 # TODO make random opening holes
-                pipes.append(Pipe())
+                opening_location = randint(1,led_matrix.height() - 4)
+                pipes.append(Pipe(opening_location=opening_location))
+                
+            # increment pipe_clock indefinitly, (we will never hit the max)
+            pipe_clock += 1
             
             # check for collision
             for pipe in pipes:
