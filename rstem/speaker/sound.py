@@ -121,14 +121,6 @@ class Note(Sound):
         x_arr = numpy.array(s)
         return x_arr
         
-class Beep(Sound):
-    """Creates a sound from premade sound files in the beeps folder"""
-    # TODO: beep sounds came from here: http://www.soundjay.com/beep-sounds-1.html
-    #  - need to find royalty free sounds that are allowed to be distributed
-    def __init__(self, number=1):
-        self.number = number
-        super(Beep, self).__init__("beeps/beep-" + str(number) + ".wav")
-
 currently_playing_file = None
 
 class Music(Sound):
@@ -194,8 +186,6 @@ if __name__ == '__main__':
 #    Note(440, duration=5).play()
     wiggle = Music("wiggle.mp3")
 #    wiggle.play(wait=True)
-    beep = Beep(2)
-#    beep = Note(800)
     while 1:
         for j in range(0,100,5):
             set_volume(j)
