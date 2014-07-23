@@ -4,8 +4,8 @@ import RPi.GPIO as GPIO
 GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)
 
-FALLING = GPIO.FALLING
-RISING = GPIO.RISING
+PRESSED = GPIO.FALLING
+RELEASED = GPIO.RISING
 BOTH = GPIO.BOTH
 
 def cleanup():
@@ -23,10 +23,12 @@ class Button(object):
         else:
             return True
         
-    def call_when_pressed(self, event_callback, bouncetime=300):
-        GPIO.add_event_detect(self.port, GPIO.FALLING, callback=event_callback, bouncetime=bouncetime)
+    def call_on_change(self, event_callback, change=PRESSED, bouncetime=300):
+        if change not in [PRESSED, RELEASED, BOTH]:
+            raise ValueError("Invalid change")
+        GPIO.add_event_detect(self.port, change, callback=event_callback, bouncetime=bouncetime)
         
-    def wait_for_edge(self, edge):
-        if edge not in [FALLING, RISING, BOTH]:
-            raise ValueError("Invalid edge")
-        GPIO.wait_for_edge(self.port, edge)
+    def wait_for_change(self, change):
+        if change not in [PRESSED, RELEASED, BOTH]:
+            raise ValueError("Invalid change")
+        GPIO.wait_for_edge(self.port, change)
