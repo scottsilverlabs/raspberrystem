@@ -116,8 +116,8 @@ try:
             bird = Bird()
             pipes = []
             pipe_start = led_matrix.width()
-            state = State.IDLE
             pipe_clock = 0
+            state = State.IDLE
             
         elif state == State.IDLE:
             led_matrix.erase()
@@ -158,14 +158,19 @@ try:
             pipe_clock += 1
             
             # check for collision
-            for pipe in pipes:
+            for pipe in reversed(pipes):
+                # stop checking when we run off the screen
+                if pipe.x_position < 0:
+                    break
                 if pipe.collided_with(bird):
                     state = State.END
                     break
             
         elif state == State.END:
+            # calculate score
+            score = sum(1 for pipe in pipes if (pipe.x_position + pipe.width - 1) < bird.position[0])
             led_matrix.erase()
-            led_matrix.text("Game Over")
+            led_matrix.text(str(score))
             led_matrix.show()
 
 finally:
