@@ -20,11 +20,11 @@ def _init():
     if pygame.mixer.get_init() is None:
         pygame.mixer.init(SAMPLERATE, BITSIZE, CHANNELS, BUFFER)
         
-def say(text, wait=True):
-    proc = subprocess.Popen('espeak "' + text + '"', shell=True)
-    if wait:
-        proc.wait()
-    
+def say(text):
+    proc = subprocess.Popen('espeak "' + text + '"', shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    output, error = proc.communicate()
+    if len(error) > 0:
+        raise Exception(error)
     
 def get_volume():
     """Gets the master volume"""
