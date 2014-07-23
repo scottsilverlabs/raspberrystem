@@ -319,16 +319,20 @@ int close_and_free(void){
 }
 
 void print_framebuffer(void){
-    system("clear");  // clear terminal
     int y;
+    // Send terminal the ANSI clear screen escape sequence.
+    printf("%c[H%c[2J", 0x1B, 0x1B);
     for (y = 0; y < container_height; y++){
         int x;
         for (x = 0; x < container_width; x++){
             int pixel = framebuffer[x][y];
-            if (pixel < 16)
-                printf("%x ", pixel);
-            else
+            if (pixel == 0) {
+                printf(". ", pixel);
+            } else if (pixel < 16) {
+                printf("%X ", pixel);
+            } else {
                 printf("- ");
+            }
         }
         printf("\n");
     }

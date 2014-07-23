@@ -14,7 +14,9 @@
 # limitations under the License.
 #
 import time
+from itertools import cycle
 from rstem import led
+from rstem import accel
 
 x = 0.0
 y = 0.0
@@ -24,10 +26,10 @@ period = 0.01
 sprite_period = 0.2
 sprite_steps = sprite_period/period
 step = 0
-sprites = [LEDSprite("ball%d.txt" % i) for i in range(4)]
+sprites = cycle([LEDSprite("ball%d.txt" % i) for i in range(4)])
+sprite = sprites.next()
 while True:
     # Draw the ball
-    sprite = sprites[n]
     led.erase()
     led.sprite(sprite, (int(x), int(y)))
     led.show()
@@ -35,15 +37,20 @@ while True:
     # Change to next sprite, once every sprite_steps
     step += 1
     if step % sprite_steps == 0:
-        n = (n + 1) % len(sprites)
+        sprite = sprites.next()
+
+    # Gravity
+    xangle, yangle, zangle = accel.get_angle()
+    xdist += xangle/90
+    ydist += yangle/90
 
     # Move the point to a new position.  If it hits a wall, reverse the
     # direction of the ball.
     x, y = (x+xdist, y+ydist)
     if x >= (led.width() - (sprite.width() - 1)) or x < 0:
-        xdist = - xdist
+        xdist = - xdist * 0.99
     if y >= (led.height() - (sprite.height() - 1)) or y < 0:
-        ydist = - ydist
+        ydist = - ydist * 0.99
 
     time.sleep(period)
 
