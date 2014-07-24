@@ -10,7 +10,7 @@ import time
 voice_engine = None
 
 # global constants
-SAMPLERATE = 48000
+SAMPLERATE = 44100  # 38000 == chipmunks
 BITSIZE = -16  # unsigned 16 bit
 CHANNELS = 2   # 1 == mono, 2 == stereo
 BUFFER = 1024  # audio buffer size in no. of samples
@@ -64,29 +64,44 @@ def shutdown():
     if pygame.mixer.get_init():
         pygame.mixer.quit()
     
-    
-    
+currently_playing_filename = None
+
 class Sound(object):
     """Basic foreground sound from a file"""
-    def __init__(self, filename):
+    def __init__(self, filename, background=False):
         # initialize if the first time
         _init()
         # check if filename exists.. (pygame doesn't check)
         if not os.path.isfile(filename):
             raise IOError("Filename doesn't exist.")
         
+        self.background = background
         self.filename = filename
-        self.sound = pygame.mixer.Sound(filename)
+        if background:
+            self.sound = pygame.mixer.music
+        else:
+            self.sound = pygame.mixer.Sound(filename)
         
     def play(self, loops=0, wait=False):
         """Plays sound a certain number of times. Blocks if wait == True"""
+        global currently_playing_filename
+        if self.background and currently_playing_filename != self.filename:
+            self.sound.load(self.filename)
+            currently_playing_filename = self.filename
+        
         clock = pygame.time.Clock()
         self.sound.play(loops)
         if wait:
-            while pygame.mixer.get_busy():
-                clock.tick(FRAMERATE)
-        
+            if self.background:
+                while pygame.mixer.music.get_busy():
+                    clock.tick(FRAMERATE)
+            else:
+                while pygame.mixer.get_busy():
+                    clock.tick(FRAMERATE)               
+                
     def stop(self):
+        if self.background and currently_playing_filename != self.filename:
+            return
         self.sound.stop()
         
     def get_volume(self):
@@ -94,113 +109,65 @@ class Sound(object):
         return self.sound.get_volume()*100
         
     def set_volume(self, value):
+        if self.background and currently_playing_filename != self.filename:
+            return
         """Sets teh volume of individual sound"""
         if not (0 <= value <= 100):
             raise ValueError("Volume must be between 0 and 100.")
         self.sound.set_volume(float(value/100.))
         
-    def get_length(self):
-        return self.sound.get_length
+    def is_playing(self):
+        if self.background and currently_playing_filename != self.filename:
+            return False
+        self.sound.get_busy()
+        
+    def queue(self):
+        if not self.background:
+            raise ValueError("Queue only supports background sounds.")
+        pygame.mixer.music.queue(self.filename)
+        
 
 class Note(Sound):
     """Creates a sine wave of given frequeny"""
-    def __init__(self, frequency, amplitude=16000, duration=1):
+    def __init__(self, frequency, amplitude=100, duration=1):
         _init()
         self.filename = None
+        self.background = False
         self.frequency = frequency
         self.amplitude = amplitude
         self.duration = duration
-        self.sound = pygame.sndarray.make_sound(self._build_samples())
         
-    def _build_samples(self):
-        num_steps = (self.duration/5.)*SAMPLERATE
-        s = []
-        for t in range(int(num_steps)):
-            value = int(self.amplitude * math.sin(self.frequency * ((2 * math.pi)/SAMPLERATE) * t))
-            s.append([value,value])
-        x_arr = numpy.array(s)
-        return x_arr
+        length = 2*SAMPLERATE/float(frequency)
+        omega = numpy.pi * 2 / length
+        xvalues = numpy.arange(int(length)) * omega
+        array = numpy.array(amplitude * numpy.sin(xvalues), dtype="int8")
+#        array = numpy.resize(array, (SAMPLERATE,))
+        if CHANNELS == 2:
+            array = numpy.array(zip(array,array))  # split into two for stereo
+        self.sound = pygame.sndarray.make_sound(array)
         
-currently_playing_file = None
-
-class Music(Sound):
-    """Background music. 
-    NOTE: Only a single background music can be played at once.
-    Uses the Sounds object if you need simultaneous playback.
-    """
-    def __init__(self, filename):
-        # initialize if the first time
-        _init()
-        
-        # check if filename exists.. (pygame doesn't check)
-        if not os.path.isfile(filename):
-            raise IOError("Filename doesn't exist.")
-            
-        self.filename = filename
-        self.volume = None
-        
-    def play(self, loops=0, start=0.0, wait=False):
-        global currently_playing_file
-        clock = pygame.time.Clock()
-        # unpause if currently loaded
-        if currently_playing_file == self.filename and pygame.mixer.music.get_busy():
-            pygame.mixer.music.unpause()
-        else:
-            pygame.mixer.music.load(self.filename)  # insert that tape deck
-            pygame.mixer.music.play(loops, start)
-            currently_playing_file = self.filename
-            self.volume = pygame.mixer.music.get_volume()*100  # update volume
-
-        if wait:
-            while pygame.mixer.music.get_busy():
-                clock.tick(FRAMERATE)
-        
-    def queue(self):
-        if pygame.mixer.music.get_busy():
-            pygame.mixer.music.queue(self.filename)
-        else:
-            pygame.mixer.music.load(self.filename)
-            
-    def stop(self):
-        if currently_playing_file == self.filename:
-            pygame.mixer.music.stop()
-        
-    def pause(self):
-        if currently_playing_file == self.filename:
-            pygame.mixer.music.pause()
-            
-    def set_volume(self, value):
-        if not (0 <= value <= 100):
-            raise ValueError("Volume must be between 0 and 100.")
-        self.volume = value
-        if currently_playing_file == self.filename:
-            pygame.mixer.music.set_volume(float(self.volume/100.))
-        
-    def get_volume(self):
-        if self.volume is None:
-            self.volume = pygame.mixer.music.get_volume()*100  # volume is set to default
-        return self.volume
-             
         
 if __name__ == '__main__':
 #    Note(440, duration=5).play()
-    wiggle = Music("wiggle.mp3")
+    wiggle = Sound("wiggle.mp3", background=True)
 #    wiggle.play(wait=True)
-    while 1:
-        for j in range(0,100,5):
-            set_volume(j)
-#            for i in range(10):
-            beep.set_volume(20)
-            beep.play(wait=True)
-            beep.set_volume(50)
-            beep.play(wait=True)
-        for j in range(100,-1,-5):
-            set_volume(j)
-#            for i in range(10):
-            beep.set_volume(20)
-            beep.play(wait=True)
-            beep.set_volume(50)
-            beep.play(wait=True)
+    beep = Note(440, duration=2)
+    beep.play(-1, wait=True)
+#    while 1:
+#        for j in range(0,100,5):
+#            set_volume(j)
+##            for i in range(10):
+#            beep.set_volume(20)
+#            beep.play(wait=True)
+#            beep.set_volume(50)
+#            beep.play(wait=True)
+#        for j in range(100,-1,-5):
+#            set_volume(j)
+##            for i in range(10):
+#            beep.set_volume(20)
+#            beep.play(wait=True)
+#            beep.set_volume(50)
+#            beep.play(wait=True)
     
 #        say("Hello World")
 #        say("How are you today?")
