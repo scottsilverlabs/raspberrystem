@@ -27,6 +27,7 @@ import subprocess
 BITS_PER_PIXEL = 4     # 4 bits to represent color
 DIM_OF_MATRIX = 8     # 8x8 led matrix elements
 initialized = False   # flag to indicate if LED has been initialized
+spi_initialized = False  # flag to indicate if SPI bus as been initialized
 container_width = 0    # indicates the maximum width and height of the LEDContainer
 container_height = 0
 container_math_coords = True
@@ -103,7 +104,13 @@ def init_matrices(mat_list=[(0,0,0)], math_coords=True, spi_speed=500000, spi_po
                 mat_list[i] = (mat_list[i][0], (container_height-1 - mat_list[i][1]) - (DIM_OF_MATRIX-1))
     led_driver.init_matrices(mat_list, len(mat_list), \
         container_width, container_height) # flatten out tuple
-    led_driver.init_SPI(spi_speed, spi_port)
+        
+    # initialize spi bus
+    global spi_initialized
+    if not spi_initialized:
+        led_driver.init_SPI(spi_speed, spi_port)
+        spi_initialized = True
+    
     initialized = True
     
 def init_grid(num_rows=None, num_cols=None, angle=0, math_coords=True, spi_speed=500000, spi_port=0):
@@ -114,6 +121,12 @@ def init_grid(num_rows=None, num_cols=None, angle=0, math_coords=True, spi_speed
             represented in the grid
             (num_row and num_cols are representative of after the angle has been defined)
     """
+    # initialize spi bus right away because we need it for led_driver.detect()
+    global spi_initialized
+    if not spi_initialized:
+        led_driver.init_SPI(spi_speed, spi_port)
+        spi_initialized = True
+    
     # num_rows, and num_cols are before rotation
     # auto detect number of columns if none given
     num_matrices = led_driver.detect()
@@ -152,11 +165,12 @@ def init_grid(num_rows=None, num_cols=None, angle=0, math_coords=True, spi_speed
         raise ValueError("Angle must be a multiple of 90.")
     angle = angle % 360
     
+    # TODO: not sure I need this....
     # swap rows and columns if rotated
-    if angle == 90 or angle == 270:
-        temp = num_rows
-        num_rows = num_cols
-        num_cols = temp
+#    if angle == 90 or angle == 270:
+#        temp = num_rows
+#        num_rows = num_cols
+#        num_cols = temp
     
     mat_list = []
     if angle == 0:

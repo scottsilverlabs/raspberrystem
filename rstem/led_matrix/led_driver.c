@@ -44,7 +44,7 @@ int display_on_terminal = 0;
 
 #define SIGN(x) (((x) >= 0) ? 1 : -1)
 
-int debug = 0;
+int debug = 1;
 #define Debug(args...) if (debug) {printf("LED_DRIVER: " args); printf("\n");}
 
 
@@ -132,7 +132,7 @@ int rw_bytes(int dev, unsigned char* val, unsigned char* buff, int len){
 }
 // led_driver commands =======================================
 
-int num_of_matrices(){
+int num_of_matrices(void){
     // spam display with zeros to ensure its empty
 	unsigned char* rx = (unsigned char*) malloc(32);
 	unsigned char* tran = (unsigned char*) malloc(32);
@@ -152,6 +152,7 @@ int num_of_matrices(){
 	}
 	free(rx);
 	free(tran);
+	Debug("num_of_matrices = %d", count-1)
 	if(ret < 0 || count > 9){
 		return -1;
 	} else {
@@ -329,7 +330,7 @@ void print_framebuffer(void){
         for (x = 0; x < container_width; x++){
             int pixel = framebuffer[x][y];
             if (pixel == 0) {
-                printf(". ", pixel);
+                printf(". ");
             } else if (pixel < 16) {
                 printf("%X ", pixel);
             } else {
@@ -338,14 +339,13 @@ void print_framebuffer(void){
         }
         printf("\n");
     }
-/*    refresh();*/
 }
 
 
 // Python Wrappers =================================================
 
 static PyObject *py_num_of_matrices(PyObject *self, PyObject *args){
-	int ret = number_of_matrices();
+	int ret = num_of_matrices();
 	if(ret < 0){
 		PyErr_SetString(PyExc_IOError, "Number of matrices out of valid range (Valid: 1-8)");
 		return NULL;
