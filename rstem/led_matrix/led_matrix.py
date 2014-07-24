@@ -428,7 +428,7 @@ def _char_to_sprite(char, font_path):
     if not (type(char) == str and len(char) == 1):
         raise ValueError("Not a character")
     if char.isdigit():
-        return LEDSprite(font_path + "/number/" + char)
+        return LEDSprite(font_path + "/numbers/" + char)
     elif char.isupper():
         return LEDSprite(font_path + "/upper/" + char)
     elif char.islower():

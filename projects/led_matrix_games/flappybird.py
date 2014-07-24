@@ -7,7 +7,7 @@ import random
 BUTTON=4
 
 # initialization
-led_matrix.init_grid(1,2)
+led_matrix.init_grid()
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(BUTTON, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
@@ -91,11 +91,11 @@ try:
     bird = None
     pipes = []
     pipe_start = 0
-    pipe_spacing = 13  # number of cycles between forming another pipe
+    pipe_spacing = 12  # number of cycles between forming another pipe
     pipe_tick = 0
     pipe_clock = 0
     pipe_interval = 2  # the lower the number the faster the pipes
-    speed = 6
+    speed = 7
 
     def button_handler(channel):
         global state
