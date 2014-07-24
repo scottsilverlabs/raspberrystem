@@ -36,6 +36,7 @@ int display_on_terminal = 0;
 
 #define DIM_OF_MATRIX 8
 #define BITS_PER_PIXEL 4
+#define MAX_MATRICES 50
 
 // number of bytes in a matrix
 #define NUM_BYTES_MATRIX ((DIM_OF_MATRIX*DIM_OF_MATRIX)/2)
@@ -43,7 +44,7 @@ int display_on_terminal = 0;
 
 #define SIGN(x) (((x) >= 0) ? 1 : -1)
 
-int debug = 0;
+int debug = 1;
 #define Debug(args...) if (debug) {printf("LED_DRIVER: " args); printf("\n");}
 
 
@@ -114,13 +115,54 @@ int write_bytes(int dev, unsigned char* val, int len) {
 	struct spi_ioc_transfer tr = {
 		.tx_buf = (unsigned long)val,
 		.len = len,
-		.delay_usecs = 100,
+//		.delay_usecs = 100,
 	};
 	int ret = ioctl(dev, SPI_IOC_MESSAGE(1), &tr);
-    return ret;
+	return ret;
 }
 
+int rw_bytes(int dev, unsigned char* val, unsigned char* buff, int len){
+	struct spi_ioc_transfer tr = {
+		.tx_buf = (unsigned long)val,
+		.rx_buf = (unsigned long)buff,
+		.len = len
+	};
+	int ret = ioctl(dev, SPI_IOC_MESSAGE(1), &tr);
+	return ret;
+}
 // led_driver commands =======================================
+
+int num_of_matrices(void){
+    // spam display with zeros to ensure its empty
+	unsigned char* rx = (unsigned char*) malloc(32);
+	unsigned char* tran = (unsigned char*) malloc(32);
+	memset(rx, 0, 32);
+	memset(tran, 0, 32);
+	int i = 0;
+	for(i = 0; i < MAX_MATRICES; i++){
+		write_bytes(spi, tran, 32);
+	}
+	// send a high through and wait for response
+	tran[0] = 0xFF;
+	int count = 0;
+	int ret = 0;
+	while(rx[0] != 0xFF && count < 10){
+		ret = rw_bytes(spi, tran, rx, 32);
+		count++;
+	}
+	free(rx);
+	free(tran);
+	Debug("num_of_matrices = %d", count-1)
+	if(ret < 0 || count > 9){
+		return -1;
+	} else {
+		tran = (unsigned char*) malloc(32*(count-1));
+		memset(tran, 0, 32*(count - 1));
+		ret = write_bytes(spi, tran, 32*(count - 1));
+		free(tran);
+		return count - 1;
+	}
+}
 
 int point(int x, int y, unsigned int color) {
     Debug("Setting point at (%d,%d) with color %d", x, y, color);
@@ -280,24 +322,36 @@ int close_and_free(void){
 }
 
 void print_framebuffer(void){
-    system("clear");  // clear terminal
     int y;
+    // Send terminal the ANSI clear screen escape sequence.
+    printf("%c[H%c[2J", 0x1B, 0x1B);
     for (y = 0; y < container_height; y++){
         int x;
         for (x = 0; x < container_width; x++){
             int pixel = framebuffer[x][y];
-            if (pixel < 16)
-                printf("%x ", pixel);
-            else
+            if (pixel == 0) {
+                printf(". ");
+            } else if (pixel < 16) {
+                printf("%X ", pixel);
+            } else {
                 printf("- ");
+            }
         }
         printf("\n");
     }
-/*    refresh();*/
 }
 
 
 // Python Wrappers =================================================
+
+static PyObject *py_num_of_matrices(PyObject *self, PyObject *args){
+	int ret = num_of_matrices();
+	if(ret < 0){
+		PyErr_SetString(PyExc_IOError, "Number of matrices out of valid range (Valid: 1-8)");
+		return NULL;
+	}
+	return Py_BuildValue("i", ret);
+}
 
 static PyObject *py_init_matrices(PyObject *self, PyObject *args){
     PyObject *mat_list;  // the list object
@@ -411,14 +465,24 @@ static PyObject *py_shutdown_matrices(PyObject *self, PyObject *args){
 	return Py_BuildValue("i", close_and_free());
 }
 
+static PyObject *py_display_on_terminal(PyObject *self, PyObject *args){
+    if (display_on_terminal)
+        display_on_terminal = 0;
+    else
+        display_on_terminal = 1;
+	return Py_BuildValue("i", 1);
+}
+
 static PyMethodDef led_driver_methods[] = {
 	{"init_SPI", py_init_SPI, METH_VARARGS, "Initialize the SPI with given speed and port."},
-    {"init_matrices", py_init_matrices, METH_VARARGS, "Initializes the give LED matrices in the list."},
-    {"flush", py_flush, METH_NOARGS, "Converts current frame buffer to a bistream and then sends it to SPI port."},
+	{"init_matrices", py_init_matrices, METH_VARARGS, "Initializes the give LED matrices in the list."},
+	{"flush", py_flush, METH_NOARGS, "Converts current frame buffer to a bistream and then sends it to SPI port."},
 	{"shutdown_matrices", py_shutdown_matrices, METH_NOARGS, "Closes the SPI and frees all memory."},
 	{"point", py_point, METH_VARARGS, "Sets a point in the frame buffer."},
 	{"line", py_line, METH_VARARGS, "Sets a line from given source to destination."},
-    {"fill", py_fill, METH_VARARGS, "Fills all matrices with the given color."},
+	{"fill", py_fill, METH_VARARGS, "Fills all matrices with the given color."},
+	{"detect", py_num_of_matrices, METH_NOARGS, "Returns the number of matrices connected"},
+	{"display_on_terminal", py_display_on_terminal, METH_NOARGS, "Toggles on and off display_on_terminal mode"},
 	{NULL, NULL, 0, NULL}  /* Sentinal */
 };
 

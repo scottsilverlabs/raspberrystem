@@ -20,22 +20,17 @@ import re
 import time
 from itertools import islice
 import led_driver     # c extension that controls led matrices and contains framebuffer
+import copy
+import subprocess
 
 # global variables for use
 BITS_PER_PIXEL = 4     # 4 bits to represent color
 DIM_OF_MATRIX = 8     # 8x8 led matrix elements
 initialized = False   # flag to indicate if LED has been initialized
+spi_initialized = False  # flag to indicate if SPI bus as been initialized
 container_width = 0    # indicates the maximum width and height of the LEDContainer
 container_height = 0
 container_math_coords = True
-
-# TODO: for unit testing, remove when done
-def valid_color(color):
-    return valid_color(color)
-def convert_color(color):
-    return convert_color(color)
-def convert_to_std_coords(x,y):
-    return _convert_to_std_coords(x,y)
 
 
 def _init_check():
@@ -78,13 +73,16 @@ def width():
     
 def height():
     return container_height
+    
+def display_on_terminal():
+    led_driver.display_on_terminal()
 
 def init_matrices(mat_list=[(0,0,0)], math_coords=True, spi_speed=500000, spi_port=0):
-    """Create a chain of led matrices set at parti  cular offsets into the frame buffer
+    """Create a chain of led matrices set at particular offsets into the frame buffer
     The order of the led matrices in the list indicate the order they are
     physically hooked up with the first one connected to Pi.
     mat_list = list of tuple that contains led matrix and offset
-        ex: [(0,0,led1),(7,0,led2)]
+        ex: [(0,0,0),(7,0,90)]
         """
     global initialized
     global container_width
@@ -106,10 +104,16 @@ def init_matrices(mat_list=[(0,0,0)], math_coords=True, spi_speed=500000, spi_po
                 mat_list[i] = (mat_list[i][0], (container_height-1 - mat_list[i][1]) - (DIM_OF_MATRIX-1))
     led_driver.init_matrices(mat_list, len(mat_list), \
         container_width, container_height) # flatten out tuple
-    led_driver.init_SPI(spi_speed, spi_port)
+        
+    # initialize spi bus
+    global spi_initialized
+    if not spi_initialized:
+        led_driver.init_SPI(spi_speed, spi_port)
+        spi_initialized = True
+    
     initialized = True
     
-def init_grid(num_rows=1, num_cols=1, angle=0, zigzag=True, math_coords=True, spi_speed=500000, spi_port=0):
+def init_grid(num_rows=None, num_cols=None, angle=0, math_coords=True, spi_speed=500000, spi_port=0):
     """Initiallizes led matrices in a grid pattern with the given number
     or rows and columns.
     zigzag=True means the ledmatrices have been placed in a zigzag fashion.
@@ -117,14 +121,61 @@ def init_grid(num_rows=1, num_cols=1, angle=0, zigzag=True, math_coords=True, sp
             represented in the grid
             (num_row and num_cols are representative of after the angle has been defined)
     """
-    # TODO: convert to before rotation
+    # initialize spi bus right away because we need it for led_driver.detect()
+    global spi_initialized
+    if not spi_initialized:
+        led_driver.init_SPI(spi_speed, spi_port)
+        spi_initialized = True
+    
     # num_rows, and num_cols are before rotation
+    # auto detect number of columns if none given
+    num_matrices = led_driver.detect()
+    if num_cols is None:
+        if num_rows is None:
+            # if number of rows not given assume max of 4 columns per row
+            for cols in reversed(range(5)):  # should never hit zero
+                rows = float(num_matrices)/cols
+                if rows.is_integer():
+                    num_rows = int(rows)
+                    num_cols = cols
+                    break
+        else:
+            num_cols = num_matrices/num_rows
+    
+#        # if odd number of matrices we can only have 1 row
+#        if num_matrices % 2 != 0:
+#            num_rows = 1
+#            num_cols = num_matrices
+
+#        elif num_rows is None:
+#            import math
+#            num_rows = int(math.ceil(num_matrices / 4.))
+#            num_cols = num_matrices/num_rows
+#        else:
+#            num_cols = num_matrices/num_rows
+    elif num_rows is None:
+        raise ValueError("If you are providing num_cols you must also provide num_rows.")
+    
+    if num_cols*num_rows != num_matrices:  # safety check
+        raise ValueError("Invalid number of rows and columns")
+    
     if num_rows <= 0 or num_cols <= 0:
         raise ValueError("num_rows and num_cols must be positive.")
+    if angle % 90 != 0:
+        raise ValueError("Angle must be a multiple of 90.")
+    angle = angle % 360
+    
+    # TODO: not sure I need this....
+    # swap rows and columns if rotated
+#    if angle == 90 or angle == 270:
+#        temp = num_rows
+#        num_rows = num_cols
+#        num_cols = temp
+    
     mat_list = []
     if angle == 0:
         for row in range(num_rows): # increment through rows downward
-            if zigzag and row % 2 == 1:
+            if row % 2 == 1:
                 for column in range(num_cols-1,-1,-1):  # if odd increment right to left
                     mat_list.append((column*DIM_OF_MATRIX, row*DIM_OF_MATRIX, 180))  # upside-down
             else:
@@ -132,7 +183,7 @@ def init_grid(num_rows=1, num_cols=1, angle=0, zigzag=True, math_coords=True, sp
                     mat_list.append((column*DIM_OF_MATRIX, row*DIM_OF_MATRIX, 0))  # right side up
     elif angle == 90: # 90 degrees clockwise
         for row in range(num_rows): 
-            if zigzag and row % 2 == 1:
+            if row % 2 == 1:
                 for column in range(num_cols-1,-1,-1): # if odd, increment downward
                     mat_list.append(((num_rows-row - 1)*DIM_OF_MATRIX, column*DIM_OF_MATRIX, 270)) # 180 + 90
             else:
@@ -140,7 +191,7 @@ def init_grid(num_rows=1, num_cols=1, angle=0, zigzag=True, math_coords=True, sp
                     mat_list.append(((num_rows-row - 1)*DIM_OF_MATRIX, column*DIM_OF_MATRIX, 90))  # 0 + 90
     elif angle == 180:
         for row in range(num_rows-1,-1,-1): # increment through rows upwards
-            if zigzag and row % 2 == 1:
+            if row % 2 == 1:
                 for column in range(num_cols-1,-1,-1):  # if odd increment right to left
                     mat_list.append((column*DIM_OF_MATRIX, row*DIM_OF_MATRIX, 180)) # 180 + 180
             else:
@@ -148,14 +199,13 @@ def init_grid(num_rows=1, num_cols=1, angle=0, zigzag=True, math_coords=True, sp
                     mat_list.append((column*DIM_OF_MATRIX, row*DIM_OF_MATRIX, 0)) # 0 + 180
     elif angle == 270: # 90 degrees counter-clockwise
         for row in range(num_rows): # increment columns right to left
-            if zigzag and row % 2 == 1:
+            if row % 2 == 1:
                 for column in range(num_cols-1,-1,-1): # if odd increment through rows upwards
                     mat_list.append((row*DIM_OF_MATRIX, (num_cols - 1- column)*DIM_OF_MATRIX, 90)) # 180 - 90
             else:
                 for column in range(num_cols): # increment through rows downwards
                     mat_list.append((row*DIM_OF_MATRIX, (num_cols - 1 - column)*DIM_OF_MATRIX, 270)) # 0 - 90 = 270
                   
-    print(mat_list)  
     global container_math_coords
     init_matrices(mat_list, math_coords=False, spi_speed=spi_speed, spi_port=spi_port)
     container_math_coords = math_coords
@@ -187,20 +237,6 @@ def fill(color=0xF):
     _init_check()
     led_driver.fill(_convert_color(color))
 
-# TODO: remove this?
-def _convert_to_std_angle(x, y, angle):
-    if angle == 90:
-        oldx = x
-        x = y
-        y = (container_height - 1) - oldx
-    elif angle == 180:
-        x = (container_width - 1) - x
-        y = (container_height - 1) - x
-    elif angle == 270:
-        oldy = y
-        y = x
-        x = (container_width - 1) - oldy
-    return (x,y)
     
 def erase():
     fill(0)
@@ -218,7 +254,6 @@ def point(x, y=None, color=0xF):
         if y is None and type(x) is tuple:
             x, y = x
         if x < 0 or x >= container_width or y < 0 or y >= container_height:
-#            raise IndexError("Point given is not in framebuffer.")
             return
         if container_math_coords:
             x, y = _convert_to_std_coords(x, y)
@@ -227,14 +262,14 @@ def point(x, y=None, color=0xF):
 
 def rect(origin, dimensions, color=0xF):
     """Creates a rectangle from start point using given dimensions"""
-    if container_math_coords: # convert it now so no need to do it anymore
-        origin = _convert_to_std_coords(*origin)
     x, y = origin
     width, height = dimensions
-    line((x, y), (x, y + height), color)
-    line((x, y + height), (x + width, y + height), color)
-    line((x + width, y + height), (x + width, y), color)
-    line((x + width, y), (x, y), color)
+    if container_math_coords: 
+        y = y + height - 1  # move from bottom left to top left
+    line((x, y), (x, y + height - 1), color)
+    line((x, y + height - 1), (x + width - 1, y + height - 1), color)
+    line((x + width - 1, y + height - 1), (x + width - 1, y), color)
+    line((x + width - 1, y), (x, y), color)
 
 
 def _sign(n):
@@ -271,12 +306,12 @@ def _line_fast(point_a, point_b, color=0xF):
     led_driver.line(point_a[0], point_a[1], point_b[0], point_b[1], _convert_color(color))
 
 
-def text(text, origin=(0,0), crop_origin=(0,0), crop_dimensions=None, font_size="large"):
+def text(text, origin=(0,0), crop_origin=(0,0), crop_dimensions=None, font_name="small", font_path=None):
     """Sets given string to be displayed on LED Matrix
         - returns the LEDText sprite object used to create text
     """
     if type(text) == str:
-        text = LEDText(text, font_size=font_size)
+        text = LEDText(text, font_name=font_name, font_path=font_path)
     elif type(text) != LEDText and type(text) != LEDSprite:
         raise ValueError("Invalid text")
     sprite(text, origin, crop_origin, crop_dimensions)
@@ -291,6 +326,11 @@ def sprite(sprite, origin=(0,0), crop_origin=(0,0), crop_dimensions=None):
                 Note: crop_origin is relative to origin
         crop_dimensions = the number of pixels (x, y) inside the sprite to display (None for no crop)
     """
+    if type(sprite) == str:
+        sprite = LEDSprite(sprite)
+    elif type(sprite) != LEDText and type(sprite) != LEDSprite:
+        raise ValueError("Invalid sprite")
+    
     _init_check()
     global container_width
     global container_height
@@ -350,24 +390,60 @@ class LEDSprite(object):
         - The hex number indicates pixel color and "-" indicates a transparent pixel
     """
     def __init__(self, filename=None, height=0, width=0, color=0x0):
-        self.filename = filename
         bitmap = []
         bitmap_width = 0  # keep track of width and height
         bitmap_height = 0
         if filename is not None:
-            f = open(filename, 'r')
-            # TODO: implement creating bitmaps from image files
-            for line in f:
-                leds = [_convert_color(char) for char in line.split()]
-                # Determine if widths are consistent
-                if bitmap_width != 0:
-                    if len(leds) != bitmap_width:
-                        raise ValueError("Sprite has different widths")
+            filename = filename.strip()
+            self.filename = filename    
+            # get filetype
+            proc = subprocess.Popen("file " + str(filename), shell=True, stdout=subprocess.PIPE)
+            output, errors = proc.communicate()
+            if type(output) == bytes:  # convert from byte to a string (happens if using python3)
+                output = output.decode() 
+            if errors is not None or (output.find("ERROR") != -1):
+                raise IOError(output)
+                
+            if output.find("text") != -1:  # file is a text file
+                if filename[-4:] != ".spr":
+                    raise ValueError("Filename must have '.spr' extension.")
+                f = open(filename, 'r')
+                for line in f:
+                    leds = [_convert_color(char) for char in line.split()]
+                    # Determine if widths are consistent
+                    if bitmap_width != 0:
+                        if len(leds) != bitmap_width:
+                            raise ValueError("Sprite has different widths")
+                    else:
+                        bitmap_width = len(leds)
+                    bitmap.append(leds)
+                    bitmap_height += 1
+                f.close()
+                
+            elif output.find("image") != -1:  # file is an image file
+                import scipy.misc, numpy, sys
+                if sys.version_info[0] > 2:
+                    raise ValueError("As of now, only python 2 supports images to sprites.")
+                # if no height or width given try to fill as much of the display
+                # with the image without stretching it
+                if height <= 0 or width <= 0:
+                    from PIL import Image
+                    im = Image.open(filename)
+                    im_width, im_height = im.size
+                    bitmap_height = min(container_height, im_height)
+                    bitmap_width = min(container_width, bitmap_height * (im_width / im_height))
                 else:
-                    bitmap_width = len(leds)
-                bitmap.append(leds)
-                bitmap_height += 1
-            f.close()
+                    bitmap_height = height
+                    bitmap_width = width
+                # pixelize and resize image with scipy
+                image = scipy.misc.imread(filename, flatten=True)
+                con_image = scipy.misc.imresize(image, (bitmap_width, bitmap_height), interp='cubic')
+                con_image = numpy.transpose(con_image)  # convert from column-wise to row-wise
+                con_image = numpy.fliplr(con_image)  # re-orient the image
+                con_image = numpy.rot90(con_image, k=1)
+                bitmap = [[int(pixel*16/255) for pixel in line] for line in con_image]  # convert to bitmap
+            else:
+                raise IOError("Unsupported filetype")
         else:
             # create an empty sprite of given height and width
             bitmap = [[color for i in range(width)] for j in range(height)]
@@ -411,55 +487,108 @@ class LEDSprite(object):
 
     
     def save_to_file(self, filename):
-        pass
-        # TODO: make this
+        filename = filename.strip()
+        if filename[-4:] != ".spr":
+            raise ValueError("Filename must have '.spr' extension.")
+        f = open(filename, 'w')
+        for line in self.bitmap:
+            for pixel in line:
+                if pixel > 15:
+                    f.write("- ")
+                else:
+                    f.write(hex(pixel)[2] + " ")
+            f.write("\n")
+        f.close()
         
-    def rotate(self, angle):
-        pass
-        # TODO
+    def rotate(self, angle=90):
+        """Rotates sprite at 90 degree intervals. 
+        If no angle given, will rotate sprite 90 degrees.
+        """
+        if angle % 90 != 0:
+            raise ValueError("Angle must be a multiple of 90.")
+            
+        angle = angle % 360    
+        if angle == 90:
+            bitmap = []
+            for i in range(self.width):
+                bitmap.append([row[i] for row in reversed(self.bitmap)])
+            self.bitmap = bitmap
+            # swap height and width
+            temp = self.width
+            self.width = self.height
+            self.height = temp
+            
+        elif angle == 180:
+            self.bitmap.reverse()
+            for row in self.bitmap:
+                row.reverse()
+                
+        elif angle == 270:
+            bitmap = []
+            for i in range(self.width-1,-1,-1):
+                bitmap.append([row[i] for row in self.bitmap])
+            self.bitmap = bitmap
+            # swap height and width
+            temp = self.width
+            self.width = self.height
+            self.height = temp
         
-    def rotated(self, angle):
-        pass
-        # TODO
+    def rotated(self, angle=90):
+        """Returns a rotated LEDSprite of self. Does not change self."""
+        sprite_copy = copy.deepcopy(self)
+        sprite_copy.rotate(angle)
+        return sprite_copy
 
 
 def _char_to_sprite(char, font_path):
     """Returns the LEDSprite object of given character."""
     if not (type(char) == str and len(char) == 1):
         raise ValueError("Not a character")
+    orig_font_path = font_path
     if char.isdigit():
-        return LEDSprite(font_path + "/numbers/" + char)
+        font_path = os.path.join(font_path, "numbers", char + ".spr")
     elif char.isupper():
-        return LEDSprite(font_path + "/upper/" + char)
+        font_path = os.path.join(font_path, "upper", char + ".spr")
     elif char.islower():
-        return LEDSprite(font_path + "/lower/" + char)
+        font_path = os.path.join(font_path, "lower", char + ".spr")
     elif char.isspace():
-        return LEDSprite(font_path + "/space") # return a space 
-    elif os.path.isfile(font_path + "/misc/" + str(ord(char))): # add if exist in misc folder
-        return LEDSprite(font_path + "/misc/" + str(ord(char)))
+        font_path = os.path.join(font_path, "space.spr")
     else:
-        return LEDSprite(font_path + "/unknown") # return generic box character
-
+        font_path = os.path.join(font_path, "misc", str(ord(char)) + ".spr")
+        
+    if os.path.isfile(font_path):
+        return LEDSprite(font_path)
+    else:
+        return LEDSprite(os.path.join(orig_font_path, "unknown.spr"))
+        
+        
 
 class LEDText(LEDSprite):
 
-    def __init__(self, message, char_spacing=1, font_size="large", font_path=None):
+    def __init__(self, message, char_spacing=1, font_name="small", font_path=None):
         """Creates a text sprite of the given string
             - This object can be used the same way a sprite is used
             char_spacing = number pixels between characters
-            font_path = location of folder where font bitmaps are located
+            font_path = location of folder where font sprites are located
+                        leave as None to use default system fonts
         """
         if font_path is None: # if none, set up default font location
             this_dir, this_filename = os.path.split(__file__)
-            # only use font_size if no custom font_path was given
+            # only use font_name if no custom font_path was given
             font_path = os.path.join(this_dir, "font")
-            if font_size == "large":
-                font_path += "/5x7"
-            elif font_size == "small":
-                font_path += "/3x5"
-            else:
-                # TODO: allow user generated font
-                raise ValueError("Invalid font size. Must be either 'large' or 'small'")
+            
+        if not os.path.isdir(font_path):
+            raise IOError("Font path does not exist.")
+        orig_font_path = font_path
+
+        # attach font_name to font_path
+        font_path = os.path.join(font_path, font_name)
+        
+        # if font subdirectory doesn exist, attempt to open a .font file
+        if not os.path.isdir(font_path):
+            f = open(os.path.join(orig_font_path, font_name + ".font"), 'r')
+            font_path = os.path.join(orig_font_path, f.read().strip())
+            f.close()
 
         message = message.strip()
         if len(message) == 0:
@@ -499,7 +628,7 @@ def _main():
                 point(x, y)
                 show()
                 time.sleep(0.5);
-                point(x, y, color=0)
+                erase()
 
 if __name__ == "__main__":
     _main()

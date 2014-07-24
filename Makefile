@@ -1,50 +1,55 @@
 SHELL = /bin/bash
 
-PYTHON=python  # default python
+ifdef ON_PI
+  PYTHON=python  # default python
+else
+  PYTHON=python  # default python
+endif
 PYFLAGS=
 DESTDIR=/
 # install directories
 PROJECTSDIR=$$HOME/rstem
 CELLSDIR=$$HOME/rstem
 #BUILDIR=$(CURDIR)/debian/raspberrystem
-
-# Calculate the base names of the distribution, the location of all source,
-NAME:=$(shell $(PYTHON) $(PYFLAGS) setup.py --name)
-VER:=$(shell $(PYTHON) $(PYFLAGS) setup.py --version)
 PI=pi@raspberrypi
 
-
-PYVER:=$(shell $(PYTHON) $(PYFLAGS) -c "import sys; print('py%d.%d' % sys.version_info[:2])")
-PY_SOURCES:=$(shell \
-	$(PYTHON) $(PYFLAGS) setup.py egg_info >/dev/null 2>&1 && \
-	grep -v "\.egg-info" $(NAME).egg-info/SOURCES.txt)
-DEB_SOURCES:=debian/changelog \
-	debian/control \
-	debian/copyright \
-	debian/rules \
-#	debian/docs \
-	$(wildcard debian/*.init) \
-	$(wildcard debian/*.default) \
-	$(wildcard debian/*.manpages) \
-#	$(wildcard debian/*.docs) \
-	$(wildcard debian/*.doc-base) \
-	$(wildcard debian/*.desktop)
-#DOC_SOURCES:=docs/conf.py \
-#	$(wildcard docs/*.png) \
-#	$(wildcard docs/*.svg) \
-#	$(wildcard docs/*.rst) \
-#	$(wildcard docs/*.pdf)
-
-# Types of dist files all located in dist folder
-DIST_EGG=dist/$(NAME)-$(VER)-$(PYVER).egg
-DIST_TAR=dist/$(NAME)-$(VER).tar.gz
-DIST_ZIP=dist/$(NAME)-$(VER).zip
-DIST_DEB=dist/python-$(NAME)_$(VER)_armhf.deb \
-	dist/python3-$(NAME)_$(VER)_armhf.deb
-#	dist/python-$(NAME)-docs_$(VER)-1$(DEB_SUFFIX)_all.deb
-DIST_DSC=dist/$(NAME)_$(VER).tar.gz \
-	dist/$(NAME)_$(VER).dsc \
-	dist/$(NAME)_$(VER)_source.changes
+ifdef ON_PI
+  # Calculate the base names of the distribution, the location of all source,
+  NAME:=$(shell $(PYTHON) $(PYFLAGS) setup.py --name)
+  VER:=$(shell $(PYTHON) $(PYFLAGS) setup.py --version)
+  
+  PYVER:=$(shell $(PYTHON) $(PYFLAGS) -c "import sys; print('py%d.%d' % sys.version_info[:2])")
+  PY_SOURCES:=$(shell \
+  	$(PYTHON) $(PYFLAGS) setup.py egg_info >/dev/null 2>&1 && \
+  	grep -v "\.egg-info" $(NAME).egg-info/SOURCES.txt)
+  DEB_SOURCES:=debian/changelog \
+  	debian/control \
+  	debian/copyright \
+  	debian/rules \
+  #	debian/docs \
+  	$(wildcard debian/*.init) \
+  	$(wildcard debian/*.default) \
+  	$(wildcard debian/*.manpages) \
+  #	$(wildcard debian/*.docs) \
+  	$(wildcard debian/*.doc-base) \
+  	$(wildcard debian/*.desktop)
+  #DOC_SOURCES:=docs/conf.py \
+  #	$(wildcard docs/*.png) \
+  #	$(wildcard docs/*.svg) \
+  #	$(wildcard docs/*.rst) \
+  #	$(wildcard docs/*.pdf)
+  
+  # Types of dist files all located in dist folder
+  DIST_EGG=dist/$(NAME)-$(VER)-$(PYVER).egg
+  DIST_TAR=dist/$(NAME)-$(VER).tar.gz
+  DIST_ZIP=dist/$(NAME)-$(VER).zip
+  DIST_DEB=dist/python-$(NAME)_$(VER)_armhf.deb \
+  	dist/python3-$(NAME)_$(VER)_armhf.deb
+  #	dist/python-$(NAME)-docs_$(VER)-1$(DEB_SUFFIX)_all.deb
+  DIST_DSC=dist/$(NAME)_$(VER).tar.gz \
+  	dist/$(NAME)_$(VER).dsc \
+  	dist/$(NAME)_$(VER)_source.changes
+endif
 
 COMMANDS=install local-install test source egg zip tar deb dist install-projects install-cells \
     upload-all upload-ppa upload-cheeseshop
@@ -56,7 +61,7 @@ help:
 	@echo "make push - Push changes on local computer onto pi"
 	@echo "make pull - Pull changes on pi onto local computer (BE CAREFULL!!!)"
 	@echo "make install - Install onto remote Raspberry Pi"
-	@echo "make local-install - Install onto local machine"
+	@echo "make local-install - Install onto local machine (Still needs a raspberry pi to compile.)"
 	@echo "make install-projects - Install projects to home folder"
 	@echo "make install-cells - Install cells to home folder"
 	@echo "make test - Run tests"
@@ -96,18 +101,17 @@ pull:
 # for each command push new files to raspberry pi then run command on the pi
 $(COMMANDS)::
 	$(MAKE) push
-	ssh $(SSHFLAGS) -t -v $(PI) "cd rsinstall; $(MAKE) pi-$@ PI=$(PI) PYTHON=$(PYTHON)"
+	# Run make on target - note: don't use $(MAKE), as host and target "make"s
+	# may differ.
+	ssh $(SSHFLAGS) -t $(PI) "cd rsinstall; make pi-$@ PI=$(PI) ON_PI=1"
 
 
 # on pi commands start with "pi-"
-
 
 pi-install:
 	sudo $(PYTHON) $(PYFLAGS) ./setup.py install
 	$(MAKE) pi-install-projects
 	$(MAKE) pi-install-cells
-
-
 
 pi-install-cells:
 	mkdir -p $(CELLSDIR)
