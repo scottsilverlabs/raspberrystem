@@ -103,7 +103,7 @@ $(COMMANDS)::
 	$(MAKE) push
 	# Run make on target - note: don't use $(MAKE), as host and target "make"s
 	# may differ.
-	ssh $(SSHFLAGS) -t $(PI) "cd rsinstall; make pi-$@ PI=$(PI) ON_PI=1"
+	ssh $(SSHFLAGS) -t $(PI) "cd rsinstall; make pi-$@ PI=$(PI)"
 
 
 # on pi commands start with "pi-"
@@ -173,7 +173,7 @@ pi-dist: $(DIST_EGG) $(DIST_DEB) $(DIST_DSC) $(DIST_TAR) $(DIST_ZIP)
 
 # clean all files from raspberry pi
 clean-pi:
-	ssh $(SSHFLAGS) -t -v $(PI) "rm -rf ~/rsinstall; rm -rf ~/rstem"
+	ssh $(SSHFLAGS) -t -v $(PI) "sudo rm -rf ~/rsinstall; sudo rm -rf ~/rstem"
 
 # clean all files locally
 clean:

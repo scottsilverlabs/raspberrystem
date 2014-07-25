@@ -30,7 +30,7 @@ class Menu(object):
         for item in self.items:
             if item["inverted"]:
                 # display text inverted
-                led_matrix.rect((0, pos_y), (led_matrix.width(), item["text"].height()))
+                led_matrix.rect((0, pos_y), (led_matrix.width(), item["text"].height))
                 led_matrix.text(item["text"], (0, pos_y), color=0)
             else:
                 led_matrix.text(item["text"], (0, pos_y))
