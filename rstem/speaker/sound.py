@@ -141,7 +141,7 @@ class Note(Sound):
         omega = numpy.pi * 2 / length
         xvalues = numpy.arange(int(length)) * omega
         array = numpy.array(amplitude * numpy.sin(xvalues), dtype="int8")
-#        array = numpy.resize(array, (SAMPLERATE,))
+        array = numpy.resize(array, (SAMPLERATE*duration,))
         if CHANNELS == 2:
             array = numpy.array(zip(array,array))  # split into two for stereo
         self.sound = pygame.sndarray.make_sound(array)
@@ -151,8 +151,8 @@ if __name__ == '__main__':
 #    Note(440, duration=5).play()
     wiggle = Sound("wiggle.mp3", background=True)
 #    wiggle.play(wait=True)
-    beep = Note(440, duration=2)
-    beep.play(-1, wait=True)
+    beep = Note(440, duration=5)
+    beep.play(0, wait=True)
 #    while 1:
 #        for j in range(0,100,5):
 #            set_volume(j)
