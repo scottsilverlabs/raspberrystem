@@ -2,6 +2,7 @@ from rstem import led_matrix
 import RPi.GPIO as GPIO
 import subprocess
 import os
+import sys
 
 class Menu(object):
     def __init__(self, menu_items):
@@ -18,6 +19,7 @@ class Menu(object):
                 "inverted": False
                 })
         self.items = items
+        self.running_proc = None
         
         # set first item to be selected
         items[0]["inverted"] = True
@@ -54,9 +56,17 @@ class Menu(object):
             if item["inverted"]:
                 return item
                 
-    def call_selected_item(self):
+    def run_selected_item(self):
         selected = self.selected_item()
+#        exec(open(selected["file"]).read())
+        proc = subprocess.Popen([sys.executable, selected["file"], selected["title"]])
+        self.running_proc = proc
         
+    def terminate_running_item(self):
+        if self.running_proc is not None:
+            self.running_proc.terminate()
+            self.running_proc.wait()
+            self.running_proc = None
     
 # set up menu
 menu_items = [
@@ -70,10 +80,19 @@ SELECT = 4
 # TODO: set these to real values
 UP = 10
 DOWN = 11
+# buttons to hold down at the same time to kill running process
+KILL_SWITCH_COMBO = [UP, DOWN, SELECT]
+
+# states
+IN_MENU = 1
+IN_GAME = 2
+curr_state = IN_MENU
 
 def button_handler(channel):
     if channel == SELECT:
-        menu.call_selected_item()
+        global curr_state
+        curr_state = IN_GAME
+        menu.run_selected_item()
     elif channel == UP:
         menu.scroll_up()
     elif channel == DOWN:
@@ -86,9 +105,15 @@ for button in [SELECT, UP, DOWN]:
     GPIO.setup(button, GPIO.IN, pull_up_down=GPIO.PUD_UP)
     GPIO.add_event_detect(button, GPIO.FALLING, callback=button_handler, bouncetime=300)
 
+
 while True:
-    led_matrix.erase()
-    menu.draw()
-    led_matrix.show()
+    if curr_state == IN_MENU:
+        led_matrix.erase()
+        menu.draw()
+        led_matrix.show()
+    elif curr_state == IN_GAME:
+        if all([GPIO.input(button) == 0 for button in KILL_SWITCH_COMBO]):
+            menu.terminate_running_item()
+            curr_state = IN_MENU
     
     
