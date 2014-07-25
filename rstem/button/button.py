@@ -18,7 +18,7 @@ class Button(object):
         GPIO.setup(port, GPIO.IN, pull_up_down=GPIO.PUD_UP)
         
     def is_pressed(self):
-        return not bool(GPIO.input(self.port)):
+        return not bool(GPIO.input(self.port))
 
     def _verify_change_value(change):
         if change not in [PRESSED, RELEASED, BOTH]:

@@ -99,7 +99,7 @@ def button_handler(channel):
         menu.scroll_down()
 
 # initialization
-led_matrix.init_grid(math_coords=False)
+led_matrix.init_grid(1,2,270,math_coords=False)
 GPIO.setmode(GPIO.BCM)
 for button in [SELECT, UP, DOWN]:
     GPIO.setup(button, GPIO.IN, pull_up_down=GPIO.PUD_UP)
@@ -112,7 +112,7 @@ while True:
         menu.draw()
         led_matrix.show()
     elif curr_state == IN_GAME:
-        if all([GPIO.input(button) == 0 for button in KILL_SWITCH_COMBO]):
+        if all([not bool(GPIO.input(button)) for button in KILL_SWITCH_COMBO]):
             menu.terminate_running_item()
             curr_state = IN_MENU
     
