@@ -17,6 +17,8 @@
 import time
 from rstem import led_matrix
 import RPi.GPIO as GPIO
+import sys
+import os
 
 class State:
     WIN, LOSE, PLAYING, IDLE, DONE = range(5)
@@ -84,7 +86,7 @@ try:
     # SETUP ==========================
 
     # setup led matrix
-    led_matrix.init_grid(2,1,270)
+    led_matrix.init_grid(1,2,270)
     HEIGHT = led_matrix.height()
     WIDTH = led_matrix.width()
     
@@ -109,12 +111,18 @@ try:
 
     # setup gpio buttons
     BUTTON=4  # GPIO pin button is connected to
+    EXIT=18
+    
     def button_handler(channel):
         global curr_state
         global curr_speed
         global curr_width
         global curr_direction
         global blocks
+        if channel == EXIT:
+            print("want to exit")
+            curr_state = State.END
+            return
         if not locked:
             if curr_state == State.PLAYING:
                 # stop the block
@@ -154,20 +162,15 @@ try:
                 curr_state = State.PLAYING
 
     GPIO.setmode(GPIO.BCM)
-    GPIO.setup(BUTTON, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-    GPIO.add_event_detect(BUTTON, GPIO.FALLING, callback=button_handler, bouncetime=300)
+    for but in [BUTTON, EXIT]:
+        GPIO.setup(but, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+        GPIO.add_event_detect(but, GPIO.FALLING, callback=button_handler, bouncetime=300)
     
 
             
     # State Machine ==================
     
-    while curr_state != State.DONE:
-#        # check if button pressed
-#        if (not GPIO.input(BUTTON)) and ((time.time() - last_time) > .3) and (last_input == 1):
-#            button_handler(BUTTON)
-#            last_time = time.time()
-#        last_input = GPIO.input
-        
+    while True:
         if curr_state == State.IDLE:
             # TODO: do something cooler
             led_matrix.point(0,0)
@@ -214,9 +217,16 @@ try:
             led_matrix.show()
             time.sleep(.2)
 
+        elif curr_state == State.END:
+            print("IN END")
+            led_matrix.shutdown_matrices()
+            GPIO.cleanup()
+            os._exit(0)
+#            sys.exit(0)
+
         else:
             raise RuntimeError("Invalid State")
-        
+            
 finally:
     led_matrix.shutdown_matrices()
     GPIO.cleanup()
