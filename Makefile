@@ -103,7 +103,7 @@ $(COMMANDS)::
 	$(MAKE) push
 	# Run make on target - note: don't use $(MAKE), as host and target "make"s
 	# may differ.
-	ssh $(SSHFLAGS) -t $(PI) "cd rsinstall; make pi-$@ PI=$(PI)"
+	ssh $(SSHFLAGS) -t $(PI) "cd rsinstall; make pi-$@ PI=$(PI) ON_PI=$(ON_PI)"
 
 
 # on pi commands start with "pi-"
