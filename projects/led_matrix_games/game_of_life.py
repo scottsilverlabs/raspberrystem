@@ -1,7 +1,6 @@
 import sys
 import os
 from rstem import led_matrix, button
-#import RPi.GPIO as GPIO
 import random
 
 # initialize led matrix
@@ -11,7 +10,6 @@ led_matrix.init_grid()
 exit_button = button.Button(18)  
     
 # variables
-#curr_state = State.START
 num_rows = led_matrix.height()
 num_cols = led_matrix.width()
 curr_gen = random_grid(num_rows, num_cols)
@@ -31,6 +29,9 @@ def num_neighbors(curr_gen, x, y):
     return count
     
 def next_generation():
+    """Creates next generation using Conway's Game of Life rules:
+    http://en.wikipedia.org/wiki/Conway's_Game_of_Life
+    """
     global next_gen
     global curr_gen
     for y in range(0,num_rows):
@@ -45,33 +46,25 @@ def next_generation():
     curr_gen, next_gen = next_gen, curr_gen  # swap lists
     
 def random_grid(width, height):
+    """Creates a grid of random dead and alive pixels."""
     grid = []
     for y in range(height):
         row = []
         for x in range(width):
             random_num = random.randint(0,3)
-            if random_num == 0:
+            if random_num == 0:  # make alive pixels less common
                 row.append(0xF)  # add an alive pixel
             else:
                 row.append(0x0)  # add a dead pixel
         grid.append(row)
     return grid
     
+def draw_grid():
+    """Draws the current generation to led_matrix."""
+    for y in range(num_rows):
+        for x in range(num_cols):
+            led_matrix.point(x, y, curr_gen[y][x])
 
-class State(object):
-    START, IN_GAME, EXIT = range(3)
-    
-
-#EXIT = 18
-#def button_handler(channel):
-#    global curr_state
-#    if channel == EXIT:
-#        curr_state = State.EXIT
-#GPIO.setmode(GPIO.BCM)
-#GPIO.setup(EXIT, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-#GPIO.add_event_detect(EXIT, GPIO.FALLING, callback=button_handler, bouncetime=300)
-    
-    
 while True:
     if exit_button.is_pressed():
         # clean up stuff and exit the program
@@ -83,16 +76,5 @@ while True:
         draw_grid()          # draw the current generation
         led_matrix.show()    # show on display
         next_generation()    # update generation to next generation
+        # TODO: add delay?
     
-    
-    
-    
-#while True:
-#    if curr_state == State.IN_GAME:
-#        pass
-#    elif curr_state == State.START:
-#        
-#    elif curr_state == State.EXIT:
-#        pass
-#    else:
-#        raise ValueError("Invalid state")
