@@ -329,7 +329,7 @@ static PyObject * angles(PyObject *self, PyObject *args)
     double z = ((double) accelData[2])/(512.0/range);
     double elevation = atan2(z, sqrt(x*x + y*y));
     double roll = -atan2(x, sqrt(z*z + y*y));
-    double pitch = -atan2(y, sqrt(z*z + x*x));
+    double pitch = atan2(y, sqrt(z*z + x*x));
     if(rad == 0){
         elevation = rad2deg(elevation);
         roll = rad2deg(roll);
