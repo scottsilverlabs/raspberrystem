@@ -103,7 +103,8 @@ int write_command(char reg, char value)
     return i2c_smbus_write_byte_data(file, reg, value);
 }
 
-int init_accel(){
+int init_accel()
+{
     if(init_i2c() < 0) return -1;
     if(set_slave() < 0) return -1;
     if(write_command(CTRL_REG1, 0x00) < 0) return -1;
@@ -113,7 +114,8 @@ int init_accel(){
     return 1;
 }
 
-int enable_freefall_motion(int mode, int pin){
+int enable_freefall_motion(int mode, int pin)
+{
     int_enable |= (1 << 2);
     unsigned char config = (1 << 5) | (1 << 4) | (1 << 3);
     if(pin == 1){
@@ -134,21 +136,24 @@ int enable_freefall_motion(int mode, int pin){
     return 1;
 }
 
-int set_freefall_motion_threshold(int debounce_mode, unsigned char thresh){
+int set_freefall_motion_threshold(int debounce_mode, unsigned char thresh)
+{
     if(write_command(CTRL_REG1, 0x00) < 0) return -1;
     if(write_command(FF_MT_THS, ((debounce_mode & 0x01) << 8) | (thresh & 0x7F)) < 0) return -1;
     if(write_command(CTRL_REG1, prescale) < 0) return -1;
     return 1;
 }
 
-int set_freefall_motion_debounce(unsigned char counts){
+int set_freefall_motion_debounce(unsigned char counts)
+{
     if(write_command(CTRL_REG1, 0x00) < 0) return -1;
     if(write_command(FF_MT_COUNT, counts) < 0) return -1;
     if(write_command(CTRL_REG1, prescale) < 0) return -1;
     return 1;
 }
 
-int enable_data_ready(int pin){
+int enable_data_ready(int pin)
+{
     int_enable |= 1;
     if(pin == 1){
         int_pins |= 1;
@@ -162,7 +167,8 @@ int enable_data_ready(int pin){
     return 1;
 }
 
-int set_range(int in_range){
+int set_range(int in_range)
+{
     if(write_command(CTRL_REG1, 0x00) < 0) return -1;
     if(in_range == 2){
         if(write_command(XYZ_DATA_CFG, 0x00) < 0) return -1;
@@ -286,10 +292,10 @@ static PyObject * update_data(PyObject *self, PyObject *args)
 {
     int ret;
     ret = i2c_smbus_read_i2c_block_data(file, 0x00, 7, rawData);
-        if(ret < 0){
-                PyErr_SetString(PyExc_IOError, "Could not update data!");
-                return NULL;
-        }
+    if(ret < 0){
+        PyErr_SetString(PyExc_IOError, "Could not update data!");
+        return NULL;
+    }
     int i;
     for(i = 0; i < 3; i++){
         accelData[i] = (int) ((rawData[2*i+1] << 2) | ((rawData[2*i+2] >> 6) & 0x03));
@@ -365,19 +371,19 @@ static PyObject * set_sample_rate_prescaler(PyObject *self, PyObject *args)
     if(rate == 1){
         prescale = 0x01;
     } else if(rate == 2){
-                prescale = (1 << DR0) | 1;
-        } else if(rate == 4){
-                prescale = (1 << DR1) | 1;
+        prescale = (1 << DR0) | 1;
+    } else if(rate == 4){
+        prescale = (1 << DR1) | 1;
     } else if(rate == 8){
-                prescale = (1 << DR0) | (1 << DR1) | 1;
+        prescale = (1 << DR0) | (1 << DR1) | 1;
     } else if(rate == 16){
-                prescale = (1 << DR2) | 1;
+        prescale = (1 << DR2) | 1;
     } else if(rate == 64){
-                prescale = (1 << DR2) | (1 << DR0) | 1;
+        prescale = (1 << DR2) | (1 << DR0) | 1;
     } else if(rate == 128){
-                prescale = (1 << DR2) | (1 << DR1) | 1;
+        prescale = (1 << DR2) | (1 << DR1) | 1;
     } else if(rate == 512){
-                prescale = (1 << DR2) | (1 << DR1) | (1 << DR0) | 1;
+        prescale = (1 << DR2) | (1 << DR1) | (1 << DR0) | 1;
     } else {
         PyErr_SetString(PyExc_Exception, "Invalid prescaler! (Valid: 1, 2, 4, 8, 16, 64, 128, 512)");
         return NULL;
@@ -460,15 +466,15 @@ static int accel_clear(PyObject *m)
 
 
 static struct PyModuleDef moduledef = {
-        PyModuleDef_HEAD_INIT,
-        "accel",
-        NULL,
-        sizeof(struct module_state),
-        accel_methods,
-        NULL,
-        accel_traverse,
-        accel_clear,
-        NULL
+    PyModuleDef_HEAD_INIT,
+    "accel",
+    NULL,
+    sizeof(struct module_state),
+    accel_methods,
+    NULL,
+    accel_traverse,
+    accel_clear,
+    NULL
 };
 
 #define INITERROR return NULL
@@ -488,11 +494,9 @@ initaccel(void)
 #else
     PyObject *module = Py_InitModule("accel", accel_methods);
 #endif
-
     if (module == NULL)
         INITERROR;
     struct module_state *st = GETSTATE(module);
-
     st->error = PyErr_NewException("accel.Error", NULL, NULL);
     if (st->error == NULL) {
         Py_DECREF(module);
