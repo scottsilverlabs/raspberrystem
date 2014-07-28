@@ -1,33 +1,98 @@
 import sys
 import os
-from rstem import led_matrix
-import RPi.GPIO as GPIO
+from rstem import led_matrix, button
+#import RPi.GPIO as GPIO
+import random
 
-def next_gen(curr_gen):
-    pass
+# initialize led matrix
+led_matrix.init_grid()
+
+# setup exit button
+exit_button = button.Button(18)  
+    
+# variables
+#curr_state = State.START
+num_rows = led_matrix.height()
+num_cols = led_matrix.width()
+curr_gen = random_grid(num_rows, num_cols)
+next_gen = [[0 for i in range(num_cols)] in j for range(num_rows)]
+# TODO allow sprite input instead of random grid?
+
+    
+def num_neighbors(curr_gen, x, y):
+    """Returns the number of (alive) neighbors of given pixel"""
+    count = 0
+    for j in range(y-1, y+2):
+        for i in range(x-1, x+2):
+            if not(i == x and j == y):  # don't count itself
+                if i >= 0 and i < led_matrix.width() and j >= 0 and j < led_matrix.height():
+                    if curr_gen[j][i] == 0xF:
+                        count += 1
+    return count
+    
+def next_generation():
+    global next_gen
+    global curr_gen
+    for y in range(0,num_rows):
+        for x in range(0,num_cols):
+            num_neighbors = num_neighbors(curr_gen, x, y)
+            if curr_gen[y][x] == 1 and num_neighbors < 2:
+                next_gen[y][x] = 0  # pixel died off, not enough neighbors
+            if curr_gen[y][x] == 1 and num_neighbors > 3:
+                next_gen[y][x] = 0  # pixel died off, too many neighbors
+            if curr_gen[y][x] == 1 and num_neighbors == 3:
+                next_gen[y][x] = 1  # birth of a new pixel
+    curr_gen, next_gen = next_gen, curr_gen  # swap lists
+    
+def random_grid(width, height):
+    grid = []
+    for y in range(height):
+        row = []
+        for x in range(width):
+            random_num = random.randint(0,3)
+            if random_num == 0:
+                row.append(0xF)  # add an alive pixel
+            else:
+                row.append(0x0)  # add a dead pixel
+        grid.append(row)
+    return grid
     
 
 class State(object):
     START, IN_GAME, EXIT = range(3)
     
-curr_state = State.START
 
-# setup exit button
-EXIT = 18
-def button_handler(channel):
-    global curr_state
-    if channel == EXIT:
-        curr_state = State.EXIT
-GPIO.setmode(GPIO.BCM)
-GPIO.setup(EXIT, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-GPIO.add_event_detect(EXIT, GPIO.FALLING, callback=button_handler, bouncetime=300)
+#EXIT = 18
+#def button_handler(channel):
+#    global curr_state
+#    if channel == EXIT:
+#        curr_state = State.EXIT
+#GPIO.setmode(GPIO.BCM)
+#GPIO.setup(EXIT, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+#GPIO.add_event_detect(EXIT, GPIO.FALLING, callback=button_handler, bouncetime=300)
+    
     
 while True:
-    if curr_state == State.IN_GAME:
-        pass
-    elif curr_state == State.START:
-        pass
-    elif curr_state == State.EXIT:
-        pass
+    if exit_button.is_pressed():
+        # clean up stuff and exit the program
+        button.cleanup()
+        led_matrix.shutdown_matrices()
+        sys.exit(0)
     else:
-        raise ValueError("Invalid state")
+        led_matrix.erase()   # clear the display
+        draw_grid()          # draw the current generation
+        led_matrix.show()    # show on display
+        next_generation()    # update generation to next generation
+    
+    
+    
+    
+#while True:
+#    if curr_state == State.IN_GAME:
+#        pass
+#    elif curr_state == State.START:
+#        
+#    elif curr_state == State.EXIT:
+#        pass
+#    else:
+#        raise ValueError("Invalid state")
