@@ -103,12 +103,88 @@ int write_command(char reg, char value)
     return i2c_smbus_write_byte_data(file, reg, value);
 }
 
+int init_accel(){
+    if(init_i2c() < 0) return -1;
+    if(set_slave() < 0) return -1;
+    if(write_command(CTRL_REG1, 0x00) < 0) return -1;
+    if(write_command(XYZ_DATA_CFG, 0x01) < 0) return -1;
+    if(write_command(CTRL_REG2, (1 << 4) | (1 << 3) | (1 << 1) | 1) < 0) return -1;
+    if(write_command(CTRL_REG1, prescale) < 0) return -1;
+    return 1;
+}
+
+int enable_freefall_motion(int mode, int pin){
+    int_enable |= (1 << 2);
+    unsigned char config = (1 << 5) | (1 << 4) | (1 << 3);
+    if(pin == 1){
+        int_pins |= (1 << 2);
+    } else {
+        int_pins &= ~(1 << 2);
+    }
+    if(write_command(CTRL_REG1, 0x00) < 0) return -1;
+    if(write_command(CTRL_REG3, 2) < 0) return -1;
+    if(write_command(CTRL_REG4, int_enable) < 0) return -1;
+    if(write_command(CTRL_REG5, int_pins) < 0) return -1;
+    if(mode == 0){
+        if(write_command(FF_MT_CFG, config) < 0) return -1;
+    } else {
+        if(write_command(FF_MT_CFG, config | (1 << 6)) < 0) return -1;
+    }
+    if(write_command(CTRL_REG1, prescale) < 0) return -1;
+    return 1;
+}
+
+int set_freefall_motion_threshold(int debounce_mode, unsigned char thresh){
+    if(write_command(CTRL_REG1, 0x00) < 0) return -1;
+    if(write_command(FF_MT_THS, ((debounce_mode & 0x01) << 8) | (thresh & 0x7F)) < 0) return -1;
+    if(write_command(CTRL_REG1, prescale) < 0) return -1;
+    return 1;
+}
+
+int set_freefall_motion_debounce(unsigned char counts){
+    if(write_command(CTRL_REG1, 0x00) < 0) return -1;
+    if(write_command(FF_MT_COUNT, counts) < 0) return -1;
+    if(write_command(CTRL_REG1, prescale) < 0) return -1;
+    return 1;
+}
+
+int enable_data_ready(int pin){
+    int_enable |= 1;
+    if(pin == 1){
+        int_pins |= 1;
+    } else {
+        int_pins &= ~1;
+    }
+    if(write_command(CTRL_REG1, 0x00) < 0) return -1;
+    if(write_command(CTRL_REG4, int_enable) < 0) return -1;
+    if(write_command(CTRL_REG5, int_pins) < 0) return -1;
+    if(write_command(CTRL_REG1, prescale) < 0) return -1;
+    return 1;
+}
+
+int set_range(int in_range){
+    if(write_command(CTRL_REG1, 0x00) < 0) return -1;
+    if(in_range == 2){
+        if(write_command(XYZ_DATA_CFG, 0x00) < 0) return -1;
+        range = 2;
+    } else if(in_range == 4){
+        if(write_command(XYZ_DATA_CFG, 0x01) < 0) return -1;
+        range = 4;
+    } else if(in_range == 8){
+        if(write_command(XYZ_DATA_CFG, 0x02) < 0) return -1;
+        range = 8;
+    } else {
+        return -1;
+    }
+    if(write_command(CTRL_REG1, prescale) < 0) return -1;
+    return 1;
+}
 /*
     Python C Bindings =====================================
 */
 
 //Initialize accelerometer
-static PyObject* init_accel(PyObject *self, PyObject *args)
+static PyObject* py_init_accel(PyObject *self, PyObject *args)
 {
     int ret;
     if(!PyArg_ParseTuple(args, "i", &adapter_number)){
@@ -119,36 +195,11 @@ static PyObject* init_accel(PyObject *self, PyObject *args)
         PyErr_SetString(PyExc_IOError, "Not a valid I2C bus!");
         return NULL;
     }
-    ret = init_i2c();
+    ret = init_accel();
     if(ret < 0){
         PyErr_SetString(PyExc_IOError, "Could not initialize accel!");
         return NULL;
     }
-    ret = set_slave();
-        if(ret < 0){
-                PyErr_SetString(PyExc_IOError, "Could not initialize accel!");
-                return NULL;
-        }
-    ret = write_command(CTRL_REG1, 0x00);
-        if(ret < 0){
-                PyErr_SetString(PyExc_IOError, "Could not initialize accel!");
-                return NULL;
-        }
-    ret = write_command(XYZ_DATA_CFG, 0x01);
-        if(ret < 0){
-                PyErr_SetString(PyExc_IOError, "Could not initialize accel!");
-                return NULL;
-        }
-    ret = write_command(CTRL_REG2, (1 << 4) | (1 << 3) | (1 << 1) | 1);
-    if(ret < 0) {
-        PyErr_SetString(PyExc_IOError, "Could not initialize accel!");
-        return NULL;
-    }
-    ret = write_command(CTRL_REG1, prescale);
-        if(ret < 0){
-                PyErr_SetString(PyExc_IOError, "Could not initialize accel!");
-                return NULL;
-        }
     return Py_BuildValue("i", ret);
 }
 //Selects mode between degrees and radians
@@ -165,7 +216,7 @@ static PyObject *use_radians(PyObject *self, PyObject *args)
 }
 
 //Mode is 0 for free fall, 1 for motion detect
-static PyObject * enable_freefall_motion(PyObject *self, PyObject *args)
+static PyObject * py_enable_freefall_motion(PyObject *self, PyObject *args)
 {
     int mode, pin;
     if(!PyArg_ParseTuple(args, "ii", &mode, &pin)){
@@ -176,58 +227,18 @@ static PyObject * enable_freefall_motion(PyObject *self, PyObject *args)
         PyErr_SetString(PyExc_Exception, "Not a pin!");
     }
     int_enable |= (1 << 2);
-    int ret;
-    ret = write_command(CTRL_REG1, 0x00);
-        if(ret < 0){
-                PyErr_SetString(PyExc_IOError, "Could not enable interrupt!");
-                return NULL;
-        }
-    ret = write_command(CTRL_REG3, 2);
-        if(ret < 0){
-                PyErr_SetString(PyExc_IOError, "Could not enable interrupt!");
-                return NULL;
-        }
-    ret = write_command(CTRL_REG4, int_enable);
-        if(ret < 0){
-                PyErr_SetString(PyExc_IOError, "Could not enable interrupt!");
-                return NULL;
-        }
-    unsigned char config = (1 << 5) | (1 << 4) | (1 << 3);
-    if(pin == 1){
-        int_pins |= (1 << 2);
-    } else {
-        int_pins &= ~(1 << 2);
+    int ret = enable_freefall_motion(mode, pin);
+    if(ret < 0){
+        PyErr_SetString(PyExc_IOError, "Could not enable interrupt!");
+        return NULL;
     }
-    ret = write_command(CTRL_REG5, int_pins);
-        if(ret < 0){
-                PyErr_SetString(PyExc_IOError, "Could not enable interrupt!");
-                return NULL;
-        }
-    if(mode == 0){
-        write_command(FF_MT_CFG, config);
-            if(ret < 0){
-                    PyErr_SetString(PyExc_IOError, "Could not enable interrupt!");
-                    return NULL;
-            }
-    } else {
-        ret = write_command(FF_MT_CFG, config | (1 << 6));
-            if(ret < 0){
-                    PyErr_SetString(PyExc_IOError, "Could not enable interrupt!");
-                    return NULL;
-            }
-    }
-    ret = write_command(CTRL_REG1, prescale);
-        if(ret < 0){
-                PyErr_SetString(PyExc_IOError, "Could not enable interrupt!");
-                return NULL;
-        }
     return Py_BuildValue("i", ret);
 }
 
 //debounce mode: 1 = decrement counter when below threshold
 //             : 0 = clear counter when below threshold
 //Threshold is a floating point number in Gs
-static PyObject* set_freefall_motion_threshold(PyObject *self, PyObject *args)
+static PyObject* py_set_freefall_motion_threshold(PyObject *self, PyObject *args)
 {
     unsigned char debounce_mode;
     float f_thresh;
@@ -245,26 +256,16 @@ static PyObject* set_freefall_motion_threshold(PyObject *self, PyObject *args)
     }
     thresh = (unsigned char) ((f_thresh/8.0)*127.0);
     int ret;
-    ret = write_command(CTRL_REG1, 0x00);
+    ret = set_freefall_motion_threshold(debounce_mode, thresh);
     if(ret < 0){
-                PyErr_SetString(PyExc_IOError, "Could not set threshold!");
-                return NULL;
-        }
-    ret = write_command(FF_MT_THS, ((debounce_mode & 0x01) << 8) | (thresh & 0x7F));
-        if(ret < 0){
-                PyErr_SetString(PyExc_IOError, "Could not set threshold!");
-                return NULL;
-        }
-    ret = write_command(CTRL_REG1, prescale);
-        if(ret < 0){
-                PyErr_SetString(PyExc_IOError, "Could not set threshold!");
-                return NULL;
-        }
+        PyErr_SetString(PyExc_IOError, "Could not set threshold!");
+        return NULL;
+    }
     return Py_BuildValue("i", ret);
 }
 
 //Sets how many samples are required to trigger intterupt
-static PyObject* set_freefall_motion_debounce(PyObject *self, PyObject *args)
+static PyObject* py_set_freefall_motion_debounce(PyObject *self, PyObject *args)
 {
     unsigned char counts;
     if(!PyArg_ParseTuple(args, "B", &counts)){
@@ -272,21 +273,11 @@ static PyObject* set_freefall_motion_debounce(PyObject *self, PyObject *args)
         return NULL;
     }
     int ret;
-    ret = write_command(CTRL_REG1, 0x00);
-        if(ret < 0){
-                PyErr_SetString(PyExc_IOError, "Could not set debounce!");
-                return NULL;
-        }
-    ret = write_command(FF_MT_COUNT, counts);
-        if(ret < 0){
-                PyErr_SetString(PyExc_IOError, "Could not set debounce!");
-                return NULL;
-        }
-    ret = write_command(CTRL_REG1, prescale);
-        if(ret < 0){
-                PyErr_SetString(PyExc_IOError, "Could not set debounce!");
-                return NULL;
-        }
+    ret = set_freefall_motion_debounce(counts);
+    if(ret < 0){
+        PyErr_SetString(PyExc_IOError, "Could not set debounce!");
+        return NULL;
+    }
     return Py_BuildValue("i", ret);
 }
 
@@ -345,7 +336,7 @@ static PyObject * angles(PyObject *self, PyObject *args)
 }
 
 //Enable data ready intterupt on given pin
-static PyObject * enable_data_ready(PyObject *self, PyObject *args)
+static PyObject * py_enable_data_ready(PyObject *self, PyObject *args)
 {
     int pin;
     int ret;
@@ -357,32 +348,11 @@ static PyObject * enable_data_ready(PyObject *self, PyObject *args)
         PyErr_SetString(PyExc_Exception, "Invalid interrupt pin! (Valid: 1 2)");
         return NULL;
     }
-    int_enable |= 1;
-    if(pin == 1){
-        int_pins |= 1;
-    } else {
-        int_pins &= ~1;
-    }
-    ret = write_command(CTRL_REG1, 0x00);
+    ret = enable_data_ready(pin);
     if(ret < 0){
         PyErr_SetString(PyExc_IOError, "Could not enable data interrupt!");
         return NULL;
     }
-    ret = write_command(CTRL_REG4, int_enable);
-        if(ret < 0){
-                PyErr_SetString(PyExc_IOError, "Could not enable data interrupt!");
-                return NULL;
-        }
-    ret = write_command(CTRL_REG5, int_pins);
-        if(ret < 0){
-                PyErr_SetString(PyExc_IOError, "Could not enable data interrupt!");
-                return NULL;
-        }
-    ret = write_command(CTRL_REG1, prescale);
-        if(ret < 0){
-                PyErr_SetString(PyExc_IOError, "Could not enable data interrupt!");
-                return NULL;
-        }
     return Py_BuildValue("i", ret);
 }
 
@@ -424,7 +394,7 @@ static PyObject * set_sample_rate_prescaler(PyObject *self, PyObject *args)
 }
 
 //Sets full scale range of accelerometer
-static PyObject * set_range(PyObject *self, PyObject *args)
+static PyObject * py_set_range(PyObject *self, PyObject *args)
 {
     int ret;
     int in_range;
@@ -432,29 +402,11 @@ static PyObject * set_range(PyObject *self, PyObject *args)
         PyErr_SetString(PyExc_TypeError, "Not an int!");
         return NULL;
     }
-    ret = write_command(CTRL_REG1, 0x00);
-    if(ret < 0){
-        PyErr_SetString(PyExc_IOError, "Failed to set range!");
+    if(in_range != 2 && in_range != 4 && in_range != 8){
+        PyErr_SetString(PyExc_IOError, "Not a valid range! (Valid: 2, 4, 8)");
         return NULL;
     }
-    if(in_range == 2){
-        range = 2;
-        ret = write_command(XYZ_DATA_CFG, 0x00);
-    } else if(in_range == 4){
-        range = 4;
-        ret = write_command(XYZ_DATA_CFG, 0x01);
-    } else if(in_range == 8){
-        range = 8;
-        ret = write_command(XYZ_DATA_CFG, 0x02);
-    } else {
-        PyErr_SetString(PyExc_Exception, "Invalid range! (Valid: 2, 4, 8)");
-        return NULL;
-    }
-    if(ret < 0){
-        PyErr_SetString(PyExc_IOError, "Failed to set range!");
-        return NULL;
-    }
-    ret = write_command(CTRL_REG1, prescale);
+    ret = set_range(in_range);
     if(ret < 0){
         PyErr_SetString(PyExc_IOError, "Failed to set range!");
         return NULL;
@@ -463,14 +415,14 @@ static PyObject * set_range(PyObject *self, PyObject *args)
 }
 
 static PyMethodDef accel_methods[] = {
-    {"init", init_accel, METH_VARARGS, "Initializes accel on I2C bus."},
-    {"enable_freefall_motion", enable_freefall_motion, METH_VARARGS, "Initializes the freefall/motion interrupts with the mode (0 for freefall 1 for motion) and the pin it will be on."},
+    {"init", py_init_accel, METH_VARARGS, "Initializes accel on I2C bus."},
+    {"enable_freefall_motion", py_enable_freefall_motion, METH_VARARGS, "Initializes the freefall/motion interrupts with the mode (0 for freefall 1 for motion) and the pin it will be on."},
     {"read", update_data, METH_NOARGS, "Updates and returns accelerometer data."},
-    {"freefall_motion_threshold", set_freefall_motion_threshold, METH_VARARGS, "Sets debounce mode and threshold in Gs"},
-    {"freefall_motion_debounce", set_freefall_motion_debounce, METH_VARARGS, "Sets number of debounce counts for interrupt to fire."},
-    {"enable_data_ready", enable_data_ready, METH_VARARGS, "Enables the data ready interrupt on input pin."},
+    {"freefall_motion_threshold", py_set_freefall_motion_threshold, METH_VARARGS, "Sets debounce mode and threshold in Gs"},
+    {"freefall_motion_debounce", py_set_freefall_motion_debounce, METH_VARARGS, "Sets number of debounce counts for interrupt to fire."},
+    {"enable_data_ready", py_enable_data_ready, METH_VARARGS, "Enables the data ready interrupt on input pin."},
     {"set_sample_rate_prescaler", set_sample_rate_prescaler, METH_VARARGS, "Sets the prescalers for the sample rate."},
-    {"set_range", set_range, METH_VARARGS, "Sets the range of the accelerometer."},
+    {"set_range", py_set_range, METH_VARARGS, "Sets the range of the accelerometer."},
     {"angles", angles, METH_NOARGS, "Returns pitch, roll, and yaw."},
     {"use_radians", use_radians, METH_VARARGS, "Sets mode between radians or degrees."},
     {NULL, NULL, 0, NULL} // Sentinal
