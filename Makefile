@@ -1,11 +1,10 @@
 SHELL = /bin/bash
 
-#ifdef ON_PI
-#  PYTHON=python3  # default python
-#else
-#  PYTHON=python  # default python
-#endif
-PYTHON=python
+ifdef ON_PI
+  PYTHON=python3  # default python
+else
+  PYTHON=python  # default python
+endif
 PYFLAGS=
 DESTDIR=/
 # install directories
@@ -104,7 +103,7 @@ $(COMMANDS)::
 	$(MAKE) push
 	# Run make on target - note: don't use $(MAKE), as host and target "make"s
 	# may differ.
-	ssh $(SSHFLAGS) -t $(PI) "cd rsinstall; make pi-$@ PI=$(PI) PYTHON=$(PYTHON)"
+	ssh $(SSHFLAGS) -t $(PI) "cd rsinstall; make pi-$@ PI=$(PI)"
 
 
 # on pi commands start with "pi-"
