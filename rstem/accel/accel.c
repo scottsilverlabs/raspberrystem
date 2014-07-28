@@ -306,7 +306,7 @@ static PyObject * update_data(PyObject *self, PyObject *args)
     double x = ((double) accelData[0])/(512.0/range);
     double y = ((double) accelData[1])/(512.0/range);
     double z = ((double) accelData[2])/(512.0/range);
-    return Py_BuildValue("ddd", x, y, z);
+    return Py_BuildValue("ddd", -x, -y, z);
 }
 
 //Grab new angles and give it to python
