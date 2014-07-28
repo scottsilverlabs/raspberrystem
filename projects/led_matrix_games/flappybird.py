@@ -38,13 +38,6 @@ class Bird(object):
     def flap(self, distance=1):
         self.position[1] += 1
         self.flap_tick -= 1
-#        distance = min(distance, led_matrix.height() - self.y())
-#        orig_x, orig_y = self.position
-        # flap up
-#        while self.y() <= (orig_y + distance):
-#            self.position[1] += 1
-#            time.sleep(1./self.speed)   # TODO: this probably doesn't work
-#        self.flapping = False
             
     def fall(self):
         if self.position[1] > 0:
