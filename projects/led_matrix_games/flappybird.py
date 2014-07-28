@@ -3,8 +3,10 @@ from rstem import led_matrix
 import RPi.GPIO as GPIO
 import time
 import random
+import sys
 
 BUTTON=4
+EXIT=18
 
 # initialization
 led_matrix.init_grid()
@@ -83,7 +85,7 @@ class Pipe(object):
             
 # initialize variables        
 class State():
-    RESET, IDLE, PLAYING, END = range(4)
+    RESET, IDLE, PLAYING, END, EXIT = range(5)
   
   
 try:
@@ -99,6 +101,9 @@ try:
 
     def button_handler(channel):
         global state
+        if channel == EXIT:
+            state = State.EXIT
+            return
         if state == State.RESET:
             pass  # do nothing
         elif state == State.IDLE:
@@ -172,6 +177,11 @@ try:
             led_matrix.erase()
             led_matrix.text(str(score))
             led_matrix.show()
+            
+        elif state == State.EXIT:
+            GPIO.cleanup()
+            led_matrix.shutdown_matrices()
+            sys.exit(0)
 
 finally:
     GPIO.cleanup()
