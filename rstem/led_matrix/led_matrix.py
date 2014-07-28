@@ -141,36 +141,15 @@ def init_grid(num_rows=None, num_cols=None, angle=0, math_coords=True, spi_speed
                     break
         else:
             num_cols = num_matrices/num_rows
-    
-#        # if odd number of matrices we can only have 1 row
-#        if num_matrices % 2 != 0:
-#            num_rows = 1
-#            num_cols = num_matrices
-
-#        elif num_rows is None:
-#            import math
-#            num_rows = int(math.ceil(num_matrices / 4.))
-#            num_cols = num_matrices/num_rows
-#        else:
-#            num_cols = num_matrices/num_rows
     elif num_rows is None:
         raise ValueError("If you are providing num_cols you must also provide num_rows.")
     
     if num_cols*num_rows != num_matrices:  # safety check
         raise ValueError("Invalid number of rows and columns")
     
-    if num_rows <= 0 or num_cols <= 0:
-        raise ValueError("num_rows and num_cols must be positive.")
     if angle % 90 != 0:
         raise ValueError("Angle must be a multiple of 90.")
     angle = angle % 360
-    
-    # TODO: not sure I need this....
-    # swap rows and columns if rotated
-#    if angle == 90 or angle == 270:
-#        temp = num_rows
-#        num_rows = num_cols
-#        num_cols = temp
     
     mat_list = []
     if angle == 0:
