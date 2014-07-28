@@ -21,17 +21,11 @@ class Menu(object):
                 "title": item[0], 
                 "file": f,
                 "text": led_matrix.LEDText(item[0])
-#                "inverted": False
                 })
         self.items = items
-#        self.running_proc = None
         self.scrolling_text_pos = 0
         self.scrolling_text_clock = Menu.HOLD_CLOCK_TIME  # clock used to slow down scrolling text
         self.scrolling_text_cycle = 5  # number of cycles between scrolling tick
-        
-        # set first item to be selected
-#        items[0]["inverted"] = True
-#        items[0]["text"].invert()
         
     def draw(self):
         # display menu items
@@ -40,9 +34,8 @@ class Menu(object):
         
         # display all other items regularly
         for item in self.items:
-            if pos_y >= led_matrix.height():
+            if pos_y >= led_matrix.height(): # don't diplay items outside of display
                 break
-
             if item["title"] == selected_item["title"]:
                 # display selected text scrolling
                 x = self.scrolling_text_pos
@@ -54,11 +47,6 @@ class Menu(object):
                     else:
                         self.scrolling_text_pos -= 1
                 self.scrolling_text_clock += 1
-#            if item["inverted"]:
-#                # display text inverted
-#                led_matrix.rect((0, pos_y), (led_matrix.width(), item["text"].height))
-#                led_matrix.text(item["text"], (0, pos_y), color=0)
-#            else:
             else:
                 led_matrix.text(item["text"], (0, pos_y))
             pos_y += item["text"].height + 1
@@ -69,51 +57,24 @@ class Menu(object):
         self.items = l[n:] + l[:n]
     
     def scroll_up(self):
-#        self.items[0]["inverted"] = False
-#        self.items[0]["text"].invert()  # un-invert old selected item
         self._rotate(1)
         self.scrolling_text_pos = 0
         self.scrolling_text_clock = Menu.HOLD_CLOCK_TIME
-#        self.items[0]["text"].invert()  # invert new selected item
-#        self.items[0]["inverted"] = True
         
     def scroll_down(self):
-#        self.items[0]["inverted"] = False
-#        self.items[0]["text"].invert()  # un-invert old selected item
         self._rotate(-1)
         self.scrolling_text_pos = 0
         self.scrolling_text_clock = Menu.HOLD_CLOCK_TIME
-#        self.items[0]["text"].invert()  # invert new selected item
-#        self.items[0]["inverted"] = True
     
     def selected_item(self):
         """Returns selected item, which should be first inverted item."""
         return self.items[0]
-#        for item in self.items:
-#            if item["inverted"]:
-#                return item
                 
     def run_selected_item(self):
         selected = self.selected_item()
         cleanup()
-        proc = subprocess.Popen(
-            [sys.executable, selected["file"], selected["title"]],
-#            shell=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE
-            )
-        output, error = proc.communicate() # wait for process to terminate
-        if error:
-            raise RuntimeError(error)
-        setup()  # resetup
-#        self.running_proc = proc
-#        self.terminate_running_item()
-        
-#    def terminate_running_item(self):
-#        if self.running_proc is not None:
-#            self.running_proc.terminate()
-#            self.running_proc.wait()
-#            self.running_proc = None
+        os.system(sys.executable + " " + selected["file"])
+        setup()  # resetup (except for call backs)
     
 # set up menu
 menu_items = [
@@ -139,8 +100,6 @@ def button_handler(channel):
     if channel == SELECT:
         global curr_state
         curr_state = IN_GAME
-#        led_matrix.shutdown_matrices()
-#        menu.run_selected_item()
     elif channel == UP:
         menu.scroll_up()
     elif channel == DOWN:
@@ -155,34 +114,18 @@ def setup():
         
 def cleanup():
     led_matrix.shutdown_matrices()
+    for button in [SELECT, UP, DOWN]:
+        GPIO.remove_event_detect(button)
     GPIO.cleanup()
-
-# clean up code
-def exits(*args):
-    print("Exiting")
-    menu.terminate_running_item()
-    led_matrix.shutdown_matrices()
-    GPIO.cleanup()
-    sys.exit(0)
-signal.signal(signal.SIGINT, cleanup)
-signal.signal(signal.SIGTERM, cleanup)
-
 
 setup()
 while True:
     if curr_state == IN_MENU:
-#        print(menu.items)
         led_matrix.erase()
         menu.draw()
         led_matrix.show()
     elif curr_state == IN_GAME:
         menu.run_selected_item()  # run game and wait for it to die
         curr_state = IN_MENU
-#        if all([not bool(GPIO.input(button)) for button in KILL_SWITCH_COMBO]):
-#            print("KILL_SWITCH_COMBO")
-#            menu.terminate_running_item()
-#            led_matrix.init_grid(1,2,math_coords=False)
-#            curr_state = IN_MENU
-#            time.sleep(5) # allow for time 
     
     

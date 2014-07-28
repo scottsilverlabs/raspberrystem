@@ -22,7 +22,7 @@ import sys
 import os
 
 class State:
-    WIN, LOSE, PLAYING, IDLE, DONE = range(5)
+    WIN, LOSE, PLAYING, IDLE, EXIT = range(5)
 class Direction:
     LEFT, RIGHT, UP, DOWN = range(4)
     
@@ -120,6 +120,10 @@ try:
         global blocks
         global button_pressed
         button_pressed = True
+        if channel == EXIT:
+            curr_state = State.EXIT
+            return
+        
         if curr_state == State.PLAYING:
             # stop the block
             if len(blocks) > 1:
@@ -186,7 +190,7 @@ try:
             led_matrix.show()
             time.sleep(1.0/curr_speed)
         
-            global button_pressed
+#            global button_pressed
             if not button_pressed:  # skip moving the block if button pressed
                 # change direction if hit edge of screen
                 if curr_direction == Direction.RIGHT:
@@ -216,17 +220,17 @@ try:
             led_matrix.show()
             time.sleep(.2)
 
-        elif curr_state == State.END:
+        elif curr_state == State.EXIT:
             print("IN END")
-            led_matrix.shutdown_matrices()
-            GPIO.cleanup()
-            os._exit(0)
-#            sys.exit(0)
+#            led_matrix.shutdown_matrices()
+#            GPIO.cleanup()
+#            os._exit(0)
+            sys.exit(0)
 
         else:
             raise RuntimeError("Invalid State")
             
-        global button_pressed
+#        global button_pressed
         button_pressed = False
 finally:
     led_matrix.shutdown_matrices()
