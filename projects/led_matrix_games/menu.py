@@ -74,7 +74,7 @@ class Menu(object):
         selected = self.selected_item()
         cleanup()
         os.system(sys.executable + " " + selected["file"])
-        setup()  # resetup (except for call backs)
+        setup()  # resetup
     
 # set up menu
 menu_items = [

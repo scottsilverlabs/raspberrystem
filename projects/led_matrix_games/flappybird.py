@@ -114,6 +114,7 @@ try:
             state = State.RESET
             
     GPIO.add_event_detect(BUTTON, GPIO.FALLING, callback=button_handler, bouncetime=300)
+    GPIO.add_event_detect(EXIT, GPIO.FALLING, callback=button_handler, bouncetime=300)
             
     while True:
         if state == State.RESET:
