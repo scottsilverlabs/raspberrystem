@@ -312,26 +312,23 @@ static PyObject * angles(PyObject *self, PyObject *args)
         return NULL;
     }
     int i;
-        for(i = 0; i < 3; i++){
-                accelData[i] = (int) ((rawData[2*i+1] << 2) | ((rawData[2*i+2] >> 6) & 0x03));
-                if(accelData[i] > 1024/2) {
-                        accelData[i] -= 1025;
-                }
+    for(i = 0; i < 3; i++){
+        accelData[i] = (int) ((rawData[2*i+1] << 2) | ((rawData[2*i+2] >> 6) & 0x03));
+        if(accelData[i] > 1024/2) {
+               accelData[i] -= 1025;
         }
-        double x = ((double) accelData[0])/(512.0/range);
-        double y = ((double) accelData[1])/(512.0/range);
-        double z = ((double) accelData[2])/(512.0/range);
-
+    }
+    double x = ((double) accelData[0])/(512.0/range);
+    double y = ((double) accelData[1])/(512.0/range);
+    double z = ((double) accelData[2])/(512.0/range);
     double elevation = atan2(z, sqrt(x*x + y*y));
     double roll = atan2(x, sqrt(z*z + y*y));
     double pitch = atan2(y, sqrt(z*z + x*x));
-
     if(rad == 0){
         elevation = rad2deg(elevation);
         roll = rad2deg(roll);
         pitch = rad2deg(pitch);
     }
-
     return Py_BuildValue("ddd", roll, pitch, elevation);
 }
 
