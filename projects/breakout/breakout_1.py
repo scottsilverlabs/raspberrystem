@@ -4,7 +4,7 @@
 
 #Imports
 from rstem import led_matrix
-import accel
+from rstem import accel
 import time
 
 #Initialize hardware
