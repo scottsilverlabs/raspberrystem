@@ -44,7 +44,7 @@ int display_on_terminal = 0;
 
 #define SIGN(x) (((x) >= 0) ? 1 : -1)
 
-int debug = 1;
+int debug = 0;
 #define Debug(args...) if (debug) {printf("LED_DRIVER: " args); printf("\n");}
 
 
@@ -539,8 +539,7 @@ PyInit_led_driver(void)
 #else
 #define INITERROR return
 
-void
-initled_driver(void)
+void initled_driver(void)
 #endif
 {
 #if PY_MAJOR_VERSION >= 3

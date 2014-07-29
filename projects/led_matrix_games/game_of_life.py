@@ -2,15 +2,18 @@ import sys
 import os
 from rstem import led_matrix, button
 import random
+import time
 
 # initialize led matrix
 led_matrix.init_grid()
 
 # setup exit button
 exit_button = button.Button(27)  
+
+num_rows, num_cols, curr_gen, next_gen = (None, None, None, None)
     
     
-def num_neighbors(curr_gen, x, y):
+def get_num_neighbors(curr_gen, x, y):
     """Returns the number of (alive) neighbors of given pixel"""
     count = 0
     for j in range(y-1, y+2):
@@ -29,13 +32,15 @@ def next_generation():
     global curr_gen
     for y in range(0,num_rows):
         for x in range(0,num_cols):
-            num_neighbors = num_neighbors(curr_gen, x, y)
-            if curr_gen[y][x] == 1 and num_neighbors < 2:
+            num_neighbors = get_num_neighbors(curr_gen, x, y)
+            if curr_gen[y][x] == 0xF and num_neighbors < 2:
                 next_gen[y][x] = 0  # pixel died off, not enough neighbors
-            if curr_gen[y][x] == 1 and num_neighbors > 3:
+            elif curr_gen[y][x] == 0xF and num_neighbors > 3:
                 next_gen[y][x] = 0  # pixel died off, too many neighbors
-            if curr_gen[y][x] == 1 and num_neighbors == 3:
-                next_gen[y][x] = 1  # birth of a new pixel
+            elif curr_gen[y][x] == 0 and num_neighbors == 3:
+                next_gen[y][x] = 0xF  # birth of a new pixel
+            else:
+                next_gen[y][x] = curr_gen[y][x]
     curr_gen, next_gen = next_gen, curr_gen  # swap lists
     
 def random_grid(width, height):
@@ -56,13 +61,12 @@ def draw_grid():
     """Draws the current generation to led_matrix."""
     for y in range(num_rows):
         for x in range(num_cols):
-            led_matrix.point(x, y, curr_gen[y][x])
-            
+            led_matrix.point(x, y, curr_gen[y][x])    
             
 # variables
 num_rows = led_matrix.height()
 num_cols = led_matrix.width()
-curr_gen = random_grid(num_rows, num_cols)
+curr_gen = random_grid(num_cols, num_rows)
 next_gen = [[0 for i in range(num_cols)] for j in range(num_rows)]
 # TODO allow sprite input instead of random grid?
 
@@ -77,5 +81,4 @@ while True:
         draw_grid()          # draw the current generation
         led_matrix.show()    # show on display
         next_generation()    # update generation to next generation
-        # TODO: add delay?
     
