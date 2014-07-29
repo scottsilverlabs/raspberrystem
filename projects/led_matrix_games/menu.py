@@ -86,11 +86,9 @@ menu = Menu(menu_items)
 
 # setup buttons
 SELECT = 4
-# TODO: set these to real values
-UP = 18
-DOWN = 23
+UP = 25
+DOWN = 24
 # buttons to hold down at the same time to kill running process
-KILL_SWITCH_COMBO = [UP, DOWN, SELECT]
 
 # states
 IN_MENU = 1
@@ -107,7 +105,7 @@ def button_handler(channel):
         menu.scroll_down()
 
 def setup():
-    led_matrix.init_grid(1,2,math_coords=False)
+    led_matrix.init_grid(math_coords=False)
     GPIO.setmode(GPIO.BCM)
     for button in [SELECT, UP, DOWN]:
         GPIO.setup(button, GPIO.IN, pull_up_down=GPIO.PUD_UP)

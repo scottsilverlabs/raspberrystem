@@ -222,8 +222,8 @@ try:
 
         elif curr_state == State.EXIT:
             print("IN END")
-#            led_matrix.shutdown_matrices()
-#            GPIO.cleanup()
+            led_matrix.shutdown_matrices()
+            GPIO.cleanup()
 #            os._exit(0)
             sys.exit(0)
 

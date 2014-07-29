@@ -224,11 +224,13 @@ def shutdown_matrices():
     Also, clears the display.
     """
     global initialized
+    global spi_initialized
     if initialized:
         led_driver.fill(0x0)
         led_driver.flush()
         led_driver.shutdown_matrices()
         initialized = False
+        spi_initialized = False
 
 def fill(color=0xF):
     """Fills the framebuffer with the given color.
