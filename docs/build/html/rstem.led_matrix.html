@@ -1,0 +1,294 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>rstem.led_matrix package &mdash; RaspberrySTEM 0.1 documentation</title>
+    
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="RaspberrySTEM 0.1 documentation" href="index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="index.html">RaspberrySTEM 0.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="rstem-led-matrix-package">
+<h1>rstem.led_matrix package<a class="headerlink" href="#rstem-led-matrix-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-rstem.led_matrix.led_matrix">
+<span id="rstem-led-matrix-led-matrix-module"></span><h2>rstem.led_matrix.led_matrix module<a class="headerlink" href="#module-rstem.led_matrix.led_matrix" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="rstem.led_matrix.led_matrix.LEDSprite">
+<em class="property">class </em><tt class="descclassname">rstem.led_matrix.led_matrix.</tt><tt class="descname">LEDSprite</tt><big>(</big><em>filename=None</em>, <em>height=0</em>, <em>width=0</em>, <em>color=0</em><big>)</big><a class="reference internal" href="_modules/rstem/led_matrix/led_matrix.html#LEDSprite"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rstem.led_matrix.led_matrix.LEDSprite" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></p>
+<p>Allows the creation of a LED Sprite that is defined in a text file.
+- The text file must only contain hex numbers 0-9, a-f, A-F, or - (dash)
+- The hex number indicates pixel color and &#8220;-&#8221; indicates a transparent pixel</p>
+<dl class="method">
+<dt id="rstem.led_matrix.led_matrix.LEDSprite.append">
+<tt class="descname">append</tt><big>(</big><em>sprite</em><big>)</big><a class="reference internal" href="_modules/rstem/led_matrix/led_matrix.html#LEDSprite.append"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rstem.led_matrix.led_matrix.LEDSprite.append" title="Permalink to this definition">¶</a></dt>
+<dd><p>Appends given sprite to the right of itself
+- height of given sprite must be &lt;= to itself otherwise will be truncated</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rstem.led_matrix.led_matrix.LEDSprite.get_pixel">
+<tt class="descname">get_pixel</tt><big>(</big><em>x</em>, <em>y</em><big>)</big><a class="reference internal" href="_modules/rstem/led_matrix/led_matrix.html#LEDSprite.get_pixel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rstem.led_matrix.led_matrix.LEDSprite.get_pixel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns int of color at given origin or None</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rstem.led_matrix.led_matrix.LEDSprite.rotate">
+<tt class="descname">rotate</tt><big>(</big><em>angle=90</em><big>)</big><a class="reference internal" href="_modules/rstem/led_matrix/led_matrix.html#LEDSprite.rotate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rstem.led_matrix.led_matrix.LEDSprite.rotate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Rotates sprite at 90 degree intervals. 
+If no angle given, will rotate sprite 90 degrees.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rstem.led_matrix.led_matrix.LEDSprite.rotated">
+<tt class="descname">rotated</tt><big>(</big><em>angle=90</em><big>)</big><a class="reference internal" href="_modules/rstem/led_matrix/led_matrix.html#LEDSprite.rotated"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rstem.led_matrix.led_matrix.LEDSprite.rotated" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a rotated LEDSprite of self. Does not change self.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rstem.led_matrix.led_matrix.LEDSprite.save_to_file">
+<tt class="descname">save_to_file</tt><big>(</big><em>filename</em><big>)</big><a class="reference internal" href="_modules/rstem/led_matrix/led_matrix.html#LEDSprite.save_to_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rstem.led_matrix.led_matrix.LEDSprite.save_to_file" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="rstem.led_matrix.led_matrix.LEDSprite.set_pixel">
+<tt class="descname">set_pixel</tt><big>(</big><em>point</em>, <em>color=15</em><big>)</big><a class="reference internal" href="_modules/rstem/led_matrix/led_matrix.html#LEDSprite.set_pixel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rstem.led_matrix.led_matrix.LEDSprite.set_pixel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets given color to given x and y coordinate in sprite
+- color can be a int or string of hex value
+- return None if coordinate is not valid</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="rstem.led_matrix.led_matrix.LEDText">
+<em class="property">class </em><tt class="descclassname">rstem.led_matrix.led_matrix.</tt><tt class="descname">LEDText</tt><big>(</big><em>message</em>, <em>char_spacing=1</em>, <em>font_name='small'</em>, <em>font_path=None</em><big>)</big><a class="reference internal" href="_modules/rstem/led_matrix/led_matrix.html#LEDText"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rstem.led_matrix.led_matrix.LEDText" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#rstem.led_matrix.led_matrix.LEDSprite" title="rstem.led_matrix.led_matrix.LEDSprite"><tt class="xref py py-class docutils literal"><span class="pre">rstem.led_matrix.led_matrix.LEDSprite</span></tt></a></p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rstem.led_matrix.led_matrix.display_on_terminal">
+<tt class="descclassname">rstem.led_matrix.led_matrix.</tt><tt class="descname">display_on_terminal</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/rstem/led_matrix/led_matrix.html#display_on_terminal"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rstem.led_matrix.led_matrix.display_on_terminal" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="rstem.led_matrix.led_matrix.erase">
+<tt class="descclassname">rstem.led_matrix.led_matrix.</tt><tt class="descname">erase</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/rstem/led_matrix/led_matrix.html#erase"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rstem.led_matrix.led_matrix.erase" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="rstem.led_matrix.led_matrix.fill">
+<tt class="descclassname">rstem.led_matrix.led_matrix.</tt><tt class="descname">fill</tt><big>(</big><em>color=15</em><big>)</big><a class="reference internal" href="_modules/rstem/led_matrix/led_matrix.html#fill"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rstem.led_matrix.led_matrix.fill" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fills the framebuffer with the given color.
+(Full brightness if no color is given).</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rstem.led_matrix.led_matrix.frame">
+<tt class="descclassname">rstem.led_matrix.led_matrix.</tt><tt class="descname">frame</tt><big>(</big><em>bitmap</em><big>)</big><a class="reference internal" href="_modules/rstem/led_matrix/led_matrix.html#frame"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rstem.led_matrix.led_matrix.frame" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sends the entire frame (represented in a bitmap) to the led matrix.
+Note: bitmap dimensions must be the same as the dimensions of the container (non rotated).</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rstem.led_matrix.led_matrix.height">
+<tt class="descclassname">rstem.led_matrix.led_matrix.</tt><tt class="descname">height</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/rstem/led_matrix/led_matrix.html#height"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rstem.led_matrix.led_matrix.height" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="rstem.led_matrix.led_matrix.init_grid">
+<tt class="descclassname">rstem.led_matrix.led_matrix.</tt><tt class="descname">init_grid</tt><big>(</big><em>num_rows=1</em>, <em>num_cols=1</em>, <em>angle=0</em>, <em>zigzag=True</em>, <em>math_coords=True</em>, <em>spi_speed=500000</em>, <em>spi_port=0</em><big>)</big><a class="reference internal" href="_modules/rstem/led_matrix/led_matrix.html#init_grid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rstem.led_matrix.led_matrix.init_grid" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initiallizes led matrices in a grid pattern with the given number
+or rows and columns.
+zigzag=True means the ledmatrices have been placed in a zigzag fashion.
+angle=0, 90, 180, or 270 to represent how the coordinate system should be</p>
+<blockquote>
+<div>represented in the grid
+(num_row and num_cols are representative of after the angle has been defined)</div></blockquote>
+</dd></dl>
+
+<dl class="function">
+<dt id="rstem.led_matrix.led_matrix.init_matrices">
+<tt class="descclassname">rstem.led_matrix.led_matrix.</tt><tt class="descname">init_matrices</tt><big>(</big><em>mat_list=[(0, 0, 0)], math_coords=True, spi_speed=500000, spi_port=0</em><big>)</big><a class="reference internal" href="_modules/rstem/led_matrix/led_matrix.html#init_matrices"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rstem.led_matrix.led_matrix.init_matrices" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a chain of led matrices set at particular offsets into the frame buffer
+The order of the led matrices in the list indicate the order they are
+physically hooked up with the first one connected to Pi.
+mat_list = list of tuple that contains led matrix and offset</p>
+<blockquote>
+<div>ex: [(0,0,led1),(7,0,led2)]</div></blockquote>
+</dd></dl>
+
+<dl class="function">
+<dt id="rstem.led_matrix.led_matrix.line">
+<tt class="descclassname">rstem.led_matrix.led_matrix.</tt><tt class="descname">line</tt><big>(</big><em>point_a</em>, <em>point_b</em>, <em>color=15</em><big>)</big><a class="reference internal" href="_modules/rstem/led_matrix/led_matrix.html#line"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rstem.led_matrix.led_matrix.line" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a line from point_a to point_b.
+Uses Bresenham&#8217;s Line Algorithm (<a class="reference external" href="http://en.wikipedia.org/wiki/Bresenham's_line_algorithm">http://en.wikipedia.org/wiki/Bresenham&#8217;s_line_algorithm</a>)</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rstem.led_matrix.led_matrix.point">
+<tt class="descclassname">rstem.led_matrix.led_matrix.</tt><tt class="descname">point</tt><big>(</big><em>x</em>, <em>y=None</em>, <em>color=15</em><big>)</big><a class="reference internal" href="_modules/rstem/led_matrix/led_matrix.html#point"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rstem.led_matrix.led_matrix.point" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sends point to the framebuffer.
+Note: will not display the point until show() is called.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rstem.led_matrix.led_matrix.rect">
+<tt class="descclassname">rstem.led_matrix.led_matrix.</tt><tt class="descname">rect</tt><big>(</big><em>origin</em>, <em>dimensions</em>, <em>color=15</em><big>)</big><a class="reference internal" href="_modules/rstem/led_matrix/led_matrix.html#rect"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rstem.led_matrix.led_matrix.rect" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a rectangle from start point using given dimensions</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rstem.led_matrix.led_matrix.show">
+<tt class="descclassname">rstem.led_matrix.led_matrix.</tt><tt class="descname">show</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/rstem/led_matrix/led_matrix.html#show"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rstem.led_matrix.led_matrix.show" title="Permalink to this definition">¶</a></dt>
+<dd><p>Tells the led_driver to send framebuffer to SPI port.    
+Refreshes the display using current framebuffer.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rstem.led_matrix.led_matrix.shutdown_matrices">
+<tt class="descclassname">rstem.led_matrix.led_matrix.</tt><tt class="descname">shutdown_matrices</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/rstem/led_matrix/led_matrix.html#shutdown_matrices"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rstem.led_matrix.led_matrix.shutdown_matrices" title="Permalink to this definition">¶</a></dt>
+<dd><p>Unintializes matrices and frees all memory. 
+Should be called at the end of a program to avoid memory leaks.
+Also, clears the display.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rstem.led_matrix.led_matrix.sprite">
+<tt class="descclassname">rstem.led_matrix.led_matrix.</tt><tt class="descname">sprite</tt><big>(</big><em>sprite</em>, <em>origin=(0</em>, <em>0)</em>, <em>crop_origin=(0</em>, <em>0)</em>, <em>crop_dimensions=None</em><big>)</big><a class="reference internal" href="_modules/rstem/led_matrix/led_matrix.html#sprite"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rstem.led_matrix.led_matrix.sprite" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets given sprite with top left corner at given origin
+origin = the (x,y) coordinates to start displaying the sprite</p>
+<blockquote>
+<div>(bottom left for math_coords, top left for programming coords)</div></blockquote>
+<dl class="docutils">
+<dt>crop_origin = the offset into the sprite that should actually be displayed</dt>
+<dd>Note: crop_origin is relative to origin</dd>
+</dl>
+<p>crop_dimensions = the number of pixels (x, y) inside the sprite to display (None for no crop)</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rstem.led_matrix.led_matrix.text">
+<tt class="descclassname">rstem.led_matrix.led_matrix.</tt><tt class="descname">text</tt><big>(</big><em>text</em>, <em>origin=(0</em>, <em>0)</em>, <em>crop_origin=(0</em>, <em>0)</em>, <em>crop_dimensions=None</em>, <em>font_name='small'</em>, <em>font_path=None</em><big>)</big><a class="reference internal" href="_modules/rstem/led_matrix/led_matrix.html#text"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rstem.led_matrix.led_matrix.text" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets given string to be displayed on LED Matrix
+- returns the LEDText sprite object used to create text</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rstem.led_matrix.led_matrix.width">
+<tt class="descclassname">rstem.led_matrix.led_matrix.</tt><tt class="descname">width</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/rstem/led_matrix/led_matrix.html#width"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rstem.led_matrix.led_matrix.width" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="rstem-led-matrix-pulsewave-module">
+<h2>rstem.led_matrix.pulseWave module<a class="headerlink" href="#rstem-led-matrix-pulsewave-module" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="rstem-led-matrix-testmatdata-module">
+<h2>rstem.led_matrix.testMatData module<a class="headerlink" href="#rstem-led-matrix-testmatdata-module" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="rstem-led-matrix-twomatline-module">
+<h2>rstem.led_matrix.twoMatLine module<a class="headerlink" href="#rstem-led-matrix-twomatline-module" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-rstem.led_matrix">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-rstem.led_matrix" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">rstem.led_matrix package</a><ul>
+<li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#module-rstem.led_matrix.led_matrix">rstem.led_matrix.led_matrix module</a></li>
+<li><a class="reference internal" href="#rstem-led-matrix-pulsewave-module">rstem.led_matrix.pulseWave module</a></li>
+<li><a class="reference internal" href="#rstem-led-matrix-testmatdata-module">rstem.led_matrix.testMatData module</a></li>
+<li><a class="reference internal" href="#rstem-led-matrix-twomatline-module">rstem.led_matrix.twoMatLine module</a></li>
+<li><a class="reference internal" href="#module-rstem.led_matrix">Module contents</a></li>
+</ul>
+</li>
+</ul>
+
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/rstem.led_matrix.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="index.html">RaspberrySTEM 0.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2014, Jon Snyder.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
+    </div>
+  </body>
+</html>

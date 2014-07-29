@@ -50,6 +50,14 @@ class install(_install):
 # C extension wrappers
 led_driver =  Extension('led_driver', sources = ['rstem/led_matrix/led_driver.c'])
 
+packages = find_packages()
+package_dir = {}
+for i, package in enumerate(packages):
+    if package[:6] == "rstem.":
+        packages[i] = package[6:]
+    package_dir[str(packages[i])] = "rstem"
+print package_dir
+
 setup(
     name = "raspberrystem",
     version = "0.0.1",
@@ -60,7 +68,8 @@ setup(
     license = "BSD",
     keywords = ["raspberrypi", "stem"],
     url = "https://github.com/scottsilverlabs/raspberrystem",
-    packages = find_packages(),
+    packages = packages,
+    package_dir = package_dir,
     include_package_data = True,
     long_description = read('README.md'),
     # use https://pypi.python.org/pypi?%3Aaction=list_classifiers as help when editing this
