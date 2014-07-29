@@ -7,15 +7,8 @@ import random
 led_matrix.init_grid()
 
 # setup exit button
-exit_button = button.Button(18)  
+exit_button = button.Button(27)  
     
-# variables
-num_rows = led_matrix.height()
-num_cols = led_matrix.width()
-curr_gen = random_grid(num_rows, num_cols)
-next_gen = [[0 for i in range(num_cols)] in j for range(num_rows)]
-# TODO allow sprite input instead of random grid?
-
     
 def num_neighbors(curr_gen, x, y):
     """Returns the number of (alive) neighbors of given pixel"""
@@ -64,6 +57,14 @@ def draw_grid():
     for y in range(num_rows):
         for x in range(num_cols):
             led_matrix.point(x, y, curr_gen[y][x])
+            
+            
+# variables
+num_rows = led_matrix.height()
+num_cols = led_matrix.width()
+curr_gen = random_grid(num_rows, num_cols)
+next_gen = [[0 for i in range(num_cols)] for j in range(num_rows)]
+# TODO allow sprite input instead of random grid?
 
 while True:
     if exit_button.is_pressed():
