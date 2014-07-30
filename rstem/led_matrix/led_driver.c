@@ -26,6 +26,7 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <linux/spi/spidev.h>
+#include <numpy/arrayobject.h>
 
 // display current framebuffer during flush
 int display_on_terminal = 0;
@@ -40,6 +41,8 @@ int display_on_terminal = 0;
 // number of bytes in a matrix
 #define NUM_BYTES_MATRIX ((DIM_OF_MATRIX*DIM_OF_MATRIX)/2)
 #define bitstream_SIZE (num_matrices*NUM_BYTES_MATRIX)
+
+#define COORDS_TO_INDEX(x, y) ((x)*container_height + (y))
 
 #define SIGN(x) (((x) >= 0) ? 1 : -1)
 
@@ -61,7 +64,9 @@ struct Matrix {
 };
 
 struct Matrix *led_list;       // information on led matrix elements
-unsigned int **framebuffer;   // information on all pixels (physical or not)
+unsigned int *framebuffer;   // information on all pixels (physical or not)
+int framebuffer_size;
+PyObject *numpy_array = NULL;  // if null we are using original framebuffer
 unsigned char *bitstream;     // data given to SPI port
 int num_matrices, container_width, container_height;
 
@@ -120,13 +125,43 @@ int write_bytes(int dev, unsigned char* val, int len) {
     return ret;
 }
 
+// memory commands ===========================================
+
+void free_framebuffer(void){
+    if (numpy_array) {
+        Py_DECREF(numpy_array);
+        numpy_array = NULL;
+    } else {
+        free(framebuffer);
+    }
+}
+
+// closes SPI port and frees all allocated memory
+int close_and_free(void){
+    Debug("Closing and freeing.")
+    if (framebuffer) {
+        free_framebuffer();
+    }
+    framebuffer = NULL;
+    if (led_list){
+        free(led_list);
+    }
+    led_list = NULL;
+    if (bitstream){
+        free(bitstream);
+    }
+    bitstream = NULL;
+    close(spi);
+    return 0;
+}
+
 // led_driver commands =======================================
 
 int point(int x, int y, unsigned int color) {
     Debug("Setting point at (%d,%d) with color %d", x, y, color);
     if (x >= container_width || x < 0 || y >= container_height || y < 0)
         return -1;
-    framebuffer[x][y] = color;
+    framebuffer[COORDS_TO_INDEX(x,y)] = color;
     return 0;
 }
 
@@ -170,23 +205,17 @@ int line(int x1, int y1, int x2, int y2, unsigned int color){
 
 
 int init_framebuffer_and_bitstream(void){
-    Debug("Initializing framebuffer");
-    framebuffer = (unsigned int **) malloc(container_width*sizeof(unsigned int *));
+    Debug("framebuffer_size = %d*%d*%d", container_height, container_width, sizeof(unsigned int));
+    framebuffer_size = container_height*container_width*sizeof(unsigned int);
+    
+    Debug("Initializing framebuffer with size %d", framebuffer_size);
+    framebuffer = (unsigned int *) malloc(framebuffer_size);
+    memset(framebuffer, 0, framebuffer_size);
     if (framebuffer == 0){
         Debug("Error mallocing framebuffer");
         goto freeLEDList;
     }
-    int i;
-    for (i = 0; i < container_width; i++){
-        Debug("Initializing framebuffer[%d]", i);
-        framebuffer[i] = (unsigned int *) malloc(container_height*sizeof(unsigned int));
-        if (framebuffer[i] == 0){
-            Debug("Error mallocing framebuffer[%d]", i);
-            goto freeframebuffer;
-        }
-        memset(framebuffer[i], 0, container_height*sizeof(unsigned int));
-    }
-    Debug("Initializing bitstream");
+    Debug("Initializing bitstream with size %d", num_matrices*NUM_BYTES_MATRIX);
     bitstream = (unsigned char *) malloc(num_matrices*NUM_BYTES_MATRIX);
     if (bitstream == 0){
         Debug("Error mallocing bitstream");
@@ -197,10 +226,7 @@ int init_framebuffer_and_bitstream(void){
 
     // Clean up on malloc error
     freeframebuffer:
-        for (i--; i >= 0; i--){
-            free(framebuffer[i]);
-        }
-        free(framebuffer);
+        free_framebuffer();
     freeLEDList:
         free(led_list);
     PyErr_NoMemory();
@@ -224,7 +250,7 @@ int update_bitstream(void){
             for (x = x_start ; x < (x_start + DIM_OF_MATRIX); x++){
                 int y;
                 for (y = y_start + (DIM_OF_MATRIX - 2); y >= y_start; y -= 2){
-                    bitstream[bitstream_pos++] = ((framebuffer[x][y] & 0xF) << 4) | (framebuffer[x][y+1] & 0xF);
+                    bitstream[bitstream_pos++] = ((framebuffer[COORDS_TO_INDEX(x,y)] & 0xF) << 4) | (framebuffer[COORDS_TO_INDEX(x,y+1)] & 0xF);
                 }
             }
         }
@@ -233,7 +259,7 @@ int update_bitstream(void){
             for (y = y_start; y < (y_start + DIM_OF_MATRIX); y++){
                 int x;
                 for (x = x_start + 1; x < (x_start + DIM_OF_MATRIX); x += 2){
-                    bitstream[bitstream_pos++] = ((framebuffer[x][y] & 0xF) << 4) | (framebuffer[x-1][y] & 0xF);
+                    bitstream[bitstream_pos++] = ((framebuffer[COORDS_TO_INDEX(x,y)] & 0xF) << 4) | (framebuffer[COORDS_TO_INDEX(x-1,y)] & 0xF);
                 }
             }
         }
@@ -242,7 +268,7 @@ int update_bitstream(void){
             for (x = (x_start + (DIM_OF_MATRIX - 1)); x >= x_start; x--){
                 int y;
                 for (y = y_start + 1; y < (y_start + DIM_OF_MATRIX); y += 2){
-                    bitstream[bitstream_pos++] = ((framebuffer[x][y] & 0xF) << 4) | (framebuffer[x][y-1] & 0xF);
+                    bitstream[bitstream_pos++] = ((framebuffer[COORDS_TO_INDEX(x,y)] & 0xF) << 4) | (framebuffer[COORDS_TO_INDEX(x,y-1)] & 0xF);
                 }
             }
         }
@@ -251,7 +277,7 @@ int update_bitstream(void){
             for (y = (y_start + (DIM_OF_MATRIX - 1)); y >= y_start; y--){
                 int x;
                 for (x = (x_start + (DIM_OF_MATRIX - 2)); x >= x_start; x -= 2){
-                    bitstream[bitstream_pos++] = ((framebuffer[x][y] & 0xF) << 4) | (framebuffer[x+1][y] & 0xF);
+                    bitstream[bitstream_pos++] = ((framebuffer[COORDS_TO_INDEX(x,y)] & 0xF) << 4) | (framebuffer[COORDS_TO_INDEX(x+1,y)] & 0xF);
                 }
             }
         }
@@ -259,25 +285,7 @@ int update_bitstream(void){
     return 0;
 }
 
-// closes SPI port and frees all allocated memory
-int close_and_free(void){
-    Debug("Closing and freeing.")
-    int i;
-    if (framebuffer){
-        for (i = 0; i < container_width; i++){
-            free(framebuffer[i]);
-        }
-    }
-    free(framebuffer);
-    if (led_list){
-        free(led_list);
-    }
-    if (bitstream){
-        free(bitstream);
-    }
-    close(spi);
-    return 0;
-}
+
 
 void print_framebuffer(void){
     int y;
@@ -286,7 +294,7 @@ void print_framebuffer(void){
     for (y = 0; y < container_height; y++){
         int x;
         for (x = 0; x < container_width; x++){
-            int pixel = framebuffer[x][y];
+            int pixel = framebuffer[COORDS_TO_INDEX(x,y)];
             if (pixel == 0) {
                 printf(". ", pixel);
             } else if (pixel < 16) {
@@ -297,7 +305,6 @@ void print_framebuffer(void){
         }
         printf("\n");
     }
-/*    refresh();*/
 }
 
 
@@ -341,7 +348,13 @@ static PyObject *py_init_matrices(PyObject *self, PyObject *args){
             i, led_list[i].x_offset, led_list[i].y_offset, led_list[i].angle);
     }
     // initialize the framebuffer and bitstream
-    return Py_BuildValue("i", init_framebuffer_and_bitstream());
+    int ret = init_framebuffer_and_bitstream();
+    if (ret < 0){
+        char error_message[50];
+        sprintf(error_message, "init_matrices returned %d", ret);
+        PyErr_SetString(PyExc_RuntimeError, error_message);
+    }
+    return Py_BuildValue("i", ret);
 }
 
 static PyObject *py_fill(PyObject *self, PyObject *args){
@@ -399,8 +412,9 @@ static PyObject *py_init_SPI(PyObject *self, PyObject *args){
 		PyErr_SetString(PyExc_TypeError, "Not an unsigned int and int!");
 		return NULL;
 	}
+	import_array();
 	return Py_BuildValue("i", start_SPI(speed, mode));
-}
+}   
 
 static PyObject *py_flush(PyObject *self, PyObject *args){
     // show on terminal if flag enabled
@@ -423,6 +437,45 @@ static PyObject *py_display_on_terminal(PyObject *self, PyObject *args){
 	return Py_BuildValue("i", 1);
 }
 
+static PyObject *py_frame(PyObject *self, PyObject *args){
+    PyObject *input_array = NULL;
+    if (!PyArg_ParseTuple(args, "O!", &PyArray_Type, &input_array)){
+        Debug("Not an array.");
+		PyErr_SetString(PyExc_TypeError, "Not an array!");
+		return NULL;
+	}
+	Debug("Passed args parsing, now freeing old framebuffer.");
+	free_framebuffer();
+	framebuffer = NULL;
+	
+	Debug("Attempt to get numpy array object.");
+	numpy_array = PyArray_FROM_OTF(input_array, NPY_INT, NPY_INOUT_ARRAY);
+	if (numpy_array == NULL) {
+	    Py_XDECREF(numpy_array);
+	    numpy_array = NULL;
+	    PyErr_SetString(PyExc_RuntimeError, "Could not get numpy array!");
+	    return NULL;
+    }
+	
+	// checking stuff
+	if (PyArray_NDIM(numpy_array) != 2){
+	    PyErr_SetString(PyExc_ValueError, "Numpy array must be 2D!");
+	    return NULL;
+	}
+	if (PyArray_DIM(numpy_array, 0) != container_width
+	    || PyArray_DIM(numpy_array, 1) != container_height){
+	    PyErr_SetString(PyExc_ValueError, "Numpy array dimensions must be the same as container!");
+	    return NULL;   
+	}
+	
+	Debug("Attempt to cast a framebuffer.");
+	framebuffer = (unsigned int *) PyArray_DATA(numpy_array);
+
+	Debug("Current framebuffer pointer %p", framebuffer);
+	print_framebuffer();
+	return Py_BuildValue("i", 1);
+}
+
 static PyMethodDef led_driver_methods[] = {
 	{"init_SPI", py_init_SPI, METH_VARARGS, "Initialize the SPI with given speed and port."},
     {"init_matrices", py_init_matrices, METH_VARARGS, "Initializes the give LED matrices in the list."},
@@ -431,6 +484,7 @@ static PyMethodDef led_driver_methods[] = {
 	{"point", py_point, METH_VARARGS, "Sets a point in the frame buffer."},
 	{"line", py_line, METH_VARARGS, "Sets a line from given source to destination."},
     {"fill", py_fill, METH_VARARGS, "Fills all matrices with the given color."},
+    {"frame", py_frame, METH_VARARGS, "Exchanges current framebuffer for a numpy framebuffer."},
     {"display_on_terminal", py_display_on_terminal, METH_NOARGS, "Toggles on and off display_on_terminal mode"}, 
 	{NULL, NULL, 0, NULL}  /* Sentinal */
 };
