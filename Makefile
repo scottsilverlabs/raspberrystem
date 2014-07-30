@@ -30,14 +30,14 @@ ifdef ON_PI
   	$(wildcard debian/*.init) \
   	$(wildcard debian/*.default) \
   	$(wildcard debian/*.manpages) \
-  #	$(wildcard debian/*.docs) \
+  	$(wildcard debian/*.docs) \
   	$(wildcard debian/*.doc-base) \
   	$(wildcard debian/*.desktop)
-  #DOC_SOURCES:=docs/conf.py \
-  #	$(wildcard docs/*.png) \
-  #	$(wildcard docs/*.svg) \
-  #	$(wildcard docs/*.rst) \
-  #	$(wildcard docs/*.pdf)
+  DOC_SOURCES:=docs/conf.py \
+  	$(wildcard docs/*.png) \
+  	$(wildcard docs/*.svg) \
+  	$(wildcard docs/*.rst) \
+  	$(wildcard docs/*.pdf)
   
   # Types of dist files all located in dist folder
   DIST_EGG=dist/$(NAME)-$(VER)-$(PYVER).egg
@@ -52,7 +52,7 @@ ifdef ON_PI
 endif
 
 COMMANDS=install local-install test source egg zip tar deb dist install-projects install-cells \
-    upload-all upload-ppa upload-cheeseshop
+    upload-all upload-ppa upload-cheeseshop doc
 
 .PHONY: all pi-install upload-check help clean push pull $(COMMANDS) $(addprefix pi-, $(COMMANDS))
 
@@ -65,7 +65,7 @@ help:
 	@echo "make install-projects - Install projects to home folder"
 	@echo "make install-cells - Install cells to home folder"
 	@echo "make test - Run tests"
-#	@echo "make doc - Generate HTML and PDF documentation"
+	@echo "make doc - Generate HTML documentation (packages must be installed first)"
 	@echo "make source - Create source package"
 	@echo "make egg - Generate a PyPI egg package"
 	@echo "make zip - Generate a source zip package"
@@ -107,6 +107,15 @@ $(COMMANDS)::
 
 
 # on pi commands start with "pi-"
+
+pi-doc:
+#	# clean up old docs if exists
+#	$(MAKE) -C docs clean
+#	cp ./docs/source/index.rst /tmp; rm ./docs/source/*.rst; cp /tmp/index.rst ./docs/source/
+#	# recreate .rst files
+#	sphinx-apidoc -f -o ./docs/source ./rstem
+#	# create html documentation (located in ./docs/build/html)
+#	$(MAKE) -C docs html
 
 pi-install:
 	sudo $(PYTHON) $(PYFLAGS) ./setup.py install
@@ -173,7 +182,7 @@ pi-dist: $(DIST_EGG) $(DIST_DEB) $(DIST_DSC) $(DIST_TAR) $(DIST_ZIP)
 
 # clean all files from raspberry pi
 clean-pi:
-	ssh $(SSHFLAGS) -t -v $(PI) "rm -rf ~/rsinstall; rm -rf ~/rstem"
+	ssh $(SSHFLAGS) -t -v $(PI) "sudo rm -rf ~/rsinstall; rm -rf ~/rstem"
 
 # clean all files locally
 clean:
@@ -182,7 +191,7 @@ clean:
 	cp -r  pkg/debian debian
 	$(PYTHON) $(PYFLAGS) setup.py clean
 	$(MAKE) -f $(CURDIR)/debian/rules clean
-	sudo rm -rf build/ dist/ $(NAME).egg-info/ $(NAME)-$(VER)
+	sudo rm -rf build/* dist/ $(NAME).egg-info $(NAME)-$(VER)
 	rm -rf debian/python3-$(NAME) debian/python-$(NAME)
 	rm -f debian/python*
 	rm -f ../$(NAME)_$(VER).orig.tar.gz ../$(NAME)_$(VER)_armhf.build ../$(NAME)_$(VER)_armhf.changes ../$(NAME)_$(VER)_source.build
