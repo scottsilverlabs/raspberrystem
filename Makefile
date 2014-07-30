@@ -1,7 +1,7 @@
 SHELL = /bin/bash
 
 ifdef ON_PI
-  PYTHON=python3  # default python
+  PYTHON=python  # default python
 else
   PYTHON=python  # default python
 endif
