@@ -83,7 +83,7 @@ double rad2deg(double x)
 }
 
 //Initialize i2c
-int init_i2c()
+int init_i2c(void)
 {
     char filename[20];
     snprintf(filename, sizeof(filename), "/dev/i2c-%d", adapter_number);
@@ -92,7 +92,7 @@ int init_i2c()
 }
 
 //Set accel as slave
-int set_slave()
+int set_slave(void)
 {
     return ioctl(file, I2C_SLAVE, addr);
 }
@@ -103,7 +103,7 @@ int write_command(char reg, char value)
     return i2c_smbus_write_byte_data(file, reg, value);
 }
 
-int init_accel()
+int init_accel(void)
 {
     if(init_i2c() < 0) return -1;
     if(set_slave() < 0) return -1;
@@ -209,9 +209,6 @@ static PyObject* py_init_accel(PyObject *self, PyObject *args)
     return Py_BuildValue("i", ret);
 }
 
-const char  *py_init_accel_doc = "This function initializes the accelerometer on the i2c bus.\n"
-				"@param bus: This is the i2c bus the accelerometer is linked to, it will either be a 0 or a 1 depending on which type of Pi the user has.\n"
-				"@type bus: int";
 
 //Selects mode between degrees and radians
 static PyObject *use_radians(PyObject *self, PyObject *args)
@@ -250,11 +247,6 @@ static PyObject * py_enable_freefall_motion(PyObject *self, PyObject *args)
     return Py_BuildValue("i", ret);
 }
 
-const char* const py_enable_freefall_motion_doc =     "This function enables the freefall or motion interrupt on a given interrupt pin.\n"
-						"@param mode: This is either a 0 or a 1 which selects between freefall and motion detect mode. 0 for freefall, 1 for motion detect.\n"
-						"@type mode: int\n"
-						"@param pin: This is either a 1 or a 2 corresponding to the interrupt pin to be used.\n"
-						"@type pin: int";
 //debounce mode: 1 = decrement counter when below threshold
 //             : 0 = clear counter when below threshold
 //Threshold is a floating point number in Gs
@@ -284,13 +276,6 @@ static PyObject* py_set_freefall_motion_threshold(PyObject *self, PyObject *args
     return Py_BuildValue("i", ret);
 }
 
-const char * const py_set_freefall_motion_threshold_doc =	"This function sets the debounce mode and threshold in Gs for freefall and motion detection.\n"
-							"When in freefall mode the interrupt will trigger when the acceleration is B{BELOW} input threshold.\n"
-							"When in motion detect mode the interrupt will trigger when the acceleration is B{ABOVE} threshold.\n"
-							"@param debounce: Sets the mode for debounce, 0 clears debounce counter when threshold condition is not met, 1 (default) decrements debounce counter when threshold condition is not met.\n"
-							"@type debounce: int\n"
-							"@param threshold: Threshold in Gs ranging from 0-8.\n"
-							"@type threshold: float";
 
 //Sets how many samples are required to trigger intterupt
 static PyObject* py_set_freefall_motion_debounce(PyObject *self, PyObject *args)
@@ -309,9 +294,6 @@ static PyObject* py_set_freefall_motion_debounce(PyObject *self, PyObject *args)
     return Py_BuildValue("i", ret);
 }
 
-const char* const py_set_freefall_motion_debounce_doc =       "This function sets the debounce counter for the freefall/motion detect interrupt.\n"
-							"@param counts: A number ranging from 0-255 representing the number of samples that must be taken with the threshold condition met before the interrupt fires\n"
-							"@type counts: int";
 
 //Grab new data from device and give it to python
 static PyObject * update_data(PyObject *self, PyObject *args)
@@ -335,9 +317,6 @@ static PyObject * update_data(PyObject *self, PyObject *args)
     return Py_BuildValue("ddd", -x, -y, z);
 }
 
-const char* const update_data_doc =   "This function returns the latest acceleration data from the accelerometer.\n"
-				"@returns: A tuple of the acceleration on the seperate axes in form (X, Y, Z).\n"
-				"@rtype: 3 value tuple";
 
 //Grab new angles and give it to python
 static PyObject * angles(PyObject *self, PyObject *args)
@@ -368,13 +347,6 @@ static PyObject * angles(PyObject *self, PyObject *args)
     return Py_BuildValue("ddd", roll, pitch, elevation);
 }
 
-const char* const angles_doc ="This function returns the latest acceleration data from the accelerometer converted into angles.\n"
-			"@return: A tuple of the form (Roll, Pitch, Elevation).\n"
-			"	Roll: Left/Right rotation\n"
-			"	Pitch: Forward/Backward rotation\n"
-			"	Elevation: The angle of the normal of the accelerometer from the X-Y plane.\n"
-			"@rtype: 3 value tuple";
-
 //Enable data ready intterupt on given pin
 static PyObject * py_enable_data_ready(PyObject *self, PyObject *args)
 {
@@ -384,7 +356,7 @@ static PyObject * py_enable_data_ready(PyObject *self, PyObject *args)
         PyErr_SetString(PyExc_TypeError, "Not an int!");
         return NULL;
     }
-    if(pin != 1 & pin != 2){
+    if((pin != 1) & (pin != 2)){
         PyErr_SetString(PyExc_Exception, "Invalid interrupt pin! (Valid: 1 2)");
         return NULL;
     }
@@ -395,9 +367,6 @@ static PyObject * py_enable_data_ready(PyObject *self, PyObject *args)
     }
     return Py_BuildValue("i", ret);
 }
-
-const char* const py_enable_data_ready_doc =  "This functions enables the I{data ready} interrupt which fires when new data is avaiable from the accelerometer.\n"
-					"@param pin: Pin to enable the interrupt on.";
 
 //Sets sample rate prescaler, sample rate = 800hz/prescaler
 static PyObject * set_sample_rate_prescaler(PyObject *self, PyObject *args)
@@ -436,10 +405,6 @@ static PyObject * set_sample_rate_prescaler(PyObject *self, PyObject *args)
     return Py_BuildValue("i", ret);
 }
 
-const char* const set_sample_rate_prescaler_doc =     "This function controls the sample rate of the accelerometer by setting the sample rate prescaler.\n"
-						"The sample rate will be the max sample rate (800hz) divided by the prescaler\n"
-						"@param prescaler: The prescaler to be used, valid numbers are 1, 2, 4, 8, 16, 64, 128, and 512.\n"
-						"@type prescaler: int";
 
 //Sets full scale range of accelerometer
 static PyObject * py_set_range(PyObject *self, PyObject *args)
@@ -462,21 +427,68 @@ static PyObject * py_set_range(PyObject *self, PyObject *args)
     return Py_BuildValue("i", ret);
 }
 
-const char* const py_set_range_doc =	"This function sets the full scale range of the accelerometer, larger values mean more range but less precision.\n"
-				"@param range: Value for the full scale range, valid options are 2, 4, or 8.\n"
-				"@type range: int";
 
 static PyMethodDef accel_methods[] = {
-    {"init", py_init_accel, METH_VARARGS, py_init_accel_doc},
-    {"enable_freefall_motion", py_enable_freefall_motion, METH_VARARGS, py_enable_freefall_motion_doc},
-    {"read", update_data, METH_NOARGS, update_data_doc},
-    {"freefall_motion_threshold", py_set_freefall_motion_threshold, METH_VARARGS, py_set_freefall_motion_threshold_doc},
-    {"freefall_motion_debounce", py_set_freefall_motion_debounce, METH_VARARGS, py_set_freefall_motion_debounce_doc},
-    {"enable_data_ready", py_enable_data_ready, METH_VARARGS, py_enable_data_ready_doc},
-    {"set_sample_rate_prescaler", set_sample_rate_prescaler, METH_VARARGS, set_sample_rate_prescaler_doc},
-    {"set_range", py_set_range, METH_VARARGS, py_set_range_doc},
-    {"angles", angles, METH_NOARGS, angles_doc},
-    {"use_radians", use_radians, METH_VARARGS, use_radians_doc},
+    {"init", py_init_accel, METH_VARARGS, 
+        "This function initializes the accelerometer on the i2c bus.\n"
+		"@param bus: This is the i2c bus the accelerometer is linked to, it will either be a 0 or a 1 depending on which type of Pi the user has.\n"
+		"@type bus: int"},
+    
+    {"enable_freefall_motion", py_enable_freefall_motion, METH_VARARGS, 
+        "This function enables the freefall or motion interrupt on a given interrupt pin.\n"
+		"@param mode: This is either a 0 or a 1 which selects between freefall and motion detect mode. 0 for freefall, 1 for motion detect.\n"
+		"@type mode: int\n"
+		"@param pin: This is either a 1 or a 2 corresponding to the interrupt pin to be used.\n"
+		"@type pin: int"},
+    
+    {"read", update_data, METH_NOARGS, 
+        "This function returns the latest acceleration data from the accelerometer.\n"
+		"@returns: A tuple of the acceleration on the seperate axes in form (X, Y, Z).\n"
+		"@rtype: 3 value tuple"},
+    
+    {"freefall_motion_threshold", py_set_freefall_motion_threshold, METH_VARARGS, 
+        "This function sets the debounce mode and threshold in Gs for freefall and motion detection.\n"
+	    "@note: When in freefall mode the interrupt will trigger when the acceleration is B{BELOW} input threshold.\n"
+	    "@note: When in motion detect mode the interrupt will trigger when the acceleration is B{ABOVE} threshold.\n"
+	    "@param debounce: Sets the mode for debounce, 0 clears debounce counter when threshold condition is not met, 1 (default) decrements debounce counter when threshold condition is not met.\n"
+	    "@type debounce: int\n"
+	    "@param threshold: Threshold in Gs ranging from 0-8.\n"
+	    "@type threshold: float"},
+    
+    {"freefall_motion_debounce", py_set_freefall_motion_debounce, METH_VARARGS, 
+        "This function sets the debounce counter for the freefall/motion detect interrupt.\n"
+		"@param counts: A number ranging from 0-255 representing the number of samples that must be taken with the threshold condition met before the interrupt fires\n"
+		"@type counts: int"},
+    
+    {"enable_data_ready", py_enable_data_ready, METH_VARARGS, 
+        "This functions enables the I{data ready} interrupt which fires when new data is avaiable from the accelerometer.\n"
+		"@param pin: Pin to enable the interrupt on."},
+		
+    {"set_sample_rate_prescaler", set_sample_rate_prescaler, METH_VARARGS, 
+        "This function controls the sample rate of the accelerometer by setting the sample rate prescaler.\n"
+		"The sample rate will be the max sample rate (800hz) divided by the prescaler\n"
+		"@param prescaler: The prescaler to be used, valid numbers are 1, 2, 4, 8, 16, 64, 128, and 512.\n"
+		"@type prescaler: int"},
+    
+    {"set_range", py_set_range, METH_VARARGS, 
+        "This function sets the full scale range of the accelerometer, larger values mean more range but less precision.\n"
+		"@param range: Value for the full scale range, valid options are 2, 4, or 8.\n"
+		"@type range: int"},
+    
+    {"angles", angles, METH_NOARGS, 
+        "This function returns the latest acceleration data from the accelerometer converted into angles.\n"
+		"@return: A tuple of the form (Roll, Pitch, Elevation).\n\n"
+		"	B{Roll}: Left/Right rotation\n\n"
+		"	B{Pitch}: Forward/Backward rotation\n\n"
+		"	B{Elevation}: The angle of the normal of the accelerometer from the X-Y plane.\n"
+		"@rtype: 3 value tuple"},
+		
+    {"use_radians", use_radians, METH_VARARGS, 
+        "This function sets the return units of the L{angles} function.\n"
+		"@param radians: I{True} to have L{angles} return values in radians, \n"
+		"	I{False} to have L{angles} return values in degrees\n"
+		"@type radians: boolean"},
+    
     {NULL, NULL, 0, NULL} // Sentinal
 };
 
