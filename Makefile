@@ -52,9 +52,10 @@ ifdef ON_PI
 endif
 
 COMMANDS=install test source egg zip tar deb dist install-projects install-cells \
-    upload-all upload-ppa upload-cheeseshop doc
+    upload-all upload-ppa upload-cheeseshop
 
-.PHONY: all local-install upload-check help clean push pull $(COMMANDS) $(addprefix pi-, $(COMMANDS))
+.PHONY: all local-install upload-check help clean push pull doc  \
+    $(COMMANDS) $(addprefix pi-, $(COMMANDS))
 
 help:
 #	@echo "make - Compile sources locally"
@@ -117,7 +118,7 @@ $(COMMANDS)::
 
 # on pi commands start with "pi-"
 
-pi-doc:
+doc:
 	rm -rf doc
 	epydoc --html rstem -o doc
 #	# clean up old docs if exists
@@ -130,7 +131,8 @@ pi-doc:
 
 local-install: setup.py MANIFEST.in
 	# Pretend we are on the pi and install
-	$(MAKE) pi-install ON_PI=1
+	sudo $(PYTHON) $(PYFLAGS) ./setup.py install
+	$(MAKE) cleanup
 
 pi-install: setup.py MANIFEST.in
 	sudo $(PYTHON) $(PYFLAGS) ./setup.py install
