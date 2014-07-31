@@ -636,6 +636,7 @@ class LEDSprite(object):
     def rotated(self, angle=90):
         """Same as L{rotate} only it returns a copy of the rotated sprite
         and does not affect the original.
+        @returns: Rotated sprite
         @rtype: L{LEDSprite}
         """
         sprite_copy = copy.deepcopy(self)
@@ -652,6 +653,8 @@ class LEDSprite(object):
     def inverted(self):
         """Same as L{invert} only it returns a copy of the inverted sprite
         and does not affect the original.
+        @returns: Inverted sprite
+        @rtype: L{LEDSprite}
         """
         sprite_copy = copy.deepcopy(self)
         sprite_copy.invert()

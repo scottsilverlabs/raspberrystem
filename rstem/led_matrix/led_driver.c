@@ -595,8 +595,7 @@ PyInit_led_driver(void)
 #else
 #define INITERROR return
 
-void
-initled_driver(void)
+void initled_driver(void)
 #endif
 {
 #if PY_MAJOR_VERSION >= 3
