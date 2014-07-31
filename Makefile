@@ -13,6 +13,8 @@ CELLSDIR=$$HOME/rstem
 #BUILDIR=$(CURDIR)/debian/raspberrystem
 PI=pi@raspberrypi
 
+PYDIR:=$(shell $(PYTHON) $(PYFLAGS) -c "import site; print('site.getsitepackages()[0]')")
+
 ifdef ON_PI
   # Calculate the base names of the distribution, the location of all source,
   NAME:=$(shell $(PYTHON) $(PYFLAGS) ./pkg/setup.py --name)
@@ -118,16 +120,11 @@ $(COMMANDS)::
 
 # on pi commands start with "pi-"
 
+PREVDIR = $(CURDIR)
+
 doc:
 	rm -rf doc
-	epydoc --html rstem -o doc
-#	# clean up old docs if exists
-#	$(MAKE) -C docs clean
-#	cp ./docs/source/index.rst /tmp; rm ./docs/source/*.rst; cp /tmp/index.rst ./docs/source/
-#	# recreate .rst files
-#	sphinx-apidoc -f -o ./docs/source ./rstem
-#	# create html documentation (located in ./docs/build/html)
-#	$(MAKE) -C docs html
+	cd; epydoc --html rstem -o $(PREVDIR)/doc; cd $(PREVDIR)
 
 local-install: setup.py MANIFEST.in
 	# Pretend we are on the pi and install
@@ -208,16 +205,16 @@ clean-pi:
 # clean all files locally
 clean: setup.py MANIFEST.in
 	$(PYTHON) $(PYFLAGS) setup.py clean
-	$(MAKE) -f $(CURDIR)/debian/rules clean
+	$(MAKE) -f $(CURDIR)/pkg/debian/rules clean
 	sudo rm -rf build dist/ $(NAME).egg-info $(NAME)-$(VER)
-	rm -rf debian/python3-$(NAME) debian/python-$(NAME)
-	rm -f debian/python*
+	rm -rf pkg/debian/python3-$(NAME) pkg/debian/python-$(NAME)
+	rm -f pkg/debian/python*
 	rm -f ../$(NAME)_$(VER).orig.tar.gz ../$(NAME)_$(VER)_armhf.build ../$(NAME)_$(VER)_armhf.changes ../$(NAME)_$(VER)_source.build
 	rm -f ../python-$(NAME)_$(VER)_armhf.deb ../python3-$(NAME)_$(VER)_armhf.deb
 	rm -f ../$(NAME)_$(VER).dsc ../$(NAME)_$(VER).tar.gz ../$(NAME)_$(VER)_source.changes
 	find $(CURDIR) -name '*.pyc' -delete
-	touch debian/files
-	rm -f debian/files
+	rm -f pkg/debian/files
+	touch pkg/debian/files
 	$(MAKE) cleanup
 
 $(DIST_TAR): $(PY_SOURCES) setup.py MANIFEST.in

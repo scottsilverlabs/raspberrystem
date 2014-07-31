@@ -78,7 +78,7 @@
       <span class="summary-type">&nbsp;</span>
     </td><td class="summary">
         <a href="rstem.speaker.Sound-class.html" class="summary-name">Sound</a><br />
-      Basic foreground sound from a file
+      Basic foreground or background sound from a file
     </td>
   </tr>
 <tr>
@@ -86,7 +86,7 @@
       <span class="summary-type">&nbsp;</span>
     </td><td class="summary">
         <a href="rstem.speaker.Note-class.html" class="summary-name">Note</a><br />
-      Creates a sine wave of given frequeny
+      A sine wave of given frequeny
     </td>
   </tr>
 </table>
@@ -113,7 +113,8 @@
     </td><td class="summary">
       <table width="100%" cellpadding="0" cellspacing="0" border="0">
         <tr>
-          <td><span class="summary-sig"><a name="_init"></a><span class="summary-sig-name">_init</span>()</span></td>
+          <td><span class="summary-sig"><a name="_init"></a><span class="summary-sig-name">_init</span>()</span><br />
+      Initializes pygame</td>
           <td align="right" valign="top">
             <span class="codelink"><a href="rstem.speaker-pysrc.html#_init">source&nbsp;code</a></span>
             
@@ -129,7 +130,8 @@
     </td><td class="summary">
       <table width="100%" cellpadding="0" cellspacing="0" border="0">
         <tr>
-          <td><span class="summary-sig"><a name="say"></a><span class="summary-sig-name">say</span>(<span class="summary-sig-arg">text</span>)</span></td>
+          <td><span class="summary-sig"><a href="rstem.speaker-module.html#say" class="summary-sig-name">say</a>(<span class="summary-sig-arg">text</span>)</span><br />
+      Plays a voice speaking the given text.</td>
           <td align="right" valign="top">
             <span class="codelink"><a href="rstem.speaker-pysrc.html#say">source&nbsp;code</a></span>
             
@@ -141,11 +143,11 @@
   </tr>
 <tr>
     <td width="15%" align="right" valign="top" class="summary">
-      <span class="summary-type">&nbsp;</span>
+      <span class="summary-type">float</span>
     </td><td class="summary">
       <table width="100%" cellpadding="0" cellspacing="0" border="0">
         <tr>
-          <td><span class="summary-sig"><a name="get_volume"></a><span class="summary-sig-name">get_volume</span>()</span><br />
+          <td><span class="summary-sig"><a href="rstem.speaker-module.html#get_volume" class="summary-sig-name">get_volume</a>()</span><br />
       Gets the master volume</td>
           <td align="right" valign="top">
             <span class="codelink"><a href="rstem.speaker-pysrc.html#get_volume">source&nbsp;code</a></span>
@@ -162,7 +164,7 @@
     </td><td class="summary">
       <table width="100%" cellpadding="0" cellspacing="0" border="0">
         <tr>
-          <td><span class="summary-sig"><a name="set_volume"></a><span class="summary-sig-name">set_volume</span>(<span class="summary-sig-arg">value</span>)</span><br />
+          <td><span class="summary-sig"><a href="rstem.speaker-module.html#set_volume" class="summary-sig-name">set_volume</a>(<span class="summary-sig-arg">value</span>)</span><br />
       Set the master volume</td>
           <td align="right" valign="top">
             <span class="codelink"><a href="rstem.speaker-pysrc.html#set_volume">source&nbsp;code</a></span>
@@ -233,10 +235,10 @@
     </td><td class="summary">
       <table width="100%" cellpadding="0" cellspacing="0" border="0">
         <tr>
-          <td><span class="summary-sig"><a name="shutdown"></a><span class="summary-sig-name">shutdown</span>()</span><br />
-      Clean up initialization</td>
+          <td><span class="summary-sig"><a name="cleanup"></a><span class="summary-sig-name">cleanup</span>()</span><br />
+      Cleans up initialization of pygame</td>
           <td align="right" valign="top">
-            <span class="codelink"><a href="rstem.speaker-pysrc.html#shutdown">source&nbsp;code</a></span>
+            <span class="codelink"><a href="rstem.speaker-pysrc.html#cleanup">source&nbsp;code</a></span>
             
           </td>
         </tr>
@@ -311,7 +313,107 @@
         <a name="currently_playing_filename"></a><span class="summary-name">currently_playing_filename</span> = <code title="None">None</code>
     </td>
   </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+        <a name="__package__"></a><span class="summary-name">__package__</span> = <code title="'rstem.speaker'"><code class="variable-quote">'</code><code class="variable-string">rstem.speaker</code><code class="variable-quote">'</code></code>
+    </td>
+  </tr>
 </table>
+<!-- ==================== FUNCTION DETAILS ==================== -->
+<a name="section-FunctionDetails"></a>
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr bgcolor="#70b0f0" class="table-header">
+  <td colspan="2" class="table-header">
+    <table border="0" cellpadding="0" cellspacing="0" width="100%">
+      <tr valign="top">
+        <td align="left"><span class="table-header">Function Details</span></td>
+        <td align="right" valign="top"
+         ><span class="options">[<a href="#section-FunctionDetails"
+         class="privatelink" onclick="toggle_private();"
+         >hide private</a>]</span></td>
+      </tr>
+    </table>
+  </td>
+</tr>
+</table>
+<a name="say"></a>
+<div>
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr><td>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr valign="top"><td>
+  <h3 class="epydoc"><span class="sig"><span class="sig-name">say</span>(<span class="sig-arg">text</span>)</span>
+  </h3>
+  </td><td align="right" valign="top"
+    ><span class="codelink"><a href="rstem.speaker-pysrc.html#say">source&nbsp;code</a></span>&nbsp;
+    </td>
+  </tr></table>
+  
+  <p>Plays a voice speaking the given text.</p>
+  <dl class="fields">
+    <dt>Parameters:</dt>
+    <dd><ul class="nomargin-top">
+        <li><strong class="pname"><code>text</code></strong> (string) - text to play</li>
+    </ul></dd>
+    <dt>Raises:</dt>
+    <dd><ul class="nomargin-top">
+        <li><code><strong class='fraise'>Exception</strong></code> - espeak errors out (most likely due to not being installed)</li>
+    </ul></dd>
+  </dl>
+<div class="fields">      <p><strong>Note:</strong>
+        Must have espeak installed
+      </p>
+</div></td></tr></table>
+</div>
+<a name="get_volume"></a>
+<div>
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr><td>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr valign="top"><td>
+  <h3 class="epydoc"><span class="sig"><span class="sig-name">get_volume</span>()</span>
+  </h3>
+  </td><td align="right" valign="top"
+    ><span class="codelink"><a href="rstem.speaker-pysrc.html#get_volume">source&nbsp;code</a></span>&nbsp;
+    </td>
+  </tr></table>
+  
+  <p>Gets the master volume</p>
+  <dl class="fields">
+    <dt>Returns: float</dt>
+        <dd>the volume between 0-100</dd>
+  </dl>
+</td></tr></table>
+</div>
+<a name="set_volume"></a>
+<div>
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr><td>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr valign="top"><td>
+  <h3 class="epydoc"><span class="sig"><span class="sig-name">set_volume</span>(<span class="sig-arg">value</span>)</span>
+  </h3>
+  </td><td align="right" valign="top"
+    ><span class="codelink"><a href="rstem.speaker-pysrc.html#set_volume">source&nbsp;code</a></span>&nbsp;
+    </td>
+  </tr></table>
+  
+  <p>Set the master volume</p>
+  <dl class="fields">
+    <dt>Parameters:</dt>
+    <dd><ul class="nomargin-top">
+        <li><strong class="pname"><code>value</code></strong> (int) - Volume to set (must be between 0-100)</li>
+    </ul></dd>
+  </dl>
+</td></tr></table>
+</div>
+<br />
 <!-- ==================== NAVIGATION BAR ==================== -->
 <table class="navbar" border="0" width="100%" cellpadding="0"
        bgcolor="#a0c0ff" cellspacing="0">
@@ -338,7 +440,7 @@
 <table border="0" cellpadding="0" cellspacing="0" width="100%%">
   <tr>
     <td align="left" class="footer">
-    Generated by Epydoc 3.0.1 on Thu Jul 31 09:24:28 2014
+    Generated by Epydoc 3.0.1 on Thu Jul 31 13:46:35 2014
     </td>
     <td align="right" class="footer">
       <a target="mainFrame" href="http://epydoc.sourceforge.net"

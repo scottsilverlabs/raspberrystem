@@ -17,17 +17,30 @@ BUFFER = 1024  # audio buffer size in no. of samples
 FRAMERATE = 30 # how often to check if playback has finished
 
 def _init():
+    """Initializes pygame"""
     if pygame.mixer.get_init() is None:
         pygame.mixer.init(SAMPLERATE, BITSIZE, CHANNELS, BUFFER)
         
 def say(text):
+    """Plays a voice speaking the given text.
+    
+    @param text: text to play
+    @type text: string
+    
+    @raise Exception: espeak errors out (most likely due to not being installed)
+    @note: Must have espeak installed
+    """
     proc = subprocess.Popen('espeak "' + text + '"', shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     output, error = proc.communicate()
     if len(error) > 0:
         raise Exception(error)
     
 def get_volume():
-    """Gets the master volume"""
+    """Gets the master volume
+    
+    @rtype: float
+    @returns: the volume between 0-100
+    """
     proc = subprocess.Popen('amixer sget Master', shell=True, stdout=subprocess.PIPE)
     amixer_stdout = proc.communicate()[0].split('\n')[4]
     proc.wait()
@@ -36,7 +49,11 @@ def get_volume():
     return float(amixer_stdout[find_start:find_end])
     
 def set_volume(value):
-    """Set the master volume"""
+    """Set the master volume
+    
+    @param value: Volume to set (must be between 0-100)
+    @type value: int
+    """
     value = float(int(value))
     proc = subprocess.Popen('amixer sset Master ' + str(value) + '%', shell=True, stdout=subprocess.PIPE)
     proc.wait()
@@ -59,16 +76,22 @@ def play(background=True):
     if background:
         pygame.mixer.music.unpause()
         
-def shutdown():
-    """Clean up initialization"""
+def cleanup():
+    """Cleans up initialization of pygame"""
     if pygame.mixer.get_init():
         pygame.mixer.quit()
     
 currently_playing_filename = None
 
 class Sound(object):
-    """Basic foreground sound from a file"""
+    """Basic foreground or background sound from a file"""
     def __init__(self, filename, background=False):
+        """
+        @param filename: Relative path to sound file
+        @type filename: string
+        @param background: Whether to play the sound as background music or as a sound effect
+        @type background: boolean
+        """
         # initialize if the first time
         _init()
         # check if filename exists.. (pygame doesn't check)
@@ -83,7 +106,12 @@ class Sound(object):
             self.sound = pygame.mixer.Sound(filename)
         
     def play(self, loops=0, wait=False):
-        """Plays sound a certain number of times. Blocks if wait == True"""
+        """Plays sound a certain number of times
+        @param loops: number of loops to play the sound (-1 to play infinitly)
+        @type loops: int
+        @param wait: If true, blocks until playback is finished
+        @type wait: boolean
+        """
         global currently_playing_filename
         if self.background and currently_playing_filename != self.filename:
             self.sound.load(self.filename)
@@ -100,15 +128,23 @@ class Sound(object):
                     clock.tick(FRAMERATE)               
                 
     def stop(self):
+        """Stops playback of sound."""
         if self.background and currently_playing_filename != self.filename:
             return
         self.sound.stop()
         
     def get_volume(self):
-        """Gets the volume of individual sound"""
+        """Gets the volume of individual sound
+        @returns: volume (a value between 0-100)
+        @rtype: int
+        """
         return self.sound.get_volume()*100
         
     def set_volume(self, value):
+        """Sets the volume of given sound.
+        @param value: volume to set sound at (between 0-100)
+        @type value: int
+        """
         if self.background and currently_playing_filename != self.filename:
             return
         """Sets teh volume of individual sound"""
@@ -117,19 +153,34 @@ class Sound(object):
         self.sound.set_volume(float(value/100.))
         
     def is_playing(self):
+        """
+        @returns: True if sound is currently playing
+        @rtype: boolean
+        """
         if self.background and currently_playing_filename != self.filename:
             return False
         self.sound.get_busy()
         
     def queue(self):
+        """Queues sound to play after other queued sounds have finished playing.
+        @raises ValueError: Sounds is not a background sound. (Only supports background music)
+        """
         if not self.background:
             raise ValueError("Queue only supports background sounds.")
         pygame.mixer.music.queue(self.filename)
         
 
 class Note(Sound):
-    """Creates a sine wave of given frequeny"""
+    """A sine wave of given frequeny"""
     def __init__(self, frequency, amplitude=100, duration=1):
+        """
+        @param frequency: frequency of the sine wave in Hz
+        @type frequency: float or int
+        @param amplitude: amplitude of the sine wave
+        @type amplitude: float or int
+        @param duration: length of sine wave in seconds
+        @type duration: float or int
+        """
         _init()
         self.filename = None
         self.background = False
