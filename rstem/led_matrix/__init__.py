@@ -89,7 +89,7 @@ def init_matrices(mat_list=[(0,0,0)], math_coords=True, spi_speed=500000, spi_po
     global container_height
     global container_math_coords
     if initialized: # free previous memory before attempting to do it again
-        shutdown_matrices()
+        cleanup()
                 
     container_width = max([matrix[0] for matrix in mat_list]) + DIM_OF_MATRIX
     container_height = max([matrix[1] for matrix in mat_list]) + DIM_OF_MATRIX
@@ -197,7 +197,7 @@ def show():
     led_driver.flush()
     return 1
 
-def shutdown_matrices():
+def cleanup():
     """Unintializes matrices and frees all memory. 
     Should be called at the end of a program to avoid memory leaks.
     Also, clears the display.
@@ -208,6 +208,7 @@ def shutdown_matrices():
         led_driver.flush()
         led_driver.shutdown_matrices()
         initialized = False
+        spi_initialized = False
 
 def fill(color=0xF):
     """Fills the framebuffer with the given color.
