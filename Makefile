@@ -51,21 +51,21 @@ ifdef ON_PI
   	dist/$(NAME)_$(VER)_source.changes
 endif
 
-COMMANDS=install local-install test source egg zip tar deb dist install-projects install-cells \
+COMMANDS=install test source egg zip tar deb dist install-projects install-cells \
     upload-all upload-ppa upload-cheeseshop doc
 
-.PHONY: all pi-install upload-check help clean push pull $(COMMANDS) $(addprefix pi-, $(COMMANDS))
+.PHONY: all local-install upload-check help clean push pull $(COMMANDS) $(addprefix pi-, $(COMMANDS))
 
 help:
 #	@echo "make - Compile sources locally"
 	@echo "make push - Push changes on local computer onto pi"
 	@echo "make pull - Pull changes on pi onto local computer (BE CAREFULL!!!)"
 	@echo "make install - Install onto remote Raspberry Pi"
-	@echo "make local-install - Install onto local machine (Still needs a raspberry pi to compile.)"
+	@echo "make local-install - Install onto local machine"
 	@echo "make install-projects - Install projects to home folder"
 	@echo "make install-cells - Install cells to home folder"
 	@echo "make test - Run tests"
-	@echo "make doc - Generate HTML documentation (packages must be installed first)"
+	@echo "make doc - Generate HTML documentation (packages must be installed locally first)"
 	@echo "make source - Create source package"
 	@echo "make egg - Generate a PyPI egg package"
 	@echo "make zip - Generate a source zip package"
@@ -103,12 +103,14 @@ $(COMMANDS)::
 	$(MAKE) push
 	# Run make on target - note: don't use $(MAKE), as host and target "make"s
 	# may differ.
-	ssh $(SSHFLAGS) -t $(PI) "cd rsinstall; make pi-$@ PI=$(PI) ON_PI=$(ON_PI)"
+	ssh $(SSHFLAGS) -t $(PI) "cd rsinstall; make pi-$@ PI=$(PI) ON_PI=1"
 
 
 # on pi commands start with "pi-"
 
 pi-doc:
+	rm -rf doc
+	epydoc --html rstem -o doc
 #	# clean up old docs if exists
 #	$(MAKE) -C docs clean
 #	cp ./docs/source/index.rst /tmp; rm ./docs/source/*.rst; cp /tmp/index.rst ./docs/source/
@@ -116,6 +118,10 @@ pi-doc:
 #	sphinx-apidoc -f -o ./docs/source ./rstem
 #	# create html documentation (located in ./docs/build/html)
 #	$(MAKE) -C docs html
+
+local-install: setup.py MANIFEST.in
+	# Pretend we are on the pi and install
+	$(MAKE) pi-install ON_PI=1
 
 pi-install:
 	sudo $(PYTHON) $(PYFLAGS) ./setup.py install
