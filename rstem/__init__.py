@@ -14,6 +14,6 @@
 # limitations under the License.
 #
     
-__all__ = ['accel', 'led_matrix']
+__all__ = ['accel', 'led_matrix', 'button']
 
 from rstem import *

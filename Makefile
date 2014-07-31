@@ -209,7 +209,7 @@ clean-pi:
 clean: setup.py MANIFEST.in
 	$(PYTHON) $(PYFLAGS) setup.py clean
 	$(MAKE) -f $(CURDIR)/debian/rules clean
-	sudo rm -rf build/* dist/ $(NAME).egg-info $(NAME)-$(VER)
+	sudo rm -rf build dist/ $(NAME).egg-info $(NAME)-$(VER)
 	rm -rf debian/python3-$(NAME) debian/python-$(NAME)
 	rm -f debian/python*
 	rm -f ../$(NAME)_$(VER).orig.tar.gz ../$(NAME)_$(VER)_armhf.build ../$(NAME)_$(VER)_armhf.changes ../$(NAME)_$(VER)_source.build
