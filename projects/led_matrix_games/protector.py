@@ -28,6 +28,7 @@ LEFT=3
 DOWN=4
 UP=14
 RIGHT=15
+EXIT=18
 
 
 WIDTH=0  # will be changed during setup
@@ -344,6 +345,10 @@ def protector(num_rows=1, num_cols=2, angle=180):
 
         # define what to do during a button press
         def button_handler(channel):
+            if channel == EXIT:
+                led_matrix.shutdown_matrices()
+                GPIO.cleanup()
+                sys.exit(0)
             if channel in [LEFT, RIGHT, UP, DOWN]:
                 ship.deferred_adjust(channel)  # add direction to direction queue
             if channel in [SHOOT]:
@@ -351,7 +356,7 @@ def protector(num_rows=1, num_cols=2, angle=180):
 
         # set up gpio inputs
         GPIO.setmode(GPIO.BCM)
-        for g in [SHOOT, LEFT, DOWN, UP, RIGHT]:
+        for g in [SHOOT, LEFT, DOWN, UP, RIGHT, EXIT]:
             GPIO.setup(g, GPIO.IN, pull_up_down = GPIO.PUD_UP)
             GPIO.add_event_detect(g, GPIO.FALLING, callback=button_handler, bouncetime=100)
 

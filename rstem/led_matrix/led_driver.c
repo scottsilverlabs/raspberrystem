@@ -47,7 +47,7 @@ int display_on_terminal = 0;
 
 #define SIGN(x) (((x) >= 0) ? 1 : -1)
 
-int debug = 1;
+int debug = 0;
 #define Debug(args...) if (debug) {printf("LED_DRIVER: " args); printf("\n");}
 
 
@@ -165,7 +165,6 @@ int rw_bytes(int dev, unsigned char* val, unsigned char* buff, int len){
 	int ret = ioctl(dev, SPI_IOC_MESSAGE(1), &tr);
 	return ret;
 }
-
 
 // led_driver commands =======================================
 
@@ -536,10 +535,10 @@ static PyMethodDef led_driver_methods[] = {
 	{"shutdown_matrices", py_shutdown_matrices, METH_NOARGS, "Closes the SPI and frees all memory."},
 	{"point", py_point, METH_VARARGS, "Sets a point in the frame buffer."},
 	{"line", py_line, METH_VARARGS, "Sets a line from given source to destination."},
+    {"fill", py_fill, METH_VARARGS, "Fills all matrices with the given color."},
     {"frame", py_frame, METH_VARARGS, "Exchanges current framebuffer for a numpy framebuffer."},
-	{"fill", py_fill, METH_VARARGS, "Fills all matrices with the given color."},
+    {"display_on_terminal", py_display_on_terminal, METH_NOARGS, "Toggles on and off display_on_terminal mode"}, 
 	{"detect", py_num_of_matrices, METH_NOARGS, "Returns the number of matrices connected"},
-	{"display_on_terminal", py_display_on_terminal, METH_NOARGS, "Toggles on and off display_on_terminal mode"},
 	{NULL, NULL, 0, NULL}  /* Sentinal */
 };
 

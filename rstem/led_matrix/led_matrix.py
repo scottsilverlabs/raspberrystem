@@ -34,18 +34,14 @@ container_math_coords = True
 
 
 def _init_check():
-    """Checks that init_matrices has been called and throws an error if not
-    @raise RuntimeError: If matrices have not been initialized."""
+    """Checks that init_matrices has been called and throws an error if not"""
     global initialized
     if not initialized:
         raise RuntimeError("Matrices must be initialized first.")
     
 
 def _valid_color(color):
-    """Checks if given color is number between 0-16 if an int or 0-f, or - if string
-    @param color: A color to check that is valid
-    @type color: string or int
-    """
+    """Checks if given color is number between 0-16 if an int or 0-f, or - if string"""
     if type(color) == int:
         if color < 0x0 or color > 0x10:
             return False
@@ -57,15 +53,6 @@ def _valid_color(color):
     return False
 
 def _convert_color(color):
-    """Converts the given color to an int.
-    @param color: A color to be converted
-    @type color: string or int
-    
-    @raise ValueError: Fails L{_valid_color} check
-    
-    @return: Either the same int back again if color was an int or the int of a converted string
-    @rtype: int
-    """
     if not _valid_color(color):
         raise ValueError("Invalid Color: must be a string between 0-f or '-'" +  \
             " or a number 0-16 with 16 being transparent")
@@ -78,48 +65,31 @@ def _convert_color(color):
     raise RuntimeError("Invalid color")
     
 def _convert_to_std_coords(x, y):
-    """Converts given math coordinates to standard programming coordinates
-    @param x: x coordinate in math coordinates
-    @param y: y coordinate in math coordinates
-    @rtype: tuple
-    @return: (x,y) coordinates in standard programming coordinates"""
+    """Converts given math coordinates to standard programming coordinates"""
     return (x, (container_height - 1 - y))
     
 def width():
-    """
-    @rtype: int
-    @return: The number of pixels wide the led matrix display is.
-    """
     return container_width
     
 def height():
-    """
-    @rtype: int
-    @return: The number of pixels hight the led matrix display is.
-    """
     return container_height
     
 def display_on_terminal():
-    """Toggles on and off the terminal display of the led matrix on show()"""
     led_driver.display_on_terminal()
 
 def init_matrices(mat_list=[(0,0,0)], math_coords=True, spi_speed=500000, spi_port=0):
-    """Creates a chain of led matrices set at particular offsets into the frame buffer
+    """Create a chain of led matrices set at particular offsets into the frame buffer
     The order of the led matrices in the list indicate the order they are
     physically hooked up with the first one connected to Pi.
-    
-    @param mat_list: list of tuples that contains led matrix and offset
+    mat_list = list of tuple that contains led matrix and offset
         ex: [(0,0,0),(7,0,90)]
-    @type mat_list: list of size 2 or 3 tuples (mix or match)
-    @param math_coords: True to use math coordinates, False to use programming coordinates
-    @type math_coords: Boolean
-    """
+        """
     global initialized
     global container_width
     global container_height
     global container_math_coords
     if initialized: # free previous memory before attempting to do it again
-        cleanup()
+        shutdown_matrices()
                 
     container_width = max([matrix[0] for matrix in mat_list]) + DIM_OF_MATRIX
     container_height = max([matrix[1] for matrix in mat_list]) + DIM_OF_MATRIX
@@ -144,20 +114,12 @@ def init_matrices(mat_list=[(0,0,0)], math_coords=True, spi_speed=500000, spi_po
     initialized = True
     
 def init_grid(num_rows=None, num_cols=None, angle=0, math_coords=True, spi_speed=500000, spi_port=0):
-    """Initiallizes led matrices in a grid pattern with either a given number
-    of rows and columns.
-    If num_rows and num_cols is not given, it will detect the number of matrices you have
-    and automatically set up a grid pattern with a max number of columns of 4.
-    
-    @param num_rows: Number of rows the grid is in (when angle == 0)
-    @param num_cols: Number of columns the gird is in (when angle == 0)
-    @param math_coords: True to use math coordinates, False to use programming coordinates
-    @type math_coords: Boolean
-    @param angle: Angle to rotate the coordinate system once initialized. (must be 90 degree multiple)
-    @type angle: int
-    
-    @raise ValueError: num_rows*num_cols != number of matrices
-    @raise ValueError: angle is not a multiple of 90
+    """Initiallizes led matrices in a grid pattern with the given number
+    or rows and columns.
+    zigzag=True means the ledmatrices have been placed in a zigzag fashion.
+    angle=0, 90, 180, or 270 to represent how the coordinate system should be
+            represented in the grid
+            (num_row and num_cols are representative of after the angle has been defined)
     """
     # initialize spi bus right away because we need it for led_driver.detect()
     global spi_initialized
@@ -179,15 +141,36 @@ def init_grid(num_rows=None, num_cols=None, angle=0, math_coords=True, spi_speed
                     break
         else:
             num_cols = num_matrices/num_rows
+    
+#        # if odd number of matrices we can only have 1 row
+#        if num_matrices % 2 != 0:
+#            num_rows = 1
+#            num_cols = num_matrices
+
+#        elif num_rows is None:
+#            import math
+#            num_rows = int(math.ceil(num_matrices / 4.))
+#            num_cols = num_matrices/num_rows
+#        else:
+#            num_cols = num_matrices/num_rows
     elif num_rows is None:
         raise ValueError("If you are providing num_cols you must also provide num_rows.")
     
     if num_cols*num_rows != num_matrices:  # safety check
         raise ValueError("Invalid number of rows and columns")
     
+    if num_rows <= 0 or num_cols <= 0:
+        raise ValueError("num_rows and num_cols must be positive.")
     if angle % 90 != 0:
         raise ValueError("Angle must be a multiple of 90.")
     angle = angle % 360
+    
+    # TODO: not sure I need this....
+    # swap rows and columns if rotated
+#    if angle == 90 or angle == 270:
+#        temp = num_rows
+#        num_rows = num_cols
+#        num_cols = temp
     
     mat_list = []
     if angle == 0:
@@ -228,22 +211,20 @@ def init_grid(num_rows=None, num_cols=None, angle=0, math_coords=True, spi_speed
     container_math_coords = math_coords
 
 def show():
-    """Shows the current framebuffer on the display.
-    Tells the led_driver to send framebuffer to SPI port.    
+    """Tells the led_driver to send framebuffer to SPI port.    
     Refreshes the display using current framebuffer.
-    
-    @rtype: int
-    @returns: 1 on success
     """
     _init_check()
-    return led_driver.flush()
+    led_driver.flush()
+    return 1
 
-def cleanup():
+def shutdown_matrices():
     """Unintializes matrices and frees all memory. 
     Should be called at the end of a program to avoid memory leaks.
     Also, clears the display.
     """
     global initialized
+    global spi_initialized
     if initialized:
         led_driver.fill(0x0)
         led_driver.flush()
@@ -253,28 +234,18 @@ def cleanup():
 
 def fill(color=0xF):
     """Fills the framebuffer with the given color.
-    @param color: Color to fill the entire display with
-    @type color: int or string (0-F or 16 or '-' for transparent)
+    (Full brightness if no color is given).
     """
     _init_check()
     led_driver.fill(_convert_color(color))
 
     
 def erase():
-    """Clears display"""
     fill(0)
 
 def point(x, y=None, color=0xF):
     """Sends point to the framebuffer.
-    @note: Will not display the point until show() is called.
-    
-    @param x, y: Coordinates to place point
-    @type x, y: (int, int)
-    @param color: Color to display at point
-    @type color: int or string (0-F or 16 or '-' for transparent)
-    
-    @rtype: int
-    @returns: 1 on success
+    Note: will not display the point until show() is called.
     """
     _init_check()
     color = _convert_color(color)
@@ -288,21 +259,11 @@ def point(x, y=None, color=0xF):
             return
         if container_math_coords:
             x, y = _convert_to_std_coords(x, y)
-        return led_driver.point(int(x), int(y), color)
+        led_driver.point(int(x), int(y), color)
+        return 1
 
 def rect(origin, dimensions, fill=True, color=0xF):
-    """Creates a rectangle from start point using given dimensions
-    
-    @param origin: The bottom left corner of rectange (if math_coords == True).
-        The top left corner of rectangle (if math_coords == False)
-    @type origin: (x,y) tuple
-    @param dimensions: width and height of rectangle
-    @type dimensions: (width, height) tuple
-    @param fill: Whether to fill the rectangle or make it hollow
-    @type fill: boolean
-    @param color: Color to display at point
-    @type color: int or string (0-F or 16 or '-' for transparent)
-    """
+    """Creates a rectangle from start point using given dimensions"""
     x, y = origin
     width, height = dimensions
 
@@ -322,10 +283,7 @@ def _sign(n):
 
 def line(point_a, point_b, color=0xF):
     """Create a line from point_a to point_b.
-    Uses Bresenham's Line Algorithm U{http://en.wikipedia.org/wiki/Bresenham's_line_algorithm}
-    @type point_a, point_b: (x,y) tuple
-    @param color: Color to display at point
-    @type color: int or string (0-F or 16 or '-' for transparent)
+    Uses Bresenham's Line Algorithm (http://en.wikipedia.org/wiki/Bresenham's_line_algorithm)
     """
     x1, y1 = point_a
     x2, y2 = point_b
@@ -355,24 +313,8 @@ def _line_fast(point_a, point_b, color=0xF):
 
 
 def text(text, origin=(0,0), crop_origin=(0,0), crop_dimensions=None, font_name="small", font_path=None):
-    """Sets given string to be displayed on the led matrix
-        
-    Example:
-        >>> text("Hello World", (0,0), (0,1), (0,5))
-        >>> show()
-        Displays only part of the first vertical line in 'H'
-        
-    @param origin, crop_origin, crop_dimensions: See L{sprite}
-        
-    @param text: text to display
-    @param text: string or L{LEDText}
-    @param font_name: Font folder (or .font) file to use as font face
-    @type font_name: string
-    @param font_path: Directory to use to look for fonts. If None it will used default directory in dist-packages
-    @type font_path: string
-    
-    @returns: LEDText sprite object used to create text
-    @rtype: L{LEDText}
+    """Sets given string to be displayed on LED Matrix
+        - returns the LEDText sprite object used to create text
     """
     if type(text) == str:
         text = LEDText(text, font_name=font_name, font_path=font_path)
@@ -383,15 +325,12 @@ def text(text, origin=(0,0), crop_origin=(0,0), crop_dimensions=None, font_name=
 
 
 def sprite(sprite, origin=(0,0), crop_origin=(0,0), crop_dimensions=None):
-    """Sets given sprite into the framebuffer.
-    
-    @param origin: Bottom left position to diplay text (top left if math_coords == False)
-    @type origin: (x,y) tuple
-    @param crop_origin: Position to crop into the sprite relative to the origin
-    @type crop_origin: (x,y) tuple
-    @param crop_dimensions: x and y distance from the crop_origin to display
-        - Keep at None to not crop and display sprite all the way to top right corner (bottom right for math_coords == False)
-    @type crop_dimensions: (x,y) tuple
+    """Sets given sprite with top left corner at given origin
+        origin = the (x,y) coordinates to start displaying the sprite 
+            (bottom left for math_coords, top left for programming coords)
+        crop_origin = the offset into the sprite that should actually be displayed
+                Note: crop_origin is relative to origin
+        crop_dimensions = the number of pixels (x, y) inside the sprite to display (None for no crop)
     """
     if type(sprite) == str:
         sprite = LEDSprite(sprite)
@@ -443,33 +382,18 @@ def sprite(sprite, origin=(0,0), crop_origin=(0,0), crop_dimensions=None):
         y += 1
         
 def frame(numpy_bitmap):
-    """Sends the entire frame (represented as a numpy bitmap) to the led matrix.
-    
-    @param numpy_bitmap: A ndarray representing the entire framebuffer to display.
-    @type numpy_bitmap: numpy ndarray
-    @note: bitmap dimensions must be the same as the dimensions of the container (non rotated).
+    """Sends the entire frame (represented in a bitmap) to the led matrix.
+    Note: bitmap dimensions must be the same as the dimensions of the container (non rotated).
     """
     led_driver.frame(numpy_bitmap)
 
 
 class LEDSprite(object):
     """Allows the creation of a LED Sprite that is defined in a text file.
-    @note: The text file must only contain hex numbers 0-9, a-f, A-F, or - (dash)
-    @note: The hex number indicates pixel color and "-" indicates a transparent pixel
+        - The text file must only contain hex numbers 0-9, a-f, A-F, or - (dash)
+        - The hex number indicates pixel color and "-" indicates a transparent pixel
     """
     def __init__(self, filename=None, height=0, width=0, color=0x0):
-        """Creates a L{LEDSprite} object from the given .spr file or image file or creates an empty sprite of given
-        height and width if filename == None.
-        
-        @param filename: The full path location of a .spr sprite file or image file
-        @type: string
-        @param height: The height of given sprite if creating an empty sprite or want to resize a sprite from and image file.
-        @type height: int
-        @param width: The width of given sprite if creating an empty sprite or want to resize a sprite from and image file.
-        @type width: int
-        @param color: Color to display at point
-        @type color: int or string (0-F or 16 or '-' for transparent)
-        """
         bitmap = []
         bitmap_width = 0  # keep track of width and height
         bitmap_height = 0
@@ -535,11 +459,8 @@ class LEDSprite(object):
         self.width = bitmap_width
 
     def append(self, sprite):
-        """Appends given sprite to the right of itself.
-        
-        @param sprite: sprite to append
-        @type sprite: L{LEDSprite}
-        @note: height of given sprite must be <= to itself otherwise will be truncated
+        """Appends given sprite to the right of itself
+            - height of given sprite must be <= to itself otherwise will be truncated
         """
         for i, line in enumerate(self.bitmap):
             if i >= sprite.height:
@@ -553,13 +474,8 @@ class LEDSprite(object):
 
     def set_pixel(self, point, color=0xF):
         """Sets given color to given x and y coordinate in sprite
-
-        @param point: point relative to sprite to set point
-        @type point: (x,y)
-        @param color: Color to display at point
-        @type color: int or string (0-F or 16 or '-' for transparent)
-        
-        @return: None if coordinate is not valid
+            - color can be a int or string of hex value
+            - return None if coordinate is not valid
         """
         x, y = point
         if x >= self.width or y >= self.height or x < 0 or y < 0:
@@ -567,9 +483,7 @@ class LEDSprite(object):
         self.bitmap[y][x] = _convert_color(color)
 
     def get_pixel(self, x, y):
-        """
-        @rtype: int
-        @returns: int of color at given origin or None
+        """Returns int of color at given origin or None
         """
         if x >= self.width or y >= self.height or x < 0 or y < 0:
             return None
@@ -577,12 +491,6 @@ class LEDSprite(object):
 
     
     def save_to_file(self, filename):
-        """Saves sprite bitmap to given .spr file. 
-        
-        @param filename: relative filename path
-        @type filename: string
-        @note: It will truncate filename if it already exists.
-        """
         filename = filename.strip()
         if filename[-4:] != ".spr":
             raise ValueError("Filename must have '.spr' extension.")
@@ -598,11 +506,7 @@ class LEDSprite(object):
         
     def rotate(self, angle=90):
         """Rotates sprite at 90 degree intervals. 
-        
-        @param angle: angle to rotate self in an interval of 90 degrees
-        @type angle: int
-        @raises ValueError: If angle is not multiple of 90
-        @note: If no angle given, will rotate sprite 90 degrees.
+        If no angle given, will rotate sprite 90 degrees.
         """
         if angle % 90 != 0:
             raise ValueError("Angle must be a multiple of 90.")
@@ -634,39 +538,25 @@ class LEDSprite(object):
             self.height = temp
         
     def rotated(self, angle=90):
-        """Same as L{rotate} only it returns a copy of the rotated sprite
-        and does not affect the original.
-        @rtype: L{LEDSprite}
-        """
+        """Returns a rotated LEDSprite of self. Does not change self."""
         sprite_copy = copy.deepcopy(self)
         sprite_copy.rotate(angle)
         return sprite_copy
-        
+
     def invert(self):
-        """Inverts the sprite."""
         for y, line in enumerate(self.bitmap):
             for x, pixel in enumerate(line):
                 if pixel < 16:
                     self.bitmap[y][x] = 15 - pixel
                     
     def inverted(self):
-        """Same as L{invert} only it returns a copy of the inverted sprite
-        and does not affect the original.
-        """
         sprite_copy = copy.deepcopy(self)
         sprite_copy.invert()
         return sprite_copy
 
 
 def _char_to_sprite(char, font_path):
-    """Converts given character to a sprite.
-    
-    @param char: character to convert (must be of length == 1)
-    @type char: string
-    @param font_path: Relative location of font face to use.
-    @type font_path: string
-    @rtype: L{LEDSprite}
-    """
+    """Returns the LEDSprite object of given character."""
     if not (type(char) == str and len(char) == 1):
         raise ValueError("Not a character")
     orig_font_path = font_path
@@ -689,17 +579,13 @@ def _char_to_sprite(char, font_path):
         
 
 class LEDText(LEDSprite):
-    """A L{LEDSprite} object of a piece of text."""
+
     def __init__(self, message, char_spacing=1, font_name="small", font_path=None):
         """Creates a text sprite of the given string
-        This object can be used the same way a sprite is useds
-        
-        @param char_spacing: number pixels between characters
-        @type char_spacing: int
-        @param font_name: Font folder (or .font) file to use as font face
-        @type font_name: string
-        @param font_path: Directory to use to look for fonts. If None it will used default directory in dist-packages
-        @type font_path: string
+            - This object can be used the same way a sprite is used
+            char_spacing = number pixels between characters
+            font_path = location of folder where font sprites are located
+                        leave as None to use default system fonts
         """
         if font_path is None: # if none, set up default font location
             this_dir, this_filename = os.path.split(__file__)
