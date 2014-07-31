@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="ascii"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+          "DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>rstem.button.button</title>
+  <link rel="stylesheet" href="epydoc.css" type="text/css" />
+  <script type="text/javascript" src="epydoc.js"></script>
+</head>
+
+<body bgcolor="white" text="black" link="blue" vlink="#204080"
+      alink="#204080">
+<!-- ==================== NAVIGATION BAR ==================== -->
+<table class="navbar" border="0" width="100%" cellpadding="0"
+       bgcolor="#a0c0ff" cellspacing="0">
+  <tr valign="middle">
+  <!-- Home link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="rstem-module.html">Home</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Tree link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="module-tree.html">Trees</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Index link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="identifier-index.html">Indices</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Help link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="help.html">Help</a>&nbsp;&nbsp;&nbsp;</th>
+
+      <th class="navbar" width="100%"></th>
+  </tr>
+</table>
+<table width="100%" cellpadding="0" cellspacing="0">
+  <tr valign="top">
+    <td width="100%">
+      <span class="breadcrumbs">
+        <a href="rstem-module.html">Package&nbsp;rstem</a> ::
+        <a href="rstem.button-module.html">Package&nbsp;button</a> ::
+        Module&nbsp;button
+      </span>
+    </td>
+    <td>
+      <table cellpadding="0" cellspacing="0">
+        <!-- hide/show private -->
+        <tr><td align="right"><span class="options">[<a href="javascript:void(0);" class="privatelink"
+    onclick="toggle_private();">hide&nbsp;private</a>]</span></td></tr>
+        <tr><td align="right"><span class="options"
+            >[<a href="frames.html" target="_top">frames</a
+            >]&nbsp;|&nbsp;<a href="rstem.button.button-pysrc.html"
+            target="_top">no&nbsp;frames</a>]</span></td></tr>
+      </table>
+    </td>
+  </tr>
+</table>
+<h1 class="epydoc">Source Code for <a href="rstem.button.button-module.html">Module rstem.button.button</a></h1>
+<pre class="py-src">
+<a name="L1"></a><tt class="py-lineno"> 1</tt>  <tt class="py-line"><tt class="py-keyword">import</tt> <tt class="py-name">os</tt> </tt>
+<a name="L2"></a><tt class="py-lineno"> 2</tt>  <tt class="py-line"><tt class="py-keyword">import</tt> <tt class="py-name">RPi</tt><tt class="py-op">.</tt><tt class="py-name">GPIO</tt> <tt class="py-keyword">as</tt> <tt class="py-name">GPIO</tt> </tt>
+<a name="L3"></a><tt class="py-lineno"> 3</tt>  <tt class="py-line"> </tt>
+<a name="L4"></a><tt class="py-lineno"> 4</tt>  <tt class="py-line"><tt class="py-name">GPIO</tt><tt class="py-op">.</tt><tt class="py-name">setmode</tt><tt class="py-op">(</tt><tt class="py-name">GPIO</tt><tt class="py-op">.</tt><tt class="py-name">BCM</tt><tt class="py-op">)</tt> </tt>
+<a name="L5"></a><tt class="py-lineno"> 5</tt>  <tt class="py-line"><tt class="py-name">GPIO</tt><tt class="py-op">.</tt><tt class="py-name">setwarnings</tt><tt class="py-op">(</tt><tt class="py-name">False</tt><tt class="py-op">)</tt> </tt>
+<a name="L6"></a><tt class="py-lineno"> 6</tt>  <tt class="py-line"> </tt>
+<a name="L7"></a><tt class="py-lineno"> 7</tt>  <tt class="py-line"><tt id="link-0" class="py-name" targets="Variable rstem.button.button.PRESSED=rstem.button.button-module.html#PRESSED"><a title="rstem.button.button.PRESSED" class="py-name" href="#" onclick="return doclink('link-0', 'PRESSED', 'link-0');">PRESSED</a></tt> <tt class="py-op">=</tt> <tt class="py-name">GPIO</tt><tt class="py-op">.</tt><tt class="py-name">FALLING</tt> </tt>
+<a name="L8"></a><tt class="py-lineno"> 8</tt>  <tt class="py-line"><tt id="link-1" class="py-name" targets="Variable rstem.button.button.RELEASED=rstem.button.button-module.html#RELEASED"><a title="rstem.button.button.RELEASED" class="py-name" href="#" onclick="return doclink('link-1', 'RELEASED', 'link-1');">RELEASED</a></tt> <tt class="py-op">=</tt> <tt class="py-name">GPIO</tt><tt class="py-op">.</tt><tt class="py-name">RISING</tt> </tt>
+<a name="L9"></a><tt class="py-lineno"> 9</tt>  <tt class="py-line"><tt id="link-2" class="py-name" targets="Variable rstem.button.button.BOTH=rstem.button.button-module.html#BOTH"><a title="rstem.button.button.BOTH" class="py-name" href="#" onclick="return doclink('link-2', 'BOTH', 'link-2');">BOTH</a></tt> <tt class="py-op">=</tt> <tt class="py-name">GPIO</tt><tt class="py-op">.</tt><tt id="link-3" class="py-name"><a title="rstem.button.button.BOTH" class="py-name" href="#" onclick="return doclink('link-3', 'BOTH', 'link-2');">BOTH</a></tt> </tt>
+<a name="L10"></a><tt class="py-lineno">10</tt>  <tt class="py-line"> </tt>
+<a name="cleanup"></a><div id="cleanup-def"><a name="L11"></a><tt class="py-lineno">11</tt> <a class="py-toggle" href="#" id="cleanup-toggle" onclick="return toggle('cleanup');">-</a><tt class="py-line"><tt class="py-keyword">def</tt> <a class="py-def-name" href="rstem.button.button-module.html#cleanup">cleanup</a><tt class="py-op">(</tt><tt class="py-op">)</tt><tt class="py-op">:</tt> </tt>
+</div><div id="cleanup-collapsed" style="display:none;" pad="++" indent="++++"></div><div id="cleanup-expanded"><a name="L12"></a><tt class="py-lineno">12</tt>  <tt class="py-line">    <tt class="py-name">GPIO</tt><tt class="py-op">.</tt><tt id="link-4" class="py-name" targets="Function rstem.button.button.cleanup()=rstem.button.button-module.html#cleanup"><a title="rstem.button.button.cleanup" class="py-name" href="#" onclick="return doclink('link-4', 'cleanup', 'link-4');">cleanup</a></tt><tt class="py-op">(</tt><tt class="py-op">)</tt> </tt>
+</div><a name="L13"></a><tt class="py-lineno">13</tt>  <tt class="py-line"> </tt>
+<a name="Button"></a><div id="Button-def"><a name="L14"></a><tt class="py-lineno">14</tt> <a class="py-toggle" href="#" id="Button-toggle" onclick="return toggle('Button');">-</a><tt class="py-line"><tt class="py-keyword">class</tt> <a class="py-def-name" href="rstem.button.button.Button-class.html">Button</a><tt class="py-op">(</tt><tt class="py-base-class">object</tt><tt class="py-op">)</tt><tt class="py-op">:</tt> </tt>
+</div><div id="Button-collapsed" style="display:none;" pad="++" indent="++++"></div><div id="Button-expanded"><a name="L15"></a><tt class="py-lineno">15</tt>  <tt class="py-line"> </tt>
+<a name="Button.__init__"></a><div id="Button.__init__-def"><a name="L16"></a><tt class="py-lineno">16</tt> <a class="py-toggle" href="#" id="Button.__init__-toggle" onclick="return toggle('Button.__init__');">-</a><tt class="py-line">    <tt class="py-keyword">def</tt> <a class="py-def-name" href="rstem.button.button.Button-class.html#__init__">__init__</a><tt class="py-op">(</tt><tt class="py-param">self</tt><tt class="py-op">,</tt> <tt class="py-param">port</tt><tt class="py-op">)</tt><tt class="py-op">:</tt> </tt>
+</div><div id="Button.__init__-collapsed" style="display:none;" pad="++" indent="++++++++"></div><div id="Button.__init__-expanded"><a name="L17"></a><tt class="py-lineno">17</tt>  <tt class="py-line">        <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">port</tt> <tt class="py-op">=</tt> <tt class="py-name">port</tt> </tt>
+<a name="L18"></a><tt class="py-lineno">18</tt>  <tt class="py-line">        <tt class="py-name">GPIO</tt><tt class="py-op">.</tt><tt class="py-name">setup</tt><tt class="py-op">(</tt><tt class="py-name">port</tt><tt class="py-op">,</tt> <tt class="py-name">GPIO</tt><tt class="py-op">.</tt><tt class="py-name">IN</tt><tt class="py-op">,</tt> <tt class="py-name">pull_up_down</tt><tt class="py-op">=</tt><tt class="py-name">GPIO</tt><tt class="py-op">.</tt><tt class="py-name">PUD_UP</tt><tt class="py-op">)</tt> </tt>
+</div><a name="L19"></a><tt class="py-lineno">19</tt>  <tt class="py-line">         </tt>
+<a name="Button.is_pressed"></a><div id="Button.is_pressed-def"><a name="L20"></a><tt class="py-lineno">20</tt> <a class="py-toggle" href="#" id="Button.is_pressed-toggle" onclick="return toggle('Button.is_pressed');">-</a><tt class="py-line">    <tt class="py-keyword">def</tt> <a class="py-def-name" href="rstem.button.button.Button-class.html#is_pressed">is_pressed</a><tt class="py-op">(</tt><tt class="py-param">self</tt><tt class="py-op">)</tt><tt class="py-op">:</tt> </tt>
+</div><div id="Button.is_pressed-collapsed" style="display:none;" pad="++" indent="++++++++"></div><div id="Button.is_pressed-expanded"><a name="L21"></a><tt class="py-lineno">21</tt>  <tt class="py-line">        <tt class="py-keyword">return</tt> <tt class="py-keyword">not</tt> <tt class="py-name">bool</tt><tt class="py-op">(</tt><tt class="py-name">GPIO</tt><tt class="py-op">.</tt><tt class="py-name">input</tt><tt class="py-op">(</tt><tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">port</tt><tt class="py-op">)</tt><tt class="py-op">)</tt><tt class="py-op">:</tt> </tt>
+</div><a name="L22"></a><tt class="py-lineno">22</tt>  <tt class="py-line"> </tt>
+<a name="Button._verify_change_value"></a><div id="Button._verify_change_value-def"><a name="L23"></a><tt class="py-lineno">23</tt> <a class="py-toggle" href="#" id="Button._verify_change_value-toggle" onclick="return toggle('Button._verify_change_value');">-</a><tt class="py-line">    <tt class="py-keyword">def</tt> <a class="py-def-name" href="rstem.button.button.Button-class.html#_verify_change_value">_verify_change_value</a><tt class="py-op">(</tt><tt class="py-param">change</tt><tt class="py-op">)</tt><tt class="py-op">:</tt> </tt>
+</div><div id="Button._verify_change_value-collapsed" style="display:none;" pad="++" indent="++++++++"></div><div id="Button._verify_change_value-expanded"><a name="L24"></a><tt class="py-lineno">24</tt>  <tt class="py-line">        <tt class="py-keyword">if</tt> <tt class="py-name">change</tt> <tt class="py-keyword">not</tt> <tt class="py-keyword">in</tt> <tt class="py-op">[</tt><tt id="link-5" class="py-name"><a title="rstem.button.button.PRESSED" class="py-name" href="#" onclick="return doclink('link-5', 'PRESSED', 'link-0');">PRESSED</a></tt><tt class="py-op">,</tt> <tt id="link-6" class="py-name"><a title="rstem.button.button.RELEASED" class="py-name" href="#" onclick="return doclink('link-6', 'RELEASED', 'link-1');">RELEASED</a></tt><tt class="py-op">,</tt> <tt id="link-7" class="py-name"><a title="rstem.button.button.BOTH" class="py-name" href="#" onclick="return doclink('link-7', 'BOTH', 'link-2');">BOTH</a></tt><tt class="py-op">]</tt><tt class="py-op">:</tt> </tt>
+<a name="L25"></a><tt class="py-lineno">25</tt>  <tt class="py-line">            <tt class="py-keyword">raise</tt> <tt class="py-name">ValueError</tt><tt class="py-op">(</tt><tt class="py-string">"Invalid change"</tt><tt class="py-op">)</tt> </tt>
+</div><a name="L26"></a><tt class="py-lineno">26</tt>  <tt class="py-line">         </tt>
+<a name="Button.call_on_change"></a><div id="Button.call_on_change-def"><a name="L27"></a><tt class="py-lineno">27</tt> <a class="py-toggle" href="#" id="Button.call_on_change-toggle" onclick="return toggle('Button.call_on_change');">-</a><tt class="py-line">    <tt class="py-keyword">def</tt> <a class="py-def-name" href="rstem.button.button.Button-class.html#call_on_change">call_on_change</a><tt class="py-op">(</tt><tt class="py-param">self</tt><tt class="py-op">,</tt> <tt class="py-param">event_callback</tt><tt class="py-op">,</tt> <tt class="py-param">change</tt><tt class="py-op">=</tt><tt id="link-8" class="py-name"><a title="rstem.button.button.PRESSED" class="py-name" href="#" onclick="return doclink('link-8', 'PRESSED', 'link-0');">PRESSED</a></tt><tt class="py-op">,</tt> <tt class="py-param">bouncetime</tt><tt class="py-op">=</tt><tt class="py-number">300</tt><tt class="py-op">)</tt><tt class="py-op">:</tt> </tt>
+</div><div id="Button.call_on_change-collapsed" style="display:none;" pad="++" indent="++++++++"></div><div id="Button.call_on_change-expanded"><a name="L28"></a><tt class="py-lineno">28</tt>  <tt class="py-line">        <tt id="link-9" class="py-name" targets="Method rstem.button.button.Button._verify_change_value()=rstem.button.button.Button-class.html#_verify_change_value"><a title="rstem.button.button.Button._verify_change_value" class="py-name" href="#" onclick="return doclink('link-9', '_verify_change_value', 'link-9');">_verify_change_value</a></tt><tt class="py-op">(</tt><tt class="py-name">change</tt><tt class="py-op">)</tt> </tt>
+<a name="L29"></a><tt class="py-lineno">29</tt>  <tt class="py-line">        <tt class="py-name">GPIO</tt><tt class="py-op">.</tt><tt class="py-name">add_event_detect</tt><tt class="py-op">(</tt><tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">port</tt><tt class="py-op">,</tt> <tt class="py-name">change</tt><tt class="py-op">,</tt> <tt class="py-name">callback</tt><tt class="py-op">=</tt><tt class="py-name">event_callback</tt><tt class="py-op">,</tt> <tt class="py-name">bouncetime</tt><tt class="py-op">=</tt><tt class="py-name">bouncetime</tt><tt class="py-op">)</tt> </tt>
+</div><a name="L30"></a><tt class="py-lineno">30</tt>  <tt class="py-line">         </tt>
+<a name="Button.wait_for_change"></a><div id="Button.wait_for_change-def"><a name="L31"></a><tt class="py-lineno">31</tt> <a class="py-toggle" href="#" id="Button.wait_for_change-toggle" onclick="return toggle('Button.wait_for_change');">-</a><tt class="py-line">    <tt class="py-keyword">def</tt> <a class="py-def-name" href="rstem.button.button.Button-class.html#wait_for_change">wait_for_change</a><tt class="py-op">(</tt><tt class="py-param">self</tt><tt class="py-op">,</tt> <tt class="py-param">change</tt><tt class="py-op">)</tt><tt class="py-op">:</tt> </tt>
+</div><div id="Button.wait_for_change-collapsed" style="display:none;" pad="++" indent="++++++++"></div><div id="Button.wait_for_change-expanded"><a name="L32"></a><tt class="py-lineno">32</tt>  <tt class="py-line">        <tt id="link-10" class="py-name"><a title="rstem.button.button.Button._verify_change_value" class="py-name" href="#" onclick="return doclink('link-10', '_verify_change_value', 'link-9');">_verify_change_value</a></tt><tt class="py-op">(</tt><tt class="py-name">change</tt><tt class="py-op">)</tt> </tt>
+<a name="L33"></a><tt class="py-lineno">33</tt>  <tt class="py-line">        <tt class="py-name">GPIO</tt><tt class="py-op">.</tt><tt class="py-name">wait_for_edge</tt><tt class="py-op">(</tt><tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">port</tt><tt class="py-op">,</tt> <tt class="py-name">change</tt><tt class="py-op">)</tt> </tt>
+</div></div><a name="L34"></a><tt class="py-lineno">34</tt>  <tt class="py-line"> </tt><script type="text/javascript">
+<!--
+expandto(location.href);
+// -->
+</script>
+</pre>
+<br />
+<!-- ==================== NAVIGATION BAR ==================== -->
+<table class="navbar" border="0" width="100%" cellpadding="0"
+       bgcolor="#a0c0ff" cellspacing="0">
+  <tr valign="middle">
+  <!-- Home link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="rstem-module.html">Home</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Tree link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="module-tree.html">Trees</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Index link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="identifier-index.html">Indices</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Help link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="help.html">Help</a>&nbsp;&nbsp;&nbsp;</th>
+
+      <th class="navbar" width="100%"></th>
+  </tr>
+</table>
+<table border="0" cellpadding="0" cellspacing="0" width="100%%">
+  <tr>
+    <td align="left" class="footer">
+    Generated by Epydoc 3.0.1 on Wed Jul 30 23:23:26 2014
+    </td>
+    <td align="right" class="footer">
+      <a target="mainFrame" href="http://epydoc.sourceforge.net"
+        >http://epydoc.sourceforge.net</a>
+    </td>
+  </tr>
+</table>
+
+<script type="text/javascript">
+  <!--
+  // Private objects are initially displayed (because if
+  // javascript is turned off then we want them to be
+  // visible); but by default, we want to hide them.  So hide
+  // them unless we have a cookie that says to show them.
+  checkCookie();
+  // -->
+</script>
+</body>
+</html>
