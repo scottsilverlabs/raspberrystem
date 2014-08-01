@@ -1,0 +1,181 @@
+import time
+import os
+import random
+from rstem import led_matrix
+import RPi.GPIO as GPIO
+
+# initialization
+led_matrix.init_grid(angle=90)  # make longwise
+GPIO.setmode(GPIO.BCM)
+
+#TODO: combine peice and shape together having the sprites already generated
+# for each type.... have functions that iterate through to describe what 
+# points are valid by comparing "-" vs (another color)
+
+# game variables
+score = 0
+
+
+class Stack(object);
+    """Represents the stack of rested tetris pieces"""
+    def __init__(self):
+        self.points = [] # 2D list that represents stacks's color for each point
+        
+    def add_piece(self, piece):
+        """Adds given piece to the stack
+        @param piece: piece to add to stack, should be touching current stack
+        @type piece: L{Piece}
+        """
+        for y_offset, line in enumerate(reversed(piece.sprite.bitmap)): # iterate going up
+            # check if we need to add a new line to the stack
+            # TODO: change to a while loop?
+            if piece.pos[1] + y_offset > (len(stack.points) - 1):
+                assert piece.pos[1] + y_offset == len(stack.points)
+                # add a new line to stack and fill with transparent pixels (this is new top of stack)
+                self.points.append([16 for i in range(led_matrix.width())])
+            for x_offset, pixel in enumerate(line):
+                # add piece if not transparent
+                if pixel != 16:
+                    stack[piece.pos[1] + y_offset][piece.pos[0] + x_offset] = pixel
+                    
+    def draw(self, blinking_off=False):
+        """Draws stack on led display
+        @param blinking_off: If set, it will display full lines as a line of all color == 0.
+            Useful for blinking full lines.
+        @type blinking_off: boolean
+        """
+        for y, line in enumerate(self.points):
+            # show a line of color == 0 for full lines if currently blinking off
+            if blinking_off and all(pixel != 16 for pixel in line):  # short-circuit avoids heavy computation if not needed
+                led_matrix.line((0,y), (led_matrix.width()-1, y), color=0)
+            else:
+                for x, pixel in enumerate(line):
+                    led_matrix.point(x, y, pixel)
+            
+                    
+    def remove_full_lines(self):
+        """Removes lines that are full from stack"""
+        # TODO: this should be fast enough it doesn't cause problems while drawing
+        global score
+        for y, line in enumerate(self.points):
+            if all(pixel != 16 for pixel in line):
+                score += 1
+                del self.points[y]
+        
+    
+
+class Shape(object):
+    """Shape names as described in U{http://en.wikipedia.org/wiki/Tetris}"""
+    shapes = "IJLOSTZ"
+    
+    sprite = {}
+    for shape in shapes:
+        # store LEDSprite of tetris piece
+        sprite[shape] = led_matrix.LEDSprite(os.path.abspath(shape + ".spr"))
+    
+    def valid(shape):
+        return shape in shapes and len(shape) == 1
+
+class Piece(object):
+
+    def __init__(self, shape, pos=None):
+        if not Shape.valid(shape):
+            raise ValueError("Not a valid shape")
+        if pos is None:
+            pos = (led_matrix.width()/2, led_matrix.height() - 4)
+        self.pos = pos
+        self.sprite = Shape.sprite[shape].copy()  # get a copy of sprite
+        
+    def rotate(self, clockwise=True):
+        """Rotates the piece clockwise or counter-clockwise"""
+        # TODO: probably fix this, because I don't think it will rotate like I want it to
+        if clockwise:
+            self.sprite.rotate(90)
+        else:
+            self.sprite.rotate(270)
+        
+    def coverage(self, pos=None):
+        """Returns the set of points that the piece is covering.
+        @param pos: Set if we want to test the coverage as if the piece was at
+            that location.
+        @type pos: (x,y)
+        @returns: A set of points that the piece is covering
+        @rtype: set of 2 tuples
+        """
+        if pos is None:
+            pos = self.pos
+        coverage = set()
+        for y, line in enumerate(self.sprite.bitmap):
+            for x, pixel in enumerate(line):
+                if pixel != 16:  # ignore transparent pixels in converage
+                    coverage.add((pos[0] + x, pos[1] + y))
+        return coverage
+            
+    def can_movedown(self):
+        """Tests whether piece can move down without colliding with other piece
+        or falling off edge (hit bottom)
+        @rtype: boolean
+        """
+        # check if it is at bottom of screen
+        if (self.pos[1] + self.sprite.height) >= (led_matrix.height() - 1):
+            return False
+        
+        # get coverage pretending we moved down
+        pos = (self.pos[0], self.pos[1] + 1)
+        self_coverage = self.coverage(pos)
+        
+        ret = None
+        for piece in rested_pieces:
+            # check if any coverage points of self and rested piece intersect
+            if len(self_coverage.intersection(piece.coverage())) > 0:
+                return False
+                
+        return True  # didn't find intersection for any rested piece, we can move down!
+        
+    def movedown(self):
+        """Moves piece down one pixel."""
+        self.pos = (self.pos[0], self.pos[1] + 1)
+        
+    def draw(self):
+        """Draws piece on led matrix"""
+        led_matrix.sprite(self.sprite, self.pos)
+        
+   
+class State(object):
+    IDLE, RESET, PLAYING, WIN, LOSE = range(5)
+curr_state = State.IDLE
+curr_piece = None
+        
+while True:
+    if curr_state == State.PLAYING:
+        # TODO:
+        #  - detect if game is over by seeing if len(stack) >= led_matrix.height() - 1
+        #  - figure out if curr_piece can move down
+        #       - if so, move the piece down, delay, and then loop back around
+        #   - else:
+        #       - {don't move down for a couple of seconds incase
+        #          the want to move to left or right}
+        #       - add piece to stack, then before generating a new
+        #           piece wait a little bit and turn blinking_off == True every other time  (make this a different state??)
+        #          - then remove full lines and then generate next curr_piece, repeat
+        
+        
+    elif curr_state == State.IDLE:
+        # TODO: scroll the text 
+        led_matrix.erase()
+        led_matrix.text("TETRIS")
+        led_matrix.show()
+    elif curr_state == State.RESET:
+        score = 0
+        stack = None
+        stack = Stack()
+        curr_piece = Piece(random.choice("IJLOSTZ"))
+        curr_state = State.PLAYING
+    elif curr_state == State.WIN:
+        pass
+    elif curr_state == State.LOSE
+        pass
+        
+        
+        
+        

@@ -643,6 +643,13 @@ class LEDSprite(object):
         sprite_copy.rotate(angle)
         return sprite_copy
         
+    def copy(self):
+        """Copies sprite
+        @returns: A copy of sprite without affecting original sprite
+        @rtype: L{LEDSprite}
+        """
+        return copy.deepcopy(self)
+        
     def invert(self):
         """Inverts the sprite."""
         for y, line in enumerate(self.bitmap):
