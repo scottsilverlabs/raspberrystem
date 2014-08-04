@@ -15,26 +15,36 @@ player_pos = [7, 0]
 
 #Function to clamp data to the size of the screen
 def clamp(x):
-	return max(0, min(x, 15))
+    return max(0, min(x, 15))
 
-#Start game
-while True:
+try:
+#    Start game
+    while True:
 
-#	Clear previous framebuffer	
-	led_matrix.fill(0)
+#       Clear previous framebuffer    
+        led_matrix.fill(0)
+        
+#       Get angles from accelerometer
+        data = accel.angles()
 
-#	Get angles from accelerometer
-	data = accel.angles()
+#       Generate smooth movement data using IIR filter, and make a 1/4 turn move
+#       the player to the edge of the screen
+        player_pos[0] = player_pos[0] + (clamp(data[0]*8*4/90 + 7) - player_pos[0])*0.1
+    
+#       Draw player
+        led_matrix.point(int(round(player_pos[0])), int(round(player_pos[1])))
 
-#	Generate smooth movement data using IIR filter, and make a 1/4 turn move
-#	the player to the edge of the screen
-	player_pos[0] = player_pos[0] + (clamp(data[0]*8*4/90 + 7) - player_pos[0])*0.1
-	
-#	Draw player
-	led_matrix.point(int(round(player_pos[0])), int(round(player_pos[1])))
+#       Show framebuffer
+        led_matrix.show()
 
-#	Show framebuffer
-	led_matrix.show()
+#       Delay one game tick, in this case 1ms
+        time.sleep(0.001)
 
-#	Delay one game tick, in this case 1ms
-	time.sleep(0.001)
+#Stop if player hits Ctrl-C
+except KeyboardInterrupt:
+        pass
+
+#Clean everything up
+finally:
+        GPIO.cleanup()
+        led_matrix.cleanup())

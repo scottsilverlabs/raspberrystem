@@ -42,7 +42,7 @@ class Missle:
         self.pos = position
         self.dir = direction
 
-#    Move missle on missle update tick
+#   Move missle on missle update tick
     def update(self):
         self.pos[0] = self.pos[0] + self.dir[0]
         self.pos[1] = self.pos[1] + self.dir[1]
@@ -59,7 +59,7 @@ class Enemy:
     def update(self):
         self.pos[0] = self.pos[0] + self.dir[0]
         self.pos[1] = self.pos[1] + self.dir[1]
-#        If it hits a wall move down two and change direction
+#       If it hits a wall move down two and change direction
         if self.pos[0] > 15:
             self.pos = [15, self.pos[1]-2]
             self.dir = [-1, 0]
@@ -73,47 +73,57 @@ for i in range(5):
 for i in range(5):
     enemies.append(Enemy([15-i*3 , 13], [-1, 0]))
 
-#Start game
-while True:
+try:
+#   Start game
+    while True:
 
-#    Clear previous framebuffer    
-    led_matrix.fill(0)
+#       Clear previous framebuffer    
+        led_matrix.fill(0)
 
-#    Redraw enemies and update if its their game tick
-    for e in enemies:
-        if game_tick%enemy_tick == 0 and not game_tick == 0:
-            e.update()
-        led_matrix.point(e.pos[0], e.pos[1])
-
-#    Update and redraw missles
-    for m in missles:
-        m.update()    
-        led_matrix.point(m.pos[0], m.pos[1])
-
-#    Check for collisions
-    for m in missles:
+#       Redraw enemies and update if its their game tick
         for e in enemies:
-            if m.pos == e.pos:
-                enemies.remove(e)
-                missles.remove(m)
-#    Get angles from accelerometer
-    data = accel.angles()
+            if game_tick%enemy_tick == 0 and not game_tick == 0:
+                e.update()
+            led_matrix.point(e.pos[0], e.pos[1])
 
-#   Generate smooth movement data using IIR filter, and make a 1/4 turn move
-#   the player to the edge of the screen
-    player_pos[0] = player_pos[0] + (clamp(-data[0]*8*4/90 + 7) - player_pos[0])*0.1
-    
-#    Draw player
-    led_matrix.point(int(round(player_pos[0])), int(round(player_pos[1])))
+#       Update and redraw missles
+        for m in missles:
+            m.update()    
+            led_matrix.point(m.pos[0], m.pos[1])
 
-#    Show framebuffer
-    led_matrix.show()
+#       Check for collisions
+        for m in missles:
+            for e in enemies:
+                if m.pos == e.pos:
+                    enemies.remove(e)
+                    missles.remove(m)
+#       Get angles from accelerometer
+        data = accel.angles()
 
-#    Delay one game tick, in this case 1ms
-    time.sleep(0.001)
+#       Generate smooth movement data using IIR filter, and make a 1/4 turn move
+#       the player to the edge of the screen
+        player_pos[0] = player_pos[0] + (clamp(-data[0]*8*4/90 + 7) - player_pos[0])*0.1
+        
+#       Draw player
+        led_matrix.point(int(round(player_pos[0])), int(round(player_pos[1])))
 
-#    Make enemies speed up when their are less of them
-    enemy_tick = int(len(enemies)*3)
+#       Show framebuffer
+        led_matrix.show()
 
-#    Update game tick and wrap around
-    game_tick = (game_tick+1)&(game_tick_max-1)
+#       Delay one game tick, in this case 1ms
+        time.sleep(0.001)
+
+#       Make enemies speed up when their are less of them
+        enemy_tick = int(len(enemies)*3)
+
+#       Update game tick and wrap around
+        game_tick = (game_tick+1)&(game_tick_max-1)
+
+#Stop if player hits Ctrl-C
+except KeyboardInterrupt:
+        pass
+
+#Clean everything up
+finally:
+        GPIO.cleanup()
+        led_matrix.cleanup()

@@ -26,52 +26,61 @@ start_time = time.time()
 
 #Function to add missle at the players position to set of current missles
 def fire_missle(channel):
-	missles.append(Missle([int(round(player_pos[0])), int(round(player_pos[1]))],[0, 1]))
+    missles.append(Missle([int(round(player_pos[0])), int(round(player_pos[1]))],[0, 1]))
 
 #Call fire_missle when fire button is pressed
 GPIO.add_event_detect(4, GPIO.FALLING, callback=fire_missle, bouncetime = 300)
 
 #Useful clamp function to make sure the data passed to point is on the matrix
 def clamp(x):
-	return max(0, min(x, 15))
+    return max(0, min(x, 15))
 
 #Missle keeps track of its current position and current direction
 class Missle:
-	
-	def __init__(self, position, direction):
-		self.pos = position
-		self.dir = direction
+    
+    def __init__(self, position, direction):
+        self.pos = position
+        self.dir = direction
 
-#	Move missle on missle update tick
-	def update(self):
-		self.pos[0] = self.pos[0] + self.dir[0]
-		self.pos[1] = self.pos[1] + self.dir[1]
-		if self.pos[1] > 15 or self.pos[1] < 0 or self.pos[0] < 0 or self.pos[1] > 15:
-			missles.remove(self)
+#   Move missle on missle update tick
+    def update(self):
+        self.pos[0] = self.pos[0] + self.dir[0]
+        self.pos[1] = self.pos[1] + self.dir[1]
+        if self.pos[1] > 15 or self.pos[1] < 0 or self.pos[0] < 0 or self.pos[1] > 15:
+            missles.remove(self)
+try:
+#   Start game
+    while True:
 
-#Start game
-while True:
+#       Clear previous framebuffer    
+        led_matrix.fill(0)
 
-#	Clear previous framebuffer	
-	led_matrix.fill(0)
+#       Update and redraw missles
+        for m in missles:
+            m.update()    
+            led_matrix.point(m.pos[0], m.pos[1])
 
-#	Update and redraw missles
-	for m in missles:
-		m.update()	
-		led_matrix.point(m.pos[0], m.pos[1])
+#       Get angles from accelerometer
+        data = accel.angles()
 
-#	Get angles from accelerometer
-	data = accel.angles()
+#       Generate smooth movement data using IIR filter, and make a 1/4 turn move
+#       the player to the edge of the screen
+        player_pos[0] = player_pos[0] + (clamp(-data[0]*8*4/90 + 7) - player_pos[0])*0.1
+    
+#       Draw player
+        led_matrix.point(int(round(player_pos[0])), int(round(player_pos[1])))
 
-#   Generate smooth movement data using IIR filter, and make a 1/4 turn move
-#   the player to the edge of the screen
-	player_pos[0] = player_pos[0] + (clamp(-data[0]*8*4/90 + 7) - player_pos[0])*0.1
-	
-#	Draw player
-	led_matrix.point(int(round(player_pos[0])), int(round(player_pos[1])))
+#       Show framebuffer
+        led_matrix.show()
 
-#	Show framebuffer
-	led_matrix.show()
+#       Delay one game tick, in this case 1ms
+        time.sleep(0.001)
 
-#	Delay one game tick, in this case 1ms
-	time.sleep(0.001)
+#Stop if player hits Ctrl-C
+except KeyboardInterrupt:
+        pass
+
+#Clean everything up
+finally:
+        GPIO.cleanup()
+        led_matrix.cleanup()
