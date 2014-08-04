@@ -1,6 +1,7 @@
 import time
 import os
 import random
+import sys
 from rstem import led_matrix
 import RPi.GPIO as GPIO
 
@@ -146,21 +147,59 @@ class Piece(object):
         """Moves piece down one pixel."""
         self.pos = (self.pos[0], self.pos[1] + 1)
         
+    def moveright(self):
+        self.pos = (self.pos[0] + 1, self.pos[1])
+    
+    def moveleft(self):
+        self.pos = (self.pos[0] - 1, self.pos[1])
+        
     def draw(self):
         """Draws piece on led matrix"""
         led_matrix.sprite(self.sprite, self.pos)
         
    
 class State(object):
-    IDLE, RESET, MOVINGDOWN, BLINKING, DONE = range(4)
+    IDLE, RESET, MOVINGDOWN, BLINKING, DONE, EXIT = range(6)
+    
 curr_state = State.IDLE
 curr_piece = None
 stack = None
 blinking_clock = 0
 
-# set up buttons
-GPIO.setmode(GPIO.BCM)
+# setup buttons
+UP = 25
+DOWN = 24
+LEFT = 23
+RIGHT = 18
+SELECT = 22
+START = 27
+A = 4
+B = 17
 
+# what to do when button is pressed
+def button_handler(channel):
+    global curr_state
+    if channel == START:
+        curr_state = State.EXIT
+        return
+    if curr_state == State.MOVINGDOWN:
+        if channel == LEFT:
+            curr_piece.moveleft()
+        elif channel == RIGHT:
+            curr_piece.moveright()
+        elif channel == A:
+            curr_piece.rotate(90)
+        elif channel == DOWN:
+            # TODO: speed up piece
+            pass
+    elif (curr_state == State.IDLE or curr_state == State.DONE) and channel == A:
+        curr_state = State.RESET
+
+# set button handler to physical buttons 
+GPIO.setmode(GPIO.BCM)
+for button in [UP, DOWN, LEFT, RIGHT, SELECT, START, A, B]:
+    GPIO.setup(button, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+    GPIO.add_event_detect(button, GPIO.FALLING, callback=button_handler, bouncetime=300)
         
 while True:
     if curr_state == State.MOVINGDOWN:
@@ -198,6 +237,7 @@ while True:
         #          - then remove full lines and then generate next curr_piece, repeat
     elif curr_state == State.BLINKING:
         if blinking_clock == 0:
+            score += stack.remove_full_lines()
             # make a new piece and go make to moving piece down
             curr_piece = Piece(random.choice("IJLOSTZ"))
             curr_state = State.MOVINGDOWN
@@ -215,17 +255,22 @@ while True:
         led_matrix.erase()
         led_matrix.text("TETRIS")
         led_matrix.show()
+        
     elif curr_state == State.RESET:
         score = 0
         stack = None
         stack = Stack()
         curr_piece = Piece(random.choice("IJLOSTZ"))
-        curr_state = State.PLAYING
+        curr_state = State.MOVINGDOWN
+        
     elif curr_state == State.DONE:
         led_matrix.erase()
         led_matrix.text(str(score))
         led_matrix.show()
         
-        
+    elif curr_state == State.EXIT:
+        GPIO.cleanup()
+        led_matrix.cleanup()
+        sys.exit(0)
         
         
