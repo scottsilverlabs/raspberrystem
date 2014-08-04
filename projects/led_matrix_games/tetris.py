@@ -2,11 +2,12 @@ import time
 import os
 import random
 import sys
+from itertools import izip
 from rstem import led_matrix
 import RPi.GPIO as GPIO
 
 # initialization
-led_matrix.init_grid(angle=90)  # make longwise
+led_matrix.init_grid(angle=270)  # make longwise
 GPIO.setmode(GPIO.BCM)
 
 #TODO: combine peice and shape together having the sprites already generated
@@ -17,7 +18,17 @@ GPIO.setmode(GPIO.BCM)
 score = 0
 BLINKING_TIME = 15 # number of cycles to blink full lines
 
-class Stack(object);
+"""Shape names as described in U{http://en.wikipedia.org/wiki/Tetris}"""
+SHAPES = "IJLOSTZ"
+shape_sprites = {}
+for shape in SHAPES:
+    # store LEDSprite of tetris piece
+    shape_sprites[shape] = led_matrix.LEDSprite(os.path.abspath(shape + ".spr"))
+
+def valid_shape(shape):
+    return shape in SHAPES and len(shape) == 1
+
+class Stack(object):
     """Represents the stack of rested tetris pieces"""
     def __init__(self):
         self.points = [] # 2D list that represents stacks's color for each point
@@ -40,7 +51,7 @@ class Stack(object);
             for x_offset, pixel in enumerate(line):
                 # add piece if not transparent
                 if pixel != 16:
-                    stack[piece.pos[1] + y_offset][piece.pos[0] + x_offset] = pixel
+                    stack.points[piece.pos[1] + y_offset][piece.pos[0] + x_offset] = pixel
                     
     def draw(self, blinking_off=False):
         """Draws stack on led display
@@ -56,6 +67,17 @@ class Stack(object);
             else:
                 for x, pixel in enumerate(line):
                     led_matrix.point(x, y, pixel)
+                    
+    def coverage(self):
+        """
+        @returns: A set of the points that make up the stack
+        """
+        ret = set()
+        for y, line in enumerate(self.points):
+            for x, pixel in enumerate(line):
+                if pixel != 16:
+                    ret.add((x, y))
+        return ret
             
                     
     def remove_full_lines(self):
@@ -63,36 +85,26 @@ class Stack(object);
         @returns: number of full lines removed
         @rtype: int        
         """
-        # TODO: this should be fast enough it doesn't cause problems while drawing
+        # remove lines in reverse we don't mess up if multiple lines
+        reverse_enumerate = lambda l : izip(xrange(len(l)-1, -1, -1), reversed(l))     
         score = 0
-        for y, line in enumerate(self.points):
+        for y, line in reverse_enumerate(self.points):
             if all(pixel != 16 for pixel in line):
                 score += 1
                 del self.points[y]
         return score
     
 
-class Shape(object):
-    """Shape names as described in U{http://en.wikipedia.org/wiki/Tetris}"""
-    shapes = "IJLOSTZ"
-    
-    sprite = {}
-    for shape in shapes:
-        # store LEDSprite of tetris piece
-        sprite[shape] = led_matrix.LEDSprite(os.path.abspath(shape + ".spr"))
-    
-    def valid(shape):
-        return shape in shapes and len(shape) == 1
 
 class Piece(object):
 
     def __init__(self, shape, pos=None):
-        if not Shape.valid(shape):
+        if not valid_shape(shape):
             raise ValueError("Not a valid shape")
         if pos is None:
-            pos = (led_matrix.width()/2, led_matrix.height() - 4)
+            pos = (led_matrix.width()/2 - 1, led_matrix.height())
         self.pos = pos
-        self.sprite = Shape.sprite[shape].copy()  # get a copy of sprite
+        self.sprite = shape_sprites[shape].copy()  # get a copy of sprite
         
     def rotate(self, clockwise=True):
         """Rotates the piece clockwise or counter-clockwise"""
@@ -101,6 +113,10 @@ class Piece(object):
             self.sprite.rotate(90)
         else:
             self.sprite.rotate(270)
+            
+        # move piece over if goes off display
+        while self.pos[0] + self.sprite.width - 1 >= led_matrix.width():
+            self.pos = (self.pos[0] - 1, self.pos[1])
         
     def coverage(self, pos=None):
         """Returns the set of points that the piece is covering.
@@ -113,45 +129,51 @@ class Piece(object):
         if pos is None:
             pos = self.pos
         coverage = set()
-        for y, line in enumerate(self.sprite.bitmap):
+        for y, line in enumerate(reversed(self.sprite.bitmap)):
             for x, pixel in enumerate(line):
                 if pixel != 16:  # ignore transparent pixels in converage
                     coverage.add((pos[0] + x, pos[1] + y))
         return coverage
             
-    def can_movedown(self):
+    def can_movedown(self, stack):
         """Tests whether piece can move down without colliding with other piece
         or falling off edge (hit bottom)
+        @param stack: current stack object
+        @type stack: L{Stack}
         @rtype: boolean
         """
-        if self is None:
-            return False
+        assert self is not None
         
         # check if it is at bottom of screen
-        if (self.pos[1] + self.sprite.height) >= (led_matrix.height() - 1):
+        if self.pos[1] <= 0:
             return False
         
         # get coverage pretending we moved down
-        pos = (self.pos[0], self.pos[1] + 1)
+        pos = (self.pos[0], self.pos[1] - 1)
         self_coverage = self.coverage(pos)
+        stack_coverage = stack.coverage()
+#        print stack_coverage, self_coverage
+        return (len(self_coverage.intersection(stack.coverage())) == 0)
         
-        ret = None
-        for piece in rested_pieces:
-            # check if any coverage points of self and rested piece intersect
-            if len(self_coverage.intersection(piece.coverage())) > 0:
-                return False
-                
-        return True  # didn't find intersection for any rested piece, we can move down!
+#        ret = None
+#        for piece in rested_pieces:
+#            # check if any coverage points of self and rested piece intersect
+#            if len(self_coverage.intersection(piece.coverage())) > 0:
+#                return False
+#                
+#        return True  # didn't find intersection for any rested piece, we can move down!
         
     def movedown(self):
         """Moves piece down one pixel."""
-        self.pos = (self.pos[0], self.pos[1] + 1)
+        self.pos = (self.pos[0], self.pos[1] - 1)
         
     def moveright(self):
-        self.pos = (self.pos[0] + 1, self.pos[1])
+        if self.pos[0] + self.sprite.width < led_matrix.width():
+            self.pos = (self.pos[0] + 1, self.pos[1])
     
     def moveleft(self):
-        self.pos = (self.pos[0] - 1, self.pos[1])
+        if self.pos[0] - 1 >= 0:
+            self.pos = (self.pos[0] - 1, self.pos[1])
         
     def draw(self):
         """Draws piece on led matrix"""
@@ -207,9 +229,9 @@ while True:
         if stack.height() >= led_matrix.height() - 1:
             curr_state = State.DONE
             continue
-        
+#        print stack.points
         # check if piece can't move down, and if so, add piece to stack and start blinking
-        if not curr_piece.can_movedown():
+        if not curr_piece.can_movedown(stack):
             stack.add(curr_piece)
             curr_piece = None
             blinking_clock = BLINKING_TIME
@@ -224,7 +246,10 @@ while True:
         curr_piece.draw()
         stack.draw()
         led_matrix.show()
-        time.sleep(1)
+        if GPIO.input(DOWN) == 0:
+            time.sleep(.1)   # speed up if down button is held down
+        else:
+            time.sleep(.5)
         # TODO:
         #  - detect if game is over by seeing if len(stack) >= led_matrix.height() - 1
         #  - figure out if curr_piece can move down
@@ -239,7 +264,7 @@ while True:
         if blinking_clock == 0:
             score += stack.remove_full_lines()
             # make a new piece and go make to moving piece down
-            curr_piece = Piece(random.choice("IJLOSTZ"))
+            curr_piece = Piece(random.choice(SHAPES))
             curr_state = State.MOVINGDOWN
         else:
             # draw blinking full lines (if any)
@@ -248,7 +273,7 @@ while True:
             stack.draw(blinking_off=(blinking_clock % 2))
             led_matrix.show()
             blinking_clock -= 1
-            time.sleep(1)
+            time.sleep(.1)
         
     elif curr_state == State.IDLE:
         # TODO: scroll the text 
@@ -260,7 +285,7 @@ while True:
         score = 0
         stack = None
         stack = Stack()
-        curr_piece = Piece(random.choice("IJLOSTZ"))
+        curr_piece = Piece(random.choice(SHAPES))
         curr_state = State.MOVINGDOWN
         
     elif curr_state == State.DONE:

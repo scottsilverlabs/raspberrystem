@@ -484,7 +484,7 @@ class LEDSprite(object):
             if errors is not None or (output.find("ERROR") != -1):
                 raise IOError(output)
                 
-            if output.find("text") != -1:  # file is a text file
+            if output.find("text") != -1 or output.find("FORTRAN") != -1:  # file is a text file
                 if filename[-4:] != ".spr":
                     raise ValueError("Filename must have '.spr' extension.")
                 f = open(filename, 'r')
