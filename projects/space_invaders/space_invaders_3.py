@@ -8,7 +8,7 @@ import RPi.GPIO as GPIO
 import time
 
 #Initialize matrix, accelerometer, and GPIO, the matrix layout and accelerometer channel may changes from user to user
-led_matrix.init_grid(2,2)
+led_matrix.init_grid(2)
 accel.init(1)
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(4, GPIO.IN, pull_up_down = GPIO.PUD_UP)

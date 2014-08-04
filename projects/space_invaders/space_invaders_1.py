@@ -8,7 +8,7 @@ import RPi.GPIO as GPIO
 import time
 
 #Initialize matrix, accelerometer, and GPIO, the matrix layout and accelerometer channel may changes from user to user
-led_matrix.init_grid(2,2)
+led_matrix.init_grid(2)
 accel.init(1)
 #Game entity data
 player_pos = [7, 0]
