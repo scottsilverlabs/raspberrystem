@@ -46,5 +46,4 @@ except KeyboardInterrupt:
 
 #Clean everything up
 finally:
-        GPIO.cleanup()
         led_matrix.cleanup())

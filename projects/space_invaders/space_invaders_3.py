@@ -102,7 +102,7 @@ try:
 
 #       Generate smooth movement data using IIR filter, and make a 1/4 turn move
 #       the player to the edge of the screen
-        player_pos[0] = player_pos[0] + (clamp(-data[0]*8*4/90 + 7) - player_pos[0])*0.1
+        player_pos[0] = player_pos[0] + (clamp(data[0]*8*4/90 + 7) - player_pos[0])*0.1
         
 #       Draw player
         led_matrix.point(int(round(player_pos[0])), int(round(player_pos[1])))
