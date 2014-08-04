@@ -46,4 +46,4 @@ except KeyboardInterrupt:
 
 #Clean everything up
 finally:
-        led_matrix.cleanup())
+        led_matrix.cleanup()
