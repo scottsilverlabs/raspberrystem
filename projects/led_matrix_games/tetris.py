@@ -14,14 +14,17 @@ GPIO.setmode(GPIO.BCM)
 
 # game variables
 score = 0
-
+BLINKING_TIME = 15 # number of cycles to blink full lines
 
 class Stack(object);
     """Represents the stack of rested tetris pieces"""
     def __init__(self):
         self.points = [] # 2D list that represents stacks's color for each point
         
-    def add_piece(self, piece):
+    def height(self):
+        return len(self.points)
+        
+    def add(self, piece):
         """Adds given piece to the stack
         @param piece: piece to add to stack, should be touching current stack
         @type piece: L{Piece}
@@ -44,6 +47,7 @@ class Stack(object);
             Useful for blinking full lines.
         @type blinking_off: boolean
         """
+        assert self is not None
         for y, line in enumerate(self.points):
             # show a line of color == 0 for full lines if currently blinking off
             if blinking_off and all(pixel != 16 for pixel in line):  # short-circuit avoids heavy computation if not needed
@@ -54,14 +58,17 @@ class Stack(object);
             
                     
     def remove_full_lines(self):
-        """Removes lines that are full from stack"""
+        """Removes lines that are full from stack
+        @returns: number of full lines removed
+        @rtype: int        
+        """
         # TODO: this should be fast enough it doesn't cause problems while drawing
-        global score
+        score = 0
         for y, line in enumerate(self.points):
             if all(pixel != 16 for pixel in line):
                 score += 1
                 del self.points[y]
-        
+        return score
     
 
 class Shape(object):
@@ -116,6 +123,9 @@ class Piece(object):
         or falling off edge (hit bottom)
         @rtype: boolean
         """
+        if self is None:
+            return False
+        
         # check if it is at bottom of screen
         if (self.pos[1] + self.sprite.height) >= (led_matrix.height() - 1):
             return False
@@ -142,12 +152,40 @@ class Piece(object):
         
    
 class State(object):
-    IDLE, RESET, PLAYING, WIN, LOSE = range(5)
+    IDLE, RESET, MOVINGDOWN, BLINKING, DONE = range(4)
 curr_state = State.IDLE
 curr_piece = None
+stack = None
+blinking_clock = 0
+
+# set up buttons
+GPIO.setmode(GPIO.BCM)
+
         
 while True:
-    if curr_state == State.PLAYING:
+    if curr_state == State.MOVINGDOWN:
+        # check if stack hit the top of display
+        if stack.height() >= led_matrix.height() - 1:
+            curr_state = State.DONE
+            continue
+        
+        # check if piece can't move down, and if so, add piece to stack and start blinking
+        if not curr_piece.can_movedown():
+            stack.add(curr_piece)
+            curr_piece = None
+            blinking_clock = BLINKING_TIME
+            curr_state = State.BLINKING
+            continue
+            
+        # otherwise move piece down
+        curr_piece.movedown()
+        
+        # show screen
+        led_matrix.erase()
+        curr_piece.draw()
+        stack.draw()
+        led_matrix.show()
+        time.sleep(1)
         # TODO:
         #  - detect if game is over by seeing if len(stack) >= led_matrix.height() - 1
         #  - figure out if curr_piece can move down
@@ -158,7 +196,19 @@ while True:
         #       - add piece to stack, then before generating a new
         #           piece wait a little bit and turn blinking_off == True every other time  (make this a different state??)
         #          - then remove full lines and then generate next curr_piece, repeat
-        
+    elif curr_state == State.BLINKING:
+        if blinking_clock == 0:
+            # make a new piece and go make to moving piece down
+            curr_piece = Piece(random.choice("IJLOSTZ"))
+            curr_state = State.MOVINGDOWN
+        else:
+            # draw blinking full lines (if any)
+            # TODO: don't delay like this if no full lines?
+            led_matrix.erase()
+            stack.draw(blinking_off=(blinking_clock % 2))
+            led_matrix.show()
+            blinking_clock -= 1
+            time.sleep(1)
         
     elif curr_state == State.IDLE:
         # TODO: scroll the text 
@@ -171,10 +221,10 @@ while True:
         stack = Stack()
         curr_piece = Piece(random.choice("IJLOSTZ"))
         curr_state = State.PLAYING
-    elif curr_state == State.WIN:
-        pass
-    elif curr_state == State.LOSE
-        pass
+    elif curr_state == State.DONE:
+        led_matrix.erase()
+        led_matrix.text(str(score))
+        led_matrix.show()
         
         
         
