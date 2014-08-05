@@ -43,7 +43,7 @@ int display_on_terminal = 0;
 #define NUM_BYTES_MATRIX ((DIM_OF_MATRIX*DIM_OF_MATRIX)/2)
 #define bitstream_SIZE (num_matrices*NUM_BYTES_MATRIX)
 
-#define COORDS_TO_INDEX(x, y) ((x)*container_height + (y))
+#define COORDS_TO_INDEX(x, y) ((y)*container_width + (x))
 
 #define SIGN(x) (((x) >= 0) ? 1 : -1)
 
@@ -524,7 +524,6 @@ static PyObject *py_frame(PyObject *self, PyObject *args){
 	framebuffer = (unsigned int *) PyArray_DATA(numpy_array);
 
 	Debug("Current framebuffer pointer %p", framebuffer);
-	print_framebuffer();
 	return Py_BuildValue("i", 1);
 }
 
