@@ -6,6 +6,7 @@ GRID_SIZE = 2
 cap = cv2.VideoCapture(0)
 cap.set(3, 8*GRID_SIZE) #width
 cap.set(4, 8*GRID_SIZE) #height
+cap.set(11, 1) #max exposure
 led_matrix.init_grid(GRID_SIZE)
 try:
 	while True:
@@ -20,4 +21,4 @@ except KeyboardInterrupt:
 	pass
 finally:
 	cap.release()
-
+	led_matrix.cleanup()
