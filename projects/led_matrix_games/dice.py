@@ -7,6 +7,9 @@ import sys
 import random
 
 
+# set up led matrix
+led_matrix.init_grid()
+
 # set up dice sprites
 dice = {}
 for value in range(1,7):
@@ -41,7 +44,9 @@ while True:
     
     # roll dice if A button is pressed
     if GPIO.input(A) == 0:
-        # TODO: make a rolling dice animation
+        for 
         die = random.choice(dice.values())
         
-    
+    led_matrix.erase()
+    led_matrix.sprite(die)
+    led_matrix.show()    
