@@ -74,7 +74,6 @@ class Block(object):
         else:
             raise RuntimeError("Invalid Direction")
 
-#try:
 # SETUP ==========================
 
 # setup led matrix
@@ -229,9 +228,6 @@ while True:
         
 #        global button_pressed
     button_pressed = False
-#finally:
-#    led_matrix.cleanup()
-#    GPIO.cleanup()
     
     
     
