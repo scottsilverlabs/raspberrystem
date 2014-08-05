@@ -10,6 +10,9 @@ import random
 # set up led matrix
 led_matrix.init_grid()
 
+# set up accelerometer
+accel.init(1)
+
 # set up dice sprites
 dice = []
 for value in range(1,7):
@@ -35,6 +38,11 @@ GPIO.setup(A, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 # create flag to indicate to display initially on start up
 just_started = True
 
+# get base_elevation
+base_elevation = accel.angles()[2]
+
+THRESHOLD = 10
+
 while True:
     # exit if start button is pressed
     if GPIO.input(START) == 0:
@@ -43,7 +51,7 @@ while True:
         sys.exit(0)
     
     # roll dice if A button is pressed
-    if GPIO.input(A) == 0 or just_started:
+    if just_started or GPIO.input(A) == 0 or abs(accel.angles()[2] - base_elevation) > THRESHOLD:
         led_matrix.erase()  # clear old dice values
         for y in range(0, led_matrix.height(), 8):
             for x in range(0, led_matrix.width(), 8):
