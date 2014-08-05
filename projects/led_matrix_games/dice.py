@@ -11,9 +11,9 @@ import random
 led_matrix.init_grid()
 
 # set up dice sprites
-dice = {}
+dice = []
 for value in range(1,7):
-    dice[value] = led_matrix.LEDSprite(os.path.abspath(str(value) + ".spr"))
+    dice.append(led_matrix.LEDSprite(os.path.abspath(str(value) + ".spr")))
     
 # set up buttons
 UP = 25
@@ -32,8 +32,8 @@ GPIO.setup(START, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 # setup A button to roll dice
 GPIO.setup(A, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
-# TODO: make it work with more than one matrices
-die = random.choice(dice.values())
+# create flag to indicate to display initially on start up
+just_started = True
 
 while True:
     # exit if start button is pressed
@@ -43,10 +43,11 @@ while True:
         sys.exit(0)
     
     # roll dice if A button is pressed
-    if GPIO.input(A) == 0:
-        for 
-        die = random.choice(dice.values())
-        
-    led_matrix.erase()
-    led_matrix.sprite(die)
-    led_matrix.show()    
+    if GPIO.input(A) == 0 or just_started:
+        led_matrix.erase()  # clear old dice values
+        for y in range(0, led_matrix.height(), 8):
+            for x in range(0, led_matrix.width(), 8):
+                led_matrix.sprite(random.choice(dice), (x+1,y+1))
+        led_matrix.show()
+        just_started = False
+
