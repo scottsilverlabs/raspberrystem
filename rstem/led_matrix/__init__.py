@@ -601,6 +601,9 @@ class LEDSprite(object):
         
         @param angle: angle to rotate self in an interval of 90 degrees
         @type angle: int
+        
+        @returns: self
+        @rtype: L{LEDSprite}
         @raises ValueError: If angle is not multiple of 90
         @note: If no angle given, will rotate sprite 90 degrees.
         """
@@ -632,6 +635,7 @@ class LEDSprite(object):
             temp = self.width
             self.width = self.height
             self.height = temp
+        return self
         
     def rotated(self, angle=90):
         """Same as L{rotate} only it returns a copy of the rotated sprite
@@ -651,7 +655,10 @@ class LEDSprite(object):
         return copy.deepcopy(self)
         
     def invert(self):
-        """Inverts the sprite."""
+        """Inverts the sprite.
+        @returns: self
+        @rtype: L{LEDSprite}
+        """
         for y, line in enumerate(self.bitmap):
             for x, pixel in enumerate(line):
                 if pixel < 16:

@@ -10,13 +10,9 @@ import RPi.GPIO as GPIO
 led_matrix.init_grid(angle=270)  # make longwise
 GPIO.setmode(GPIO.BCM)
 
-#TODO: combine peice and shape together having the sprites already generated
-# for each type.... have functions that iterate through to describe what 
-# points are valid by comparing "-" vs (another color)
-
 # game variables
 score = 0
-BLINKING_TIME = 15 # number of cycles to blink full lines
+BLINKING_TIME = 7 # number of cycles to blink full lines
 
 """Shape names as described in U{http://en.wikipedia.org/wiki/Tetris}"""
 SHAPES = "IJLOSTZ"
@@ -152,16 +148,7 @@ class Piece(object):
         pos = (self.pos[0], self.pos[1] - 1)
         self_coverage = self.coverage(pos)
         stack_coverage = stack.coverage()
-#        print stack_coverage, self_coverage
         return (len(self_coverage.intersection(stack.coverage())) == 0)
-        
-#        ret = None
-#        for piece in rested_pieces:
-#            # check if any coverage points of self and rested piece intersect
-#            if len(self_coverage.intersection(piece.coverage())) > 0:
-#                return False
-#                
-#        return True  # didn't find intersection for any rested piece, we can move down!
         
     def movedown(self):
         """Moves piece down one pixel."""
@@ -222,19 +209,30 @@ GPIO.setmode(GPIO.BCM)
 for button in [UP, DOWN, LEFT, RIGHT, SELECT, START, A, B]:
     GPIO.setup(button, GPIO.IN, pull_up_down=GPIO.PUD_UP)
     GPIO.add_event_detect(button, GPIO.FALLING, callback=button_handler, bouncetime=300)
+    
+# create intro title (a vertical display of "TETRIS")
+title = led_matrix.LEDText("S").rotate(90)
+for character in reversed("TETRI"):
+    # append a 1 pixel wide (high) spacing
+    title.append(led_matrix.LEDSprite(width=1, height=title.height))
+    # append next character
+    title.append(led_matrix.LEDText(character).rotate(90))
+# rotate title up
+title.rotate(-90)
+
         
 while True:
+    # state when a piece is slowling moving down the display
     if curr_state == State.MOVINGDOWN:
         # check if stack hit the top of display
         if stack.height() >= led_matrix.height() - 1:
             curr_state = State.DONE
             continue
-#        print stack.points
-        # check if piece can't move down, and if so, add piece to stack and start blinking
+        # check if piece can't move down, and if so, add piece to stack and start blinking any full lines
         if not curr_piece.can_movedown(stack):
-            stack.add(curr_piece)
-            curr_piece = None
-            blinking_clock = BLINKING_TIME
+            stack.add(curr_piece)  # add piece to stack
+            curr_piece = None      # piece is no longer curr_piece
+            blinking_clock = BLINKING_TIME  # set up blinking clock 
             curr_state = State.BLINKING
             continue
             
@@ -250,36 +248,33 @@ while True:
             time.sleep(.1)   # speed up if down button is held down
         else:
             time.sleep(.5)
-        # TODO:
-        #  - detect if game is over by seeing if len(stack) >= led_matrix.height() - 1
-        #  - figure out if curr_piece can move down
-        #       - if so, move the piece down, delay, and then loop back around
-        #   - else:
-        #       - {don't move down for a couple of seconds incase
-        #          the want to move to left or right}
-        #       - add piece to stack, then before generating a new
-        #           piece wait a little bit and turn blinking_off == True every other time  (make this a different state??)
-        #          - then remove full lines and then generate next curr_piece, repeat
+
+    # when piece has hit that stack and we determine if a line has been filled
     elif curr_state == State.BLINKING:
+        # when blinking clock counts down to zero, remove full lines and start a new piece
         if blinking_clock == 0:
-            score += stack.remove_full_lines()
+            score += stack.remove_full_lines() # add full lines to total score
             # make a new piece and go make to moving piece down
             curr_piece = Piece(random.choice(SHAPES))
             curr_state = State.MOVINGDOWN
         else:
             # draw blinking full lines (if any)
-            # TODO: don't delay like this if no full lines?
             led_matrix.erase()
+            # draw stack with full lines off every other cycle
             stack.draw(blinking_off=(blinking_clock % 2))
             led_matrix.show()
             blinking_clock -= 1
             time.sleep(.1)
         
     elif curr_state == State.IDLE:
-        # TODO: scroll the text 
-        led_matrix.erase()
-        led_matrix.text("TETRIS")
-        led_matrix.show()
+        # display scrolling virtical text
+        y_pos = - title.height
+        while y_pos < led_matrix.height():
+            led_matrix.erase()
+            led_matrix.sprite(title, (led_matrix.width()/2 - title.width/2, y_pos))
+            led_matrix.show()
+            y_pos += 1
+            time.sleep(.1)
         
     elif curr_state == State.RESET:
         score = 0
