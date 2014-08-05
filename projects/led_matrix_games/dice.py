@@ -35,13 +35,14 @@ GPIO.setup(START, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 # setup A button to roll dice
 GPIO.setup(A, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
-# create flag to indicate to display initially on start up
+# create flag to indicate to display some dice initially on start up
 just_started = True
 
 # get base_elevation
 base_elevation = accel.angles()[2]
 
-THRESHOLD = 10
+# set change in angle/acceleration needed to roll dice
+THRESHOLD = 20
 
 while True:
     # exit if start button is pressed
