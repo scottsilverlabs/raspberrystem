@@ -13,6 +13,7 @@ GPIO.setmode(GPIO.BCM)
 # game variables
 score = 0
 BLINKING_TIME = 7 # number of cycles to blink full lines
+speed = .5  # speed of piece falling down (at start)
 
 """Shape names as described in U{http://en.wikipedia.org/wiki/Tetris}"""
 SHAPES = "IJLOSTZ"
@@ -154,13 +155,19 @@ class Piece(object):
         """Moves piece down one pixel."""
         self.pos = (self.pos[0], self.pos[1] - 1)
         
-    def moveright(self):
-        if self.pos[0] + self.sprite.width < led_matrix.width():
-            self.pos = (self.pos[0] + 1, self.pos[1])
+    def moveright(self, stack):
+        new_pos = (self.pos[0] + 1, self.pos[1])
+        # if we are not running off the display and not running into the stack, change position
+        if self.pos[0] + self.sprite.width < led_matrix.width()  \
+            and len(self.coverage(new_pos).intersection(stack.coverage())) == 0:
+            self.pos = new_pos
     
-    def moveleft(self):
-        if self.pos[0] - 1 >= 0:
-            self.pos = (self.pos[0] - 1, self.pos[1])
+    def moveleft(self, stack):
+        new_pos = (self.pos[0] - 1, self.pos[1])
+        # if we are not running off the display and not running into the stack, change position
+        if self.pos[0] - 1 >= 0  \
+            and len(self.coverage(new_pos).intersection(stack.coverage())) == 0:
+            self.pos = new_pos
         
     def draw(self):
         """Draws piece on led matrix"""
@@ -193,9 +200,9 @@ def button_handler(channel):
         return
     if curr_state == State.MOVINGDOWN:
         if channel == LEFT:
-            curr_piece.moveleft()
+            curr_piece.moveleft(stack)
         elif channel == RIGHT:
-            curr_piece.moveright()
+            curr_piece.moveright(stack)
         elif channel == A:
             curr_piece.rotate(90)
         elif channel == DOWN:
@@ -224,6 +231,10 @@ title.rotate(-90)
 while True:
     # state when a piece is slowling moving down the display
     if curr_state == State.MOVINGDOWN:
+        # up speed if score is a multiple of 10
+        if speed != 0 and speed % 5 == 0:
+            speed = speed/1.25
+    
         # check if stack hit the top of display
         if stack.height() >= led_matrix.height() - 1:
             curr_state = State.DONE
@@ -247,7 +258,7 @@ while True:
         if GPIO.input(DOWN) == 0:
             time.sleep(.1)   # speed up if down button is held down
         else:
-            time.sleep(.5)
+            time.sleep(speed)
 
     # when piece has hit that stack and we determine if a line has been filled
     elif curr_state == State.BLINKING:
@@ -268,8 +279,12 @@ while True:
         
     elif curr_state == State.IDLE:
         # display scrolling virtical text
+        #      - if you move to right while going down you can overlap... have more checks before moving left and right
         y_pos = - title.height
         while y_pos < led_matrix.height():
+            # if state changes stop scrolling and go to that state
+            if curr_state != State.IDLE:
+                break
             led_matrix.erase()
             led_matrix.sprite(title, (led_matrix.width()/2 - title.width/2, y_pos))
             led_matrix.show()
