@@ -1,10 +1,25 @@
+#
+# Copyright (c) 2014, Scott Silver Labs, LLC.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#       http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 from rstem import led_matrix
 import RPi.GPIO as GPIO
 import subprocess
 import os
 import sys
 import time
-import signal
 
 class Menu(object):
 
@@ -80,15 +95,21 @@ class Menu(object):
 menu_items = [
     ["Protector", "protector.py"],
     ["Stack-em", "stackem.py"],
-    ["FlappyBird", "flappybird.py"]
+    ["FlappyBird", "flappybird.py"],
+    ["Game of Life", "game_of_life.py"]
 ]
 menu = Menu(menu_items)
 
-# setup buttons
-SELECT = 4
+# set up buttons
+A = 4
+B = 17
 UP = 25
 DOWN = 24
-# buttons to hold down at the same time to kill running process
+LEFT = 23
+RIGHT = 18
+START = 27
+SELECT = 22
+
 
 # states
 IN_MENU = 1
@@ -96,7 +117,7 @@ IN_GAME = 2
 curr_state = IN_MENU
 
 def button_handler(channel):
-    if channel == SELECT:
+    if channel == A:
         global curr_state
         curr_state = IN_GAME
     elif channel == UP:
@@ -107,13 +128,13 @@ def button_handler(channel):
 def setup():
     led_matrix.init_grid(math_coords=False)
     GPIO.setmode(GPIO.BCM)
-    for button in [SELECT, UP, DOWN]:
+    for button in [A, UP, DOWN]:
         GPIO.setup(button, GPIO.IN, pull_up_down=GPIO.PUD_UP)
         GPIO.add_event_detect(button, GPIO.FALLING, callback=button_handler, bouncetime=300)
         
 def cleanup():
-    led_matrix.shutdown_matrices()
-    for button in [SELECT, UP, DOWN]:
+    led_matrix.cleanup()
+    for button in [A, UP, DOWN]:
         GPIO.remove_event_detect(button)
     GPIO.cleanup()
 

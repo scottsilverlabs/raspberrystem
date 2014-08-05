@@ -247,6 +247,7 @@ def cleanup():
     Also, clears the display.
     """
     global initialized
+    global spi_initialized
     if initialized:
         led_driver.fill(0x0)
         led_driver.flush()

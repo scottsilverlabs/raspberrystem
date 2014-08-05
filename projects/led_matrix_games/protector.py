@@ -21,16 +21,17 @@ from rstem import led_matrix
 import RPi.GPIO as GPIO
 from collections import deque
 
+# set up buttons
+A = 4
+B = 17
+UP = 25
+DOWN = 24
+LEFT = 23
+RIGHT = 18
+START = 27
+SELECT = 22
 
 POLL_PERIOD=0.020
-SHOOT=2
-LEFT=3
-DOWN=4
-UP=14
-RIGHT=15
-EXIT=18
-
-
 WIDTH=0  # will be changed during setup
 HEIGHT=0
 MISSILE_RATE=10
@@ -253,7 +254,7 @@ class Ship(MoveablePointSprite, AudibleSprite):
     def step(self):
         super(Ship, self).step()
         x, y = self.origin
-        self.origin = AddableTuple((clamp(x, 0, WIDTH - 1), clamp(y, 0, HEIGHT - 1)))   # ????
+        self.origin = AddableTuple((clamp(x, 0, WIDTH - 1), clamp(y, 0, HEIGHT - 1)))
 
 class Missile(MoveablePointSprite, AudibleSprite):
     def __init__(self, origin, rate=MISSILE_RATE, color=0xF, direction=RIGHT, collideswith=None):
@@ -345,18 +346,18 @@ def protector(num_rows=1, num_cols=2, angle=180):
 
         # define what to do during a button press
         def button_handler(channel):
-            if channel == EXIT:
-                led_matrix.shutdown_matrices()
+            if channel == START:
+                led_matrix.cleanup()
                 GPIO.cleanup()
                 sys.exit(0)
             if channel in [LEFT, RIGHT, UP, DOWN]:
                 ship.deferred_adjust(channel)  # add direction to direction queue
-            if channel in [SHOOT]:
+            if channel in [A]:
                 missiles.new(ship.origin)  # generate new missle from ship
 
         # set up gpio inputs
         GPIO.setmode(GPIO.BCM)
-        for g in [SHOOT, LEFT, DOWN, UP, RIGHT, EXIT]:
+        for g in [A, LEFT, DOWN, UP, RIGHT, START]:
             GPIO.setup(g, GPIO.IN, pull_up_down = GPIO.PUD_UP)
             GPIO.add_event_detect(g, GPIO.FALLING, callback=button_handler, bouncetime=100)
 
@@ -499,7 +500,7 @@ def protector(num_rows=1, num_cols=2, angle=180):
 
     finally:
 #        music.kill()
-        led_matrix.shutdown_matrices()
+        led_matrix.cleanup()
         GPIO.cleanup()
 
 while True:
