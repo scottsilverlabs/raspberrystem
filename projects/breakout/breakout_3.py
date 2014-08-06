@@ -165,6 +165,6 @@ while True:
 			led_matrix.line((b.pos[0], b.pos[1]+y),(b.pos[0] + b.size[0] - 1, b.pos[1] + y), b.brightness)
 	led_matrix.show()
 
-#	Slowly speed up, start with delay at 0.1 and reach 0 at 60s
+#	Delay and increase game tick
 	time.sleep(0.01)
 	ball_tick = (ball_tick + 1) & (MAX_BALL_TICK - 1)
