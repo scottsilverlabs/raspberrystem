@@ -1,3 +1,19 @@
+#
+# Copyright (c) 2014, Scott Silver Labs, LLC.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#       http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 import sys
 from rstem import led_matrix
 import RPi.GPIO as GPIO
@@ -104,8 +120,8 @@ LEFT = 23
 RIGHT = 18
 SELECT = 22
 START = 27
-#A = 4
-#B = 17
+A = 4
+B = 17
 
 # wire them wrong temporaily so i can play it
 LEFT = 24 # DOWN
@@ -171,9 +187,25 @@ while True:
             
         time.sleep(.30)
         
+    #TODO: make scrolling text title for games where I was too lazy
+    #    - fix up stuff if I need to
+    #    - make a fun accelerometer game 
+    #    - make protector work for dynamic amount of matrices
+    #    - make some simple instructional programs    
+        
     elif curr_state == State.IDLE:
-        led_matrix.text("SNAKE")
-        led_matrix.show()
+        # display horizontal scrolling title
+        title = led_matrix.LEDText("SNAKE")
+        x_pos = led_matrix.width() - 1
+        while x_pos > - title.width:
+            if curr_state != State.IDLE:
+                break
+            led_matrix.erase()
+            led_matrix.sprite(title, (x_pos, 1))
+            led_matrix.show()
+            time.sleep(.1)
+            x_pos -= 1
+            
     elif curr_state == State.RESET:
         snake = Snake()
         field = Field(led_matrix.width(), led_matrix.height())
