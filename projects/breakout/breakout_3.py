@@ -29,7 +29,7 @@ def lose():
 		led_matrix.fill(0)
 		led_matrix.text(msg, (15 - i, 7))
 		led_matrix.show()
-		time.sleep(0.1)
+#		time.sleep(0.1)
 	sys.exit(0)
 
 #If all bricks are destroyed, display winning score
@@ -61,35 +61,67 @@ class Ball:
 	def __init__(self, pos, dir):
 		self.pos = pos
 		self.dir = dir
-
-#	Update game physics
-	def update(self):
-
-#		Move ball
-		self.pos[0] = self.pos[0] + self.dir[0]
-		self.pos[1] = self.pos[1] + self.dir[1]
-#		Player wins if there are no more bricks
-		if len(bricks) == 0:
-			win()
+		self.bounced_x = False
+		self.bounced_y = False
+		self.can_move_x = True
+		self.can_move_y = True
+	
+	def brick_col(self):
 #		Loop through bricks and check for collisions
 		for b in bricks:
 			if b.xCol(self) and b.yCol(self):
 #				If the ball hits a side edge reverse its x direction
-				self.dir[0] = self.dir[0]*(1 - 2*((self.pos[1] >= b.pos[1]) and (self.pos[1] < b.pos[1] + b.size[1])))
+				if self.pos[0] == b.pos[0] - 1:
+					if self.bounced_x:
+						self.can_move_x = False
+					self.dir[0] = -1
+					self.bounced_x = True
+				elif self.pos[0] == b.pos[0] + b.size[0]:
+					if self.bounced_x:
+						self.can_move_x = False
+					self.dir[0] = 1
+					self.bounced_x = True
 #				If the ball hits a side edge reverse its y direction
-				self.dir[1] = self.dir[1]*(1 - 2*((self.pos[0] >= b.pos[0]) and (self.pos[0] < b.pos[0] + b.size[0])))
+				if self.pos[1] == b.pos[1] - 1:
+					if self.bounced_y:
+						self.can_move_y = False
+					self.dir[1] = -1
+					self.bounced_y = True
+				elif self.pos[1] == b.pos[1] + b.size[1]:
+					if self.bounced_y:
+						self.can_move_y = False
+					self.dir[1] = 1
+					self.bounced_y = True
 #				Update score
 				b.hit()
+
+#	Update game physics
+	def update(self):
+		self.bounced_x = False
+		self.bounced_y = False
+		self.can_move_x = True
+		self.can_move_y = True
+#		Player wins if there are no more bricks
+		if len(bricks) == 0:
+			win()
+#		Bounce off edge of screen
+		if self.pos[1] >= 15 and self.dir[1] == 1:
+			self.dir[1] = -1
+		if self.pos[0] <= 0 and self.dir[0] == -1:
+			self.dir[0] = 1
+		if self.pos[0] >= 15 and self.dir[0] == 1:
+			self.dir[0] = -1
+
+#		Loop through bricks and check for collisions
+		self.brick_col()
+
+#		If one col check to see if we are inbetween two bricks
+		if self.bounced_x or self.bounced_y:
+			self.brick_col()
 
 #		If the ball hits the paddle reverse its y direction							
 		if (self.pos[1] + self.dir[1] == p.pos[1]) and (self.pos[0] + self.dir[0] >= p.pos[0]) and (self.pos[0] + self.dir[0] < p.pos[0] + p.size[0]):
 			self.dir[1] = -self.dir[1]
-#		Bounce off edge of screen
-		if self.pos[1] >= 15:
-			self.dir[1] = -self.dir[1]
-		if self.pos[0] <= 0 or self.pos[0] >= 15:
-			self.dir[0] = -self.dir[0]
-
 #		Lose if the ball passes the paddle
 		if self.pos[1] <= 0:
 			for i in range(4):
@@ -100,6 +132,10 @@ class Ball:
 				led_matrix.show()
 				time.sleep(0.1)
 				lose()
+		if self.can_move_x:
+			self.pos[0] = clamp(self.pos[0] + self.dir[0], 0, 15)
+		if self.can_move_y:
+			self.pos[1] = clamp(self.pos[1] + self.dir[1], 0, 15)
 
 #Class for brick
 class Brick:
@@ -119,19 +155,17 @@ class Brick:
 
 #	Functions for collision detection
 	def xCol(self, ball):
-		return (ball.pos[0] + ball.dir[0] >= self.pos[0]) and (ball.pos[0] < self.pos[0] + self.size[0])
+		return ((ball.pos[0] + ball.dir[0] >= self.pos[0]) and (ball.pos[0] + ball.dir[0] < self.pos[0] + self.size[0]))
 
 	def yCol(self, ball):
-		return ((ball.pos[1] + ball.dir[1] >= self.pos[1]) and (ball.pos[1] < self.pos[1] + self.size[1]))
+		return ((ball.pos[1] + ball.dir[1] >= self.pos[1]) and (ball.pos[1] + ball.dir[1] < self.pos[1] + self.size[1]))
 
 #Initialize bricks
 for x in range(4):
 	for y in range(3):
 		bricks.append(Brick([x*4, 15 - y*3 - 1],[3, 2]))
-
 #Initialize ball
-ball = Ball([8, 0],[1, 1])
-
+ball = Ball([8,1],[1,1])
 #Initialize player movement data
 velocity = 0.0
 player_pos = 7.0
@@ -158,13 +192,13 @@ while True:
 	if ball_tick == 0:
 		ball.update()
 #	Display player, bricks, and the ball
-	led_matrix.point(ball.pos[0], ball.pos[1])
 	led_matrix.line(p.pos, [p.pos[0] + p.size[0] - 1, 0])
 	for b in bricks:
 		for y in range(b.size[1]):
 			led_matrix.line((b.pos[0], b.pos[1]+y),(b.pos[0] + b.size[0] - 1, b.pos[1] + y), b.brightness)
+	led_matrix.point(ball.pos[0], ball.pos[1])
 	led_matrix.show()
 
 #	Delay and increase game tick
-	time.sleep(0.01)
+	time.sleep(0.1)
 	ball_tick = (ball_tick + 1) & (MAX_BALL_TICK - 1)

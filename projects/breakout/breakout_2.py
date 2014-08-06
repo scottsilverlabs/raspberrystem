@@ -49,10 +49,10 @@ class Brick:
 
 #	Functions for collision detection
 	def xCol(self, ball):
-		return (ball.pos[0] + ball.dir[0] >= self.pos[0]) and (ball.pos[0] < self.pos[0] + self.size[0])
+		return (ball.pos[0] + ball.dir[0] >= self.pos[0]) and (ball.pos[0] + ball.dir[0] < self.pos[0] + self.size[0])
 
 	def yCol(self, ball):
-		return ((ball.pos[1] + ball.dir[1] >= self.pos[1]) and (ball.pos[1] < self.pos[1] + self.size[1]))
+		return ((ball.pos[1] + ball.dir[1] >= self.pos[1]) and (ball.pos[1] + ball.dir[1] < self.pos[1] + self.size[1]))
 
 #Initialize bricks
 for x in range(4):
