@@ -2,10 +2,11 @@ import os
 import pygame.mixer
 import pygame.sndarray
 import pygame.time
-import math
 import numpy
 import subprocess
 import time
+import tempfile
+import urllib2, urllib
 
 
 # global constants
@@ -18,11 +19,14 @@ FRAMERATE = 30 # how often to check if playback has finished
 # set of current talking process (used for is_talking())
 talking_procs = set()
 
+# engine used to create text to speech
+voice_engine = None
+
 def _init():
     if pygame.mixer.get_init() is None:
         pygame.mixer.init(SAMPLERATE, BITSIZE, CHANNELS, BUFFER)
         
-def is_talking(proc):
+def is_talking():
     """
     @returns: True if speaker is currently saying text (from the L{say} function)
     @rtype: boolean
@@ -31,18 +35,34 @@ def is_talking(proc):
     for proc in talking_procs:
         if proc.poll() is None:  # if proc.poll() gives us a returncode, its terminated
             return True
-        else:
-            talking_procs.remove(proc)  # remove terminated process
     return False  # all processes were terminated, therefore not talking
         
+        
+def set_voice_engine(engine="espeak"):
+    """Set voice engine and do and intial configures if necessary"""
+    global voice_engine
+    if engine == "espeak":
+        # check if espeak is installed
+        proc = subprocess.Popen('dpkg-query -s espeak', shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        output, error = proc.communicate()
+        if output.find("install ok installed") == -1:
+            raise Exception("espeak is not installed")
+        voice_engine = "espeak"
+        
+    elif engine == "google":
+        voice_engine = "google"
+    else:
+        raise ValueError("Voice Engine is not supported.")
+
     
-def say(text, wait=False):
+def say(text, wait=False):    
+    
     # check if espeak is installed
     proc = subprocess.Popen('dpkg-query -s espeak', shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     output, error = proc.communicate()
     if output.find("install ok installed") == -1:
         raise Exception("espeak is not installed")
-    proc = subprocess.Popen('espeak "' + text + '"', shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    proc = subprocess.Popen('espeak -s 200 "' + text + '"', shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if wait:
         proc.wait()
     else:
@@ -100,6 +120,7 @@ class Sound(object):
         
         self.background = background
         self.filename = filename
+        self.channel = None
         if background:
             self.sound = pygame.mixer.music
         else:
@@ -112,9 +133,9 @@ class Sound(object):
             self.sound.load(self.filename)
             currently_playing_filename = self.filename
         
-        clock = pygame.time.Clock()
-        self.sound.play(loops)
+        self.channel = self.sound.play(loops)
         if wait:
+            clock = pygame.time.Clock()
             if self.background:
                 while pygame.mixer.music.get_busy():
                     clock.tick(FRAMERATE)
@@ -126,6 +147,15 @@ class Sound(object):
         if self.background and currently_playing_filename != self.filename:
             return
         self.sound.stop()
+        self.channel = None
+        
+    def get_duration(self):
+        if not self.background:
+            return self.sound.get_length()
+        else:
+            # temporarily load file as a sound to check
+            temp_sound = pygame.mixer.Sound(self.filename)
+            return temp_sound.get_length()
         
     def get_volume(self):
         """Gets the volume of individual sound"""
@@ -142,13 +172,63 @@ class Sound(object):
     def is_playing(self):
         if self.background and currently_playing_filename != self.filename:
             return False
-        self.sound.get_busy()
+        if self.background:
+            return self.sound.get_busy()
+        else:
+            if self.channel is not None:
+                return self.channel.get_busy()
+            else:
+                return False
         
     def queue(self):
         if not self.background:
             raise ValueError("Queue only supports background sounds.")
         pygame.mixer.music.queue(self.filename)
         
+class Speech(Sound):
+
+    def __init__(self, text):
+        # setup voice engine to default espeak if not set up
+        if voice_engine is None:
+            set_voice_engine()
+            
+        # initialize pygame
+        _init()
+
+        # create temp file to use
+        self.filename = tempfile.mkstemp(suffix=".mp3")[1]
+        self.background = False
+        
+        # create wav file of the text, using voice_engine
+        if voice_engine == "espeak":
+            proc = subprocess.Popen('espeak "' + text + '" -w ' + self.filename, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            output, error = proc.communicate()
+            if len(error) > 0:
+                raise IOError(error)
+            self.sound = pygame.mixer.Sound(self.filename)
+            
+        elif voice_engine == "google":
+            text = urllib.quote(text)
+            url = 'http://translate.google.com/translate_tts?tl=en&q=' + text
+            print url
+            req = urllib2.Request(url)
+            print "Made request"
+            req.add_header('User-Agent', 'Konqueror')
+            print "Added header"
+            print self.filename
+            fp = open(self.filename, 'wb')
+            try:
+                response = urllib2.urlopen(req)
+                print "opened url"
+                fp.write(response.read())
+                print "read it"
+                time.sleep(.5)
+            except urllib2.URLError as e:
+                print ('%s' % e)
+            fp.close()
+            
+            self.sound = pygame.mixer.Sound(self.filename)
+
 
 class Note(Sound):
     """Creates a sine wave of given frequeny"""
