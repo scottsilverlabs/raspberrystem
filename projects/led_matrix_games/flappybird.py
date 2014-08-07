@@ -1,3 +1,18 @@
+#
+# Copyright (c) 2014, Scott Silver Labs, LLC.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#       http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
 
 from rstem import led_matrix
 import RPi.GPIO as GPIO
@@ -5,13 +20,23 @@ import time
 import random
 import sys
 
-BUTTON=4
-EXIT=18
-
-# initialization
+# set up led matrix
 led_matrix.init_grid()
+
+# set up buttons
+A = 4
+B = 17
+UP = 25
+DOWN = 24
+LEFT = 23
+RIGHT = 18
+START = 27
+SELECT = 22
+
+# set up START and A buttons because those are the only buttons we will be using
 GPIO.setmode(GPIO.BCM)
-GPIO.setup(BUTTON, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(A, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(START, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
 def randint(min, max):
     return int(random.random() * (max - min + 1)) + min
@@ -94,7 +119,7 @@ try:
 
     def button_handler(channel):
         global state
-        if channel == EXIT:
+        if channel == START:
             state = State.EXIT
             return
         if state == State.RESET:
@@ -106,8 +131,9 @@ try:
         elif state == State.END:
             state = State.RESET
             
-    GPIO.add_event_detect(BUTTON, GPIO.FALLING, callback=button_handler, bouncetime=300)
-    GPIO.add_event_detect(EXIT, GPIO.FALLING, callback=button_handler, bouncetime=300)
+    # runt button_handler if START or A button is pressed
+    GPIO.add_event_detect(A, GPIO.FALLING, callback=button_handler, bouncetime=300)
+    GPIO.add_event_detect(START, GPIO.FALLING, callback=button_handler, bouncetime=300)
             
     while True:
         if state == State.RESET:
@@ -174,11 +200,11 @@ try:
             
         elif state == State.EXIT:
             GPIO.cleanup()
-            led_matrix.shutdown_matrices()
+            led_matrix.cleanup()
             sys.exit(0)
 
 finally:
     GPIO.cleanup()
-    led_matrix.shutdown_matrices()
+    led_matrix.cleanup()
 
 
