@@ -6,6 +6,7 @@ projects/***
 tests/***
 pkg/***
 scripts/***
+docs/***
 /Makefile
 /install_include.txt
 /LICENSE.txt
