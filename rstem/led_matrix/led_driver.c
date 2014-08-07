@@ -514,8 +514,10 @@ static PyObject *py_frame(PyObject *self, PyObject *args){
 	    PyErr_SetString(PyExc_ValueError, "Numpy array must be 2D!");
 	    return NULL;
 	}
-	if (PyArray_DIM(numpy_array, 0) != container_width
-	    || PyArray_DIM(numpy_array, 1) != container_height){
+	Debug("PyAr0:%d PyAr1: %d", PyArray_DIM(numpy_array, 0), PyArray_DIM(numpy_array, 1));
+	Debug("Width:%d Height:%d", container_width, container_height);
+	if (PyArray_DIM(numpy_array, 1) != container_width
+	    || PyArray_DIM(numpy_array, 0) != container_height){
 	    PyErr_SetString(PyExc_ValueError, "Numpy array dimensions must be the same as container!");
 	    return NULL;   
 	}
