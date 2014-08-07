@@ -7,7 +7,6 @@ import numpy
 import subprocess
 import time
 
-voice_engine = None
 
 # global constants
 SAMPLERATE = 44100  # 38000 == chipmunks
@@ -16,15 +15,39 @@ CHANNELS = 2   # 1 == mono, 2 == stereo
 BUFFER = 1024  # audio buffer size in no. of samples
 FRAMERATE = 30 # how often to check if playback has finished
 
+# set of current talking process (used for is_talking())
+talking_procs = set()
+
 def _init():
     if pygame.mixer.get_init() is None:
         pygame.mixer.init(SAMPLERATE, BITSIZE, CHANNELS, BUFFER)
         
-def say(text):
-    proc = subprocess.Popen('espeak "' + text + '"', shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+def is_talking(proc):
+    """
+    @returns: True if speaker is currently saying text (from the L{say} function)
+    @rtype: boolean
+    """
+    global talking_procs
+    for proc in talking_procs:
+        if proc.poll() is None:  # if proc.poll() gives us a returncode, its terminated
+            return True
+        else:
+            talking_procs.remove(proc)  # remove terminated process
+    return False  # all processes were terminated, therefore not talking
+        
+    
+def say(text, wait=False):
+    # check if espeak is installed
+    proc = subprocess.Popen('dpkg-query -s espeak', shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     output, error = proc.communicate()
-    if len(error) > 0:
-        raise Exception(error)
+    if output.find("install ok installed") == -1:
+        raise Exception("espeak is not installed")
+    proc = subprocess.Popen('espeak "' + text + '"', shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    if wait:
+        proc.wait()
+    else:
+        global talking_procs
+        talking_procs.add(proc)
     
 def get_volume():
     """Gets the master volume"""
