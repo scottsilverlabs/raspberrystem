@@ -1,3 +1,19 @@
+#
+# Copyright (c) 2014, Scott Silver Labs, LLC.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#       http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 import time
 import os
 import random
@@ -20,9 +36,12 @@ SHAPES = "IJLOSTZ"
 shape_sprites = {}
 for shape in SHAPES:
     # store LEDSprite of tetris piece
-    shape_sprites[shape] = led_matrix.LEDSprite(os.path.abspath(shape + ".spr"))
+    shape_sprites[shape] = led_matrix.LEDSprite(os.path.abspath("tetris_sprites/" + shape + ".spr"))
 
 def valid_shape(shape):
+    """
+    @returns: True if given shape is a valid tetris shape
+    """
     return shape in SHAPES and len(shape) == 1
 
 class Stack(object):
@@ -40,11 +59,11 @@ class Stack(object):
         """
         for y_offset, line in enumerate(reversed(piece.sprite.bitmap)): # iterate going up
             # check if we need to add a new line to the stack
-            # TODO: change to a while loop?
-            if piece.pos[1] + y_offset > (len(stack.points) - 1):
+            if (piece.pos[1] + y_offset) > (len(stack.points) - 1):
                 assert piece.pos[1] + y_offset == len(stack.points)
                 # add a new line to stack and fill with transparent pixels (this is new top of stack)
                 self.points.append([16 for i in range(led_matrix.width())])
+            # add line of piece to top of stack
             for x_offset, pixel in enumerate(line):
                 # add piece if not transparent
                 if pixel != 16:
@@ -56,7 +75,6 @@ class Stack(object):
             Useful for blinking full lines.
         @type blinking_off: boolean
         """
-        assert self is not None
         for y, line in enumerate(self.points):
             # show a line of color == 0 for full lines if currently blinking off
             if blinking_off and all(pixel != 16 for pixel in line):  # short-circuit avoids heavy computation if not needed
@@ -82,7 +100,7 @@ class Stack(object):
         @returns: number of full lines removed
         @rtype: int        
         """
-        # remove lines in reverse we don't mess up if multiple lines
+        # remove lines in reverse so we don't mess it up if multiple lines need to be removed
         reverse_enumerate = lambda l : izip(xrange(len(l)-1, -1, -1), reversed(l))     
         score = 0
         for y, line in reverse_enumerate(self.points):
@@ -203,11 +221,8 @@ def button_handler(channel):
             curr_piece.moveleft(stack)
         elif channel == RIGHT:
             curr_piece.moveright(stack)
-        elif channel == A:
+        elif channel == A or channel == UP:
             curr_piece.rotate(90)
-        elif channel == DOWN:
-            # TODO: speed up piece
-            pass
     elif (curr_state == State.IDLE or curr_state == State.DONE) and channel == A:
         curr_state = State.RESET
 
@@ -231,7 +246,7 @@ title.rotate(-90)
 while True:
     # state when a piece is slowling moving down the display
     if curr_state == State.MOVINGDOWN:
-        # up speed if score is a multiple of 10
+        # up speed if score is a multiple of 5
         if speed != 0 and speed % 5 == 0:
             speed = speed/1.25
     
@@ -239,12 +254,13 @@ while True:
         if stack.height() >= led_matrix.height() - 1:
             curr_state = State.DONE
             continue
+            
         # check if piece can't move down, and if so, add piece to stack and start blinking any full lines
         if not curr_piece.can_movedown(stack):
             stack.add(curr_piece)  # add piece to stack
             curr_piece = None      # piece is no longer curr_piece
             blinking_clock = BLINKING_TIME  # set up blinking clock 
-            curr_state = State.BLINKING
+            curr_state = State.BLINKING     # goto blinking state
             continue
             
         # otherwise move piece down
@@ -255,8 +271,10 @@ while True:
         curr_piece.draw()
         stack.draw()
         led_matrix.show()
+        
+        # speed up delay if DOWN button is held down
         if GPIO.input(DOWN) == 0:
-            time.sleep(.1)   # speed up if down button is held down
+            time.sleep(.05)
         else:
             time.sleep(speed)
 
@@ -265,7 +283,7 @@ while True:
         # when blinking clock counts down to zero, remove full lines and start a new piece
         if blinking_clock == 0:
             score += stack.remove_full_lines() # add full lines to total score
-            # make a new piece and go make to moving piece down
+            # make a new piece and goto moving piece down
             curr_piece = Piece(random.choice(SHAPES))
             curr_state = State.MOVINGDOWN
         else:
@@ -279,7 +297,6 @@ while True:
         
     elif curr_state == State.IDLE:
         # display scrolling virtical text
-        #      - if you move to right while going down you can overlap... have more checks before moving left and right
         y_pos = - title.height
         while y_pos < led_matrix.height():
             # if state changes stop scrolling and go to that state
