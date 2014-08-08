@@ -123,12 +123,6 @@ START = 27
 A = 4
 B = 17
 
-# wire them wrong temporaily so i can play it
-LEFT = 24 # DOWN
-UP = 23   # LEFT
-DOWN = 18 # RIGHT
-RIGHT = 25 # UP
-
 # what to do during a button press
 def button_handler(button):
     global curr_state
@@ -155,7 +149,10 @@ for button in [UP, DOWN, LEFT, RIGHT, START, SELECT]:
 while True:
     if curr_state == State.PLAYING:
         led_matrix.erase()
+        
+        # attempt to move snake in current direction
         move_success = snake.move()
+        # if successful grow or remove the tail dependin if we recently grabs an apple
         if move_success:
             if snake.growing:
                 if snake.grow_clock == 0:  # stop growing when clock hits zero
@@ -178,27 +175,22 @@ while True:
             curr_state = State.WIN
             continue
             
-        # if snake has gotten an apple, set up a new apple and start growing
+        # if snake has got the apple, set up a new apple and start growing
         if snake.head() == field.apple:
             field.new_apple(snake)       # create new apple
             score += 1
             snake.growing = True         # snake starts growing
-            snake.grow_clock = GROW_CYCLES
+            snake.grow_clock = GROW_CYCLES  # reset grow clock
             
         time.sleep(.30)
-        
-    #TODO: make scrolling text title for games where I was too lazy
-    #    - fix up stuff if I need to
-    #    - make a fun accelerometer game 
-    #    - make protector work for dynamic amount of matrices
-    #    - make some simple instructional programs    
         
     elif curr_state == State.IDLE:
         # display horizontal scrolling title
         title = led_matrix.LEDText("SNAKE")
         x_pos = led_matrix.width() - 1
         while x_pos > - title.width:
-            if curr_state != State.IDLE:
+            # break if state has changed, so we don't have to wait for it to finish
+            if curr_state != State.IDLE: 
                 break
             led_matrix.erase()
             led_matrix.sprite(title, (x_pos, 1))
@@ -216,16 +208,27 @@ while True:
         field.draw_apple()
         led_matrix.show()
         curr_state = State.PLAYING
+        
     elif curr_state == State.WIN:
-        led_matrix.erase()
-        led_matrix.text("WIN")  # TODO: scrolling text
-        led_matrix.show()
+        # display horizontal scrolling win screen
+        title = led_matrix.LEDText("WIN!!")
+        x_pos = led_matrix.width() - 1
+        while x_pos > - title.width:
+            if curr_state != State.WIN:
+                break
+            led_matrix.erase()
+            led_matrix.sprite(title, (x_pos, 1))
+            led_matrix.show()
+            time.sleep(.1)
+            x_pos -= 1
+    
     elif curr_state == State.LOSE:
         led_matrix.erase()
         led_matrix.text(str(score))
         led_matrix.show()
+        
     elif curr_state == State.EXIT:
-        led_matrix.shutdown_matrices()
+        led_matrix.cleanup()
         GPIO.cleanup()
         sys.exit(0)
         
