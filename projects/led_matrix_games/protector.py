@@ -17,7 +17,7 @@ import os
 import time
 import random
 import sys
-from rstem import led_matrix
+from rstem import led_matrix, speaker
 import RPi.GPIO as GPIO
 from collections import deque
 
@@ -338,171 +338,161 @@ class States(object):
             self.next()
 
 
-# TODO: add music when sound api is developed
-def protector(num_rows=1, num_cols=2, angle=180):
-    try:
-#        music_cmd = "exec mpg123 /usr/share/scratch/Media/Sounds/Music\ Loops/Cave.mp3 -g 50 -l 0"
-#        music = Popen(music_cmd, shell=True)
+# FSM =====
 
-        # define what to do during a button press
-        def button_handler(channel):
-            if channel == START:
-                led_matrix.cleanup()
-                GPIO.cleanup()
-                sys.exit(0)
-            if channel in [LEFT, RIGHT, UP, DOWN]:
-                ship.deferred_adjust(channel)  # add direction to direction queue
-            if channel in [A]:
-                missiles.new(ship.origin)  # generate new missle from ship
+    
+# play background music
+speaker.Sound("/usr/share/scratch/Media/Sounds/Music\ Loops/Cave.mp3").play(-1)
 
-        # set up gpio inputs
-        GPIO.setmode(GPIO.BCM)
-        for g in [A, LEFT, DOWN, UP, RIGHT, START]:
-            GPIO.setup(g, GPIO.IN, pull_up_down = GPIO.PUD_UP)
-            GPIO.add_event_detect(g, GPIO.FALLING, callback=button_handler, bouncetime=100)
-
-
-        # set up led matrix
-        led_matrix.init_grid(num_rows, num_cols, angle)
-        global WIDTH
-        global HEIGHT
-        WIDTH = led_matrix.width()
-        HEIGHT = led_matrix.height()
-        
-        # define walls
-        global wall_params
-        global no_wall_params
-        wall_params = [
-            {
-                # WALL_SCENE 0
-                "more_cols_min":5,
-                "more_cols_max":8,
-                "tunnel_min":4,
-                "tunnel_max":HEIGHT - 3,
-                "start_rate":2,  # slow
-                "period":5,
-            }, {
-                # WALL_SCENE 1
-                "more_cols_min":3,
-                "more_cols_max":6,
-                "tunnel_min":2,
-                "tunnel_max":HEIGHT - 4,
-                "start_rate":3,  # faster
-                "period":5,
-            }, {
-                # WALL_SCENE 2
-                "more_cols_min":3,
-                "more_cols_max":5,
-                "tunnel_min":2,
-                "tunnel_max":HEIGHT - 5,
-                "start_rate":5,  # fastest
-                "period":5,
-            }
-        ]
-        # parameters to show no tunnel
-        no_wall_params = {
-            "more_cols_min":2,
-            "more_cols_max":2,
-            "tunnel_min":HEIGHT,
-            "tunnel_max":HEIGHT,
-            "start_rate":0,
-            "period":0,
-        }
-        
-        # set up states
-        DONE=1
-        WALL_SCENE=2
-        WALL_2_ENEMY_SCENE=3
-        ENEMY_SCENE=4
-        BIG_BOSS=5
-        YOU_WIN=6
-        GAME_OVER=7
-        state = States(
-            [WALL_SCENE, WALL_2_ENEMY_SCENE, ENEMY_SCENE] * 2 + [BIG_BOSS, YOU_WIN, GAME_OVER, DONE])
-        wall_scene = 0
-        enemy_scene = 0
-
-        wall = Wall(color=5)
-        ship = Ship((2,4), color=0xF)
-        missiles = Missiles(direction=RIGHT, color=1)
-        enemy_missiles = Missiles(direction=LEFT, color=1)
-        enemies = Enemies(enemy_missiles, color=0xA)
-        all_sprites = [wall, ship, missiles, enemies, enemy_missiles]
-
-        wall.collideswith(ship, missiles, enemy_missiles, enemies)
-        ship.collideswith(wall, enemies, enemy_missiles)
-        missiles.collideswith(wall, enemies)
-        enemy_missiles.collideswith(wall, ship)
-        enemies.collideswith(wall, ship, missiles)
-
-        next_tick = time.time() + POLL_PERIOD
-        
-
-        # state machine that runs through game
-        while state.current() != DONE:
-            if state.current() in [WALL_SCENE, WALL_2_ENEMY_SCENE, ENEMY_SCENE, BIG_BOSS]:
-                if state.first_time():
-                    if state.current() == WALL_SCENE:
-                        wall.set_params(**wall_params[wall_scene]) # set parameters of particular wall scene
-                        wall_scene += 1
-                    elif state.current() == WALL_2_ENEMY_SCENE:
-                        wall.set_params(**no_wall_params)
-                    elif state.current() == ENEMY_SCENE:
-                        # clear wall and create enemies?
-                        wall.set_params(**no_wall_params)
-                        enemies.new(5)
-                        enemy_scene += 1
-                    elif state.current() == BIG_BOSS:
-                        pass
-                else:
-
-                    # Move sprites
-                    for sprite in all_sprites:
-                        sprite.trystep()
-
-                    # Draw sprites
-                    led_matrix.erase()
-                    for sprite in all_sprites:
-                        sprite.draw()
-                    led_matrix.show()
-
-                    # Exit on collision
-                    if ship.collided():
-                        state.skipto(GAME_OVER)
-
-                    if state.current() == WALL_SCENE:
-                        state.next_if_after(10)
-                    elif state.current() == WALL_2_ENEMY_SCENE:
-                        state.next_if_after(3)
-                    elif state.current() == ENEMY_SCENE:
-                        if len(enemies) == 0:  # if all enemies killed
-                            state.next()
-                    elif state.current() == BIG_BOSS:
-                        state.next()
-
-            elif state.current() == GAME_OVER:
-                # Scroll "GAME OVER" message
-                text = led_matrix.LEDText("GAME OVER!!!", font_size="small")
-                pos_x, pos_y = (led_matrix.width(),0)
-                while -pos_x < text.width:
-                    time.sleep(.1)
-                    led_matrix.erase()
-                    led_matrix.text(text, (pos_x, pos_y))
-                    led_matrix.show()
-                    pos_x -= 1
-
-                state.next()
-
-            t = next_tick - time.time()
-            if t > 0:
-                time.sleep(t)
-            next_tick += POLL_PERIOD
-
-    finally:
-#        music.kill()
+# define what to do during a button press
+def button_handler(channel):
+    # exit if START button pressed
+    if channel == START:
         led_matrix.cleanup()
         GPIO.cleanup()
+        sys.exit(0)
+    if channel in [LEFT, RIGHT, UP, DOWN]:
+        ship.deferred_adjust(channel)  # add direction to direction queue
+    if channel in [A]:
+        missiles.new(ship.origin)  # generate new missle from ship
 
-while True:
-    protector()
+# set up gpio inputs
+GPIO.setmode(GPIO.BCM)
+for g in [A, LEFT, DOWN, UP, RIGHT, START]:
+    GPIO.setup(g, GPIO.IN, pull_up_down = GPIO.PUD_UP)
+    GPIO.add_event_detect(g, GPIO.FALLING, callback=button_handler, bouncetime=100)
+
+
+# set up led matrix
+led_matrix.init_grid()
+WIDTH = led_matrix.width()
+HEIGHT = led_matrix.height()
+
+# define walls
+global wall_params
+global no_wall_params
+wall_params = [
+    {
+        # WALL_SCENE 0
+        "more_cols_min":5,
+        "more_cols_max":8,
+        "tunnel_min":4,
+        "tunnel_max":HEIGHT - 3,
+        "start_rate":2,  # slow
+        "period":5,
+    }, {
+        # WALL_SCENE 1
+        "more_cols_min":3,
+        "more_cols_max":6,
+        "tunnel_min":2,
+        "tunnel_max":HEIGHT - 4,
+        "start_rate":3,  # faster
+        "period":5,
+    }, {
+        # WALL_SCENE 2
+        "more_cols_min":3,
+        "more_cols_max":5,
+        "tunnel_min":2,
+        "tunnel_max":HEIGHT - 5,
+        "start_rate":5,  # fastest
+        "period":5,
+    }
+]
+# parameters to show no tunnel
+no_wall_params = {
+    "more_cols_min":2,
+    "more_cols_max":2,
+    "tunnel_min":HEIGHT,
+    "tunnel_max":HEIGHT,
+    "start_rate":0,
+    "period":0,
+}
+
+# set up states
+DONE=1
+WALL_SCENE=2
+WALL_2_ENEMY_SCENE=3
+ENEMY_SCENE=4
+BIG_BOSS=5
+YOU_WIN=6
+GAME_OVER=7
+state = States(
+    [WALL_SCENE, WALL_2_ENEMY_SCENE, ENEMY_SCENE] * 2 + [BIG_BOSS, YOU_WIN, GAME_OVER, DONE])
+wall_scene = 0
+enemy_scene = 0
+
+wall = Wall(color=5)
+ship = Ship((2,4), color=0xF)
+missiles = Missiles(direction=RIGHT, color=1)
+enemy_missiles = Missiles(direction=LEFT, color=1)
+enemies = Enemies(enemy_missiles, color=0xA)
+all_sprites = [wall, ship, missiles, enemies, enemy_missiles]
+
+wall.collideswith(ship, missiles, enemy_missiles, enemies)
+ship.collideswith(wall, enemies, enemy_missiles)
+missiles.collideswith(wall, enemies)
+enemy_missiles.collideswith(wall, ship)
+enemies.collideswith(wall, ship, missiles)
+
+next_tick = time.time() + POLL_PERIOD
+
+
+# state machine that runs through game
+while state.current() != DONE:
+    if state.current() in [WALL_SCENE, WALL_2_ENEMY_SCENE, ENEMY_SCENE, BIG_BOSS]:
+        if state.first_time():
+            if state.current() == WALL_SCENE:
+                wall.set_params(**wall_params[wall_scene]) # set parameters of particular wall scene
+                wall_scene += 1
+            elif state.current() == WALL_2_ENEMY_SCENE:
+                wall.set_params(**no_wall_params)
+            elif state.current() == ENEMY_SCENE:
+                wall.set_params(**no_wall_params)
+                enemies.new(5)
+                enemy_scene += 1
+            elif state.current() == BIG_BOSS:
+                pass
+        else:
+
+            # Move sprites
+            for sprite in all_sprites:
+                sprite.trystep()
+
+            # Draw sprites
+            led_matrix.erase()
+            for sprite in all_sprites:
+                sprite.draw()
+            led_matrix.show()
+
+            # Exit on collision
+            if ship.collided():
+                state.skipto(GAME_OVER)
+
+            if state.current() == WALL_SCENE:
+                state.next_if_after(10)
+            elif state.current() == WALL_2_ENEMY_SCENE:
+                state.next_if_after(3)
+            elif state.current() == ENEMY_SCENE:
+                if len(enemies) == 0:  # if all enemies killed
+                    state.next()
+            elif state.current() == BIG_BOSS:
+                state.next()
+
+    elif state.current() == GAME_OVER:
+        # Scroll "GAME OVER" message
+        text = led_matrix.LEDText("GAME OVER!!!")
+        pos_x, pos_y = (led_matrix.width(),0)
+        while -pos_x < text.width:
+            time.sleep(.1)
+            led_matrix.erase()
+            led_matrix.text(text, (pos_x, pos_y))
+            led_matrix.show()
+            pos_x -= 1
+
+        state.next()
+
+    t = next_tick - time.time()
+    if t > 0:
+        time.sleep(t)
+    next_tick += POLL_PERIOD
 
