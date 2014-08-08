@@ -1,3 +1,19 @@
+#
+# Copyright (c) 2014, Scott Silver Labs, LLC.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#       http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 import sys
 import os
 from rstem import led_matrix, button
@@ -7,9 +23,21 @@ import time
 # initialize led matrix
 led_matrix.init_grid()
 
-# setup exit button
-exit_button = button.Button(27)  
+# set up buttons
+A = 4
+B = 17
+UP = 25
+DOWN = 24
+LEFT = 23
+RIGHT = 18
+START = 27
+SELECT = 22
 
+# setup exit and restart button
+exit_button = button.Button(START)
+restart_button = button.Button(A)
+
+# initialize variables
 num_rows, num_cols, curr_gen, next_gen = (None, None, None, None)
     
     
@@ -61,24 +89,29 @@ def draw_grid():
     """Draws the current generation to led_matrix."""
     for y in range(num_rows):
         for x in range(num_cols):
-            led_matrix.point(x, y, curr_gen[y][x])    
-            
-# variables
-num_rows = led_matrix.height()
-num_cols = led_matrix.width()
-curr_gen = random_grid(num_cols, num_rows)
-next_gen = [[0 for i in range(num_cols)] for j in range(num_rows)]
-# TODO allow sprite input instead of random grid?
+            led_matrix.point(x, y, curr_gen[y][x])
+                
+# whole game loop
+while True:            
+    # variables
+    num_rows = led_matrix.height()
+    num_cols = led_matrix.width()
+    curr_gen = random_grid(num_cols, num_rows)
+    next_gen = [[0 for i in range(num_cols)] for j in range(num_rows)]
+    # TODO allow sprite input instead of random grid?
 
-while True:
-    if exit_button.is_pressed():
-        # clean up stuff and exit the program
-        button.cleanup()
-        led_matrix.shutdown_matrices()
-        sys.exit(0)
-    else:
-        led_matrix.erase()   # clear the display
-        draw_grid()          # draw the current generation
-        led_matrix.show()    # show on display
-        next_generation()    # update generation to next generation
+    # single game loop
+    while True:
+        if exit_button.is_pressed():
+            # clean up stuff and exit the program
+            button.cleanup()
+            led_matrix.cleanup()
+            sys.exit(0)
+        elif restart_button.is_pressed():
+            break  # break out of this inner loop (lets us restart generations)
+        else:
+            led_matrix.erase()   # clear the display
+            draw_grid()          # draw the current generation
+            led_matrix.show()    # show on display
+            next_generation()    # update generation to next generation
     

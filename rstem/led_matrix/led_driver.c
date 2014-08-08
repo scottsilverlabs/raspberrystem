@@ -43,7 +43,7 @@ int display_on_terminal = 0;
 #define NUM_BYTES_MATRIX ((DIM_OF_MATRIX*DIM_OF_MATRIX)/2)
 #define bitstream_SIZE (num_matrices*NUM_BYTES_MATRIX)
 
-#define COORDS_TO_INDEX(x, y) ((x)*container_height + (y))
+#define COORDS_TO_INDEX(x, y) ((y)*container_width + (x))
 
 #define SIGN(x) (((x) >= 0) ? 1 : -1)
 
@@ -514,8 +514,10 @@ static PyObject *py_frame(PyObject *self, PyObject *args){
 	    PyErr_SetString(PyExc_ValueError, "Numpy array must be 2D!");
 	    return NULL;
 	}
-	if (PyArray_DIM(numpy_array, 0) != container_width
-	    || PyArray_DIM(numpy_array, 1) != container_height){
+	Debug("PyAr0:%d PyAr1: %d", PyArray_DIM(numpy_array, 0), PyArray_DIM(numpy_array, 1));
+	Debug("Width:%d Height:%d", container_width, container_height);
+	if (PyArray_DIM(numpy_array, 1) != container_width
+	    || PyArray_DIM(numpy_array, 0) != container_height){
 	    PyErr_SetString(PyExc_ValueError, "Numpy array dimensions must be the same as container!");
 	    return NULL;   
 	}
@@ -524,7 +526,6 @@ static PyObject *py_frame(PyObject *self, PyObject *args){
 	framebuffer = (unsigned int *) PyArray_DATA(numpy_array);
 
 	Debug("Current framebuffer pointer %p", framebuffer);
-	print_framebuffer();
 	return Py_BuildValue("i", 1);
 }
 

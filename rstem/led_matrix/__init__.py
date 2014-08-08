@@ -19,7 +19,7 @@ import os
 import re
 import time
 from itertools import islice
-import led_driver     # c extension that controls led matrices and contains framebuffer
+from . import led_driver     # c extension that controls led matrices and contains framebuffer
 import copy
 import subprocess
 
@@ -165,10 +165,11 @@ def init_grid(num_rows=None, num_cols=None, angle=0, math_coords=True, spi_speed
         led_driver.init_SPI(spi_speed, spi_port)
         spi_initialized = True
     
-    # num_rows, and num_cols are before rotation
-    # auto detect number of columns if none given
-    num_matrices = led_driver.detect()
+
     if num_cols is None:
+        # num_rows, and num_cols are before rotation
+        # auto detect number of columns if none given
+        num_matrices = led_driver.detect()
         if num_rows is None:
             # if number of rows not given assume max of 4 columns per row
             for cols in reversed(range(5)):  # should never hit zero
@@ -179,12 +180,14 @@ def init_grid(num_rows=None, num_cols=None, angle=0, math_coords=True, spi_speed
                     break
         else:
             num_cols = num_matrices/num_rows
+            
+        if num_cols*num_rows != num_matrices:  # safety check
+          raise ValueError("Invalid number of rows and columns")
+    
     elif num_rows is None:
         raise ValueError("If you are providing num_cols you must also provide num_rows.")
     
-    if num_cols*num_rows != num_matrices:  # safety check
-        raise ValueError("Invalid number of rows and columns")
-    
+
     if angle % 90 != 0:
         raise ValueError("Angle must be a multiple of 90.")
     angle = angle % 360
@@ -244,6 +247,7 @@ def cleanup():
     Also, clears the display.
     """
     global initialized
+    global spi_initialized
     if initialized:
         led_driver.fill(0x0)
         led_driver.flush()
