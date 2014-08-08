@@ -152,7 +152,7 @@ while True:
         
         # attempt to move snake in current direction
         move_success = snake.move()
-        # if successful grow or remove the tail dependin if we recently grabs an apple
+        # if successful grow or remove the tail depending if we recently grabbed an apple
         if move_success:
             if snake.growing:
                 if snake.grow_clock == 0:  # stop growing when clock hits zero
