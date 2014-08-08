@@ -48,7 +48,8 @@ class install(_install):
         self.execute(_post_install, (self.install_lib,), msg="Running post install task...")
 
 # C extension wrappers
-led_driver =  Extension('led_driver', sources = ['rstem/led_matrix/led_driver.c'])
+led_driver =  Extension('rstem.led_matrix.led_driver', sources = ['rstem/led_matrix/led_driver.c'])
+accel = Extension('rstem.accel', sources = ['rstem/accel.c'])
 
 setup(
     name = "raspberrystem",
@@ -76,5 +77,5 @@ setup(
     ],
     cmdclass={'install': install},  # overload install command
     test_suite = 'tests',
-    ext_modules = [led_driver]  # c extensions defined above
+    ext_modules = [led_driver, accel]  # c extensions defined above
 )

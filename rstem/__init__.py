@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+    
+#__all__ = ['accel', 'led_matrix', 'button']
 
-__all__ = ['accel', 'led_matrix']
-
-from rstem import *
+#from rstem import *

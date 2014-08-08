@@ -13,10 +13,12 @@ CELLSDIR=$$HOME/rstem
 #BUILDIR=$(CURDIR)/debian/raspberrystem
 PI=pi@raspberrypi
 
+PYDIR:=$(shell $(PYTHON) $(PYFLAGS) -c "import site; print('site.getsitepackages()[0]')")
+
 ifdef ON_PI
   # Calculate the base names of the distribution, the location of all source,
-  NAME:=$(shell $(PYTHON) $(PYFLAGS) setup.py --name)
-  VER:=$(shell $(PYTHON) $(PYFLAGS) setup.py --version)
+  NAME:=$(shell $(PYTHON) $(PYFLAGS) ./pkg/setup.py --name)
+  VER:=$(shell $(PYTHON) $(PYFLAGS) ./pkg/setup.py --version)
   
   PYVER:=$(shell $(PYTHON) $(PYFLAGS) -c "import sys; print('py%d.%d' % sys.version_info[:2])")
   PY_SOURCES:=$(shell \
@@ -30,14 +32,14 @@ ifdef ON_PI
   	$(wildcard debian/*.init) \
   	$(wildcard debian/*.default) \
   	$(wildcard debian/*.manpages) \
-  #	$(wildcard debian/*.docs) \
+  	$(wildcard debian/*.docs) \
   	$(wildcard debian/*.doc-base) \
   	$(wildcard debian/*.desktop)
-  #DOC_SOURCES:=docs/conf.py \
-  #	$(wildcard docs/*.png) \
-  #	$(wildcard docs/*.svg) \
-  #	$(wildcard docs/*.rst) \
-  #	$(wildcard docs/*.pdf)
+  DOC_SOURCES:=docs/conf.py \
+  	$(wildcard docs/*.png) \
+  	$(wildcard docs/*.svg) \
+  	$(wildcard docs/*.rst) \
+  	$(wildcard docs/*.pdf)
   
   # Types of dist files all located in dist folder
   DIST_EGG=dist/$(NAME)-$(VER)-$(PYVER).egg
@@ -51,21 +53,22 @@ ifdef ON_PI
   	dist/$(NAME)_$(VER)_source.changes
 endif
 
-COMMANDS=install local-install test source egg zip tar deb dist install-projects install-cells \
+COMMANDS=install test source egg zip tar deb dist install-projects install-cells \
     upload-all upload-ppa upload-cheeseshop
 
-.PHONY: all pi-install upload-check help clean push pull $(COMMANDS) $(addprefix pi-, $(COMMANDS))
+.PHONY: all local-install upload-check help clean push pull doc  \
+    $(COMMANDS) $(addprefix pi-, $(COMMANDS))
 
 help:
 #	@echo "make - Compile sources locally"
 	@echo "make push - Push changes on local computer onto pi"
 	@echo "make pull - Pull changes on pi onto local computer (BE CAREFULL!!!)"
 	@echo "make install - Install onto remote Raspberry Pi"
-	@echo "make local-install - Install onto local machine (Still needs a raspberry pi to compile.)"
+	@echo "make local-install - Install onto local machine"
 	@echo "make install-projects - Install projects to home folder"
 	@echo "make install-cells - Install cells to home folder"
 	@echo "make test - Run tests"
-#	@echo "make doc - Generate HTML and PDF documentation"
+	@echo "make doc - Generate HTML documentation (packages must be installed locally first)"
 	@echo "make source - Create source package"
 	@echo "make egg - Generate a PyPI egg package"
 	@echo "make zip - Generate a source zip package"
@@ -79,15 +82,24 @@ help:
 	@echo "make upload-ppa - Upload the new release to ppa"
 	@echo "make upload-cheeseshop - Upload the new release to cheeseshop"
 
+setup.py:
+	cp pkg/setup.py ./
+	
+MANIFEST.in:
+	cp pkg/MANIFEST.in ./
+	
+debian:
+	cp -r pkg/debian debian
+
+cleanup:
+	rm -f ./setup.py
+	rm -f ./MANIFEST.in
+	rm -rf debian
+
+
 # update files on raspberry pi
 push:
-	cp pkg/setup.py ./
-	cp pkg/MANIFEST.in ./
-	cp -r  pkg/debian debian
 	rsync -azP --include-from='pkg/install_include.txt' --exclude='*' ./ $(PI):~/rsinstall
-	rm ./setup.py
-	rm ./MANIFEST.in
-	rm -rf debian
 
 
 # send changed files on pi back to user
@@ -108,10 +120,22 @@ $(COMMANDS)::
 
 # on pi commands start with "pi-"
 
-pi-install:
+PREVDIR = $(CURDIR)
+
+doc:
+	rm -rf doc
+	cd; epydoc --html rstem -o $(PREVDIR)/doc; cd $(PREVDIR)
+
+local-install: setup.py MANIFEST.in
+	# Pretend we are on the pi and install
+	sudo $(PYTHON) $(PYFLAGS) ./setup.py install
+	$(MAKE) cleanup
+
+pi-install: setup.py MANIFEST.in
 	sudo $(PYTHON) $(PYFLAGS) ./setup.py install
 	$(MAKE) pi-install-projects
 	$(MAKE) pi-install-cells
+	$(MAKE) cleanup
 
 pi-install-cells:
 	mkdir -p $(CELLSDIR)
@@ -138,16 +162,19 @@ pi-upload-all:
 	$(MAKE) pi-upload-ppa
 	$(MAKE) pi-upload-cheeseshop
 
-pi-upload-ppa: $(DIST_DSC)
+pi-upload-ppa: $(DIST_DSC) setup.py MANIFEST.in
 	# TODO: change this from raspberrystem-test ppa to an official one
 	# (to add this repo on raspberrypi type: sudo add-apt-repository ppa:r-jon-s/ppa)
 	$(MAKE) upload-check
 	dput ppa:r-jon-s/ppa dist/$(NAME)_$(VER)_source.changes
+	$(MAKE) cleanup
 
-pi-upload-cheeseshop: $(PY_SOURCES)
+pi-upload-cheeseshop: $(PY_SOURCES) setup.py MANIFEST.in
 	# update the package's registration on PyPI (in case any metadata's changed)
+	$(MAKE) setup-pkg
 	$(MAKE) upload-check
 	$(PYTHON) $(PYFLAGS) setup.py register
+	$(MAKE) cleanup
 
 pi-release: $(PY_SOURCES) $(DOC_SOURCES)
 	$(MAKE) upload-check
@@ -176,36 +203,30 @@ clean-pi:
 	ssh $(SSHFLAGS) -t -v $(PI) "sudo rm -rf ~/rsinstall; sudo rm -rf ~/rstem"
 
 # clean all files locally
-clean:
-	cp pkg/setup.py ./
-	cp pkg/MANIFEST.in ./
-	cp -r  pkg/debian debian
+clean: setup.py MANIFEST.in
 	$(PYTHON) $(PYFLAGS) setup.py clean
-	$(MAKE) -f $(CURDIR)/debian/rules clean
-	sudo rm -rf build/ dist/ $(NAME).egg-info/ $(NAME)-$(VER)
-	rm -rf debian/python3-$(NAME) debian/python-$(NAME)
-	rm -f debian/python*
+	$(MAKE) -f $(CURDIR)/pkg/debian/rules clean
+	sudo rm -rf build dist/ $(NAME).egg-info $(NAME)-$(VER)
+	rm -rf pkg/debian/python3-$(NAME) pkg/debian/python-$(NAME)
+	rm -f pkg/debian/python*
 	rm -f ../$(NAME)_$(VER).orig.tar.gz ../$(NAME)_$(VER)_armhf.build ../$(NAME)_$(VER)_armhf.changes ../$(NAME)_$(VER)_source.build
 	rm -f ../python-$(NAME)_$(VER)_armhf.deb ../python3-$(NAME)_$(VER)_armhf.deb
 	rm -f ../$(NAME)_$(VER).dsc ../$(NAME)_$(VER).tar.gz ../$(NAME)_$(VER)_source.changes
 	find $(CURDIR) -name '*.pyc' -delete
-	touch debian/files
-	rm -f debian/files
-	rm ./setup.py
-	rm ./MANIFEST.in
-	rm -rf debian
+	rm -f pkg/debian/files
+	touch pkg/debian/files
+	$(MAKE) cleanup
 
-
-$(DIST_TAR): $(PY_SOURCES)
+$(DIST_TAR): $(PY_SOURCES) setup.py MANIFEST.in
 	$(PYTHON) $(PYFLAGS) setup.py sdist --formats gztar
 
-$(DIST_ZIP): $(PY_SOURCES)
+$(DIST_ZIP): $(PY_SOURCES) setup.py MANIFEST.in
 	$(PYTHON) $(PYFLAGS) setup.py sdist --formats zip
 
-$(DIST_EGG): $(PY_SOURCES)
+$(DIST_EGG): $(PY_SOURCES) setup.py MANIFEST.in
 	$(PYTHON) $(PYFLAGS) setup.py bdist_egg
 
-$(DIST_DEB): $(PY_SOURCES) $(DEB_SOURCES)
+$(DIST_DEB): $(PY_SOURCES) $(DEB_SOURCES) setup.py MANIFEST.in debian
 	# build the binary package in the parent directory then rename it to
 	# project_version.orig.tar.gz
 	$(PYTHON) $(PYFLAGS) setup.py sdist --dist-dir=../
@@ -214,7 +235,7 @@ $(DIST_DEB): $(PY_SOURCES) $(DEB_SOURCES)
 	mkdir -p dist/
 	for f in $(DIST_DEB); do cp ../$${f##*/} dist/; done
 
-$(DIST_DSC): $(PY_SOURCES) $(DEB_SOURCES)
+$(DIST_DSC): $(PY_SOURCES) $(DEB_SOURCES) setup.py MANIFEST.in debian
 	# build the source package in the parent directory then rename it to
 	# project_version.orig.tar.gz
 	cp -r  pkg/debian debian
