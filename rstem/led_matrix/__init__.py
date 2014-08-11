@@ -103,7 +103,7 @@ def display_on_terminal():
     """Toggles on and off the terminal display of the led matrix on show()"""
     led_driver.display_on_terminal()
 
-def init_matrices(mat_list=[(0,0,0)], math_coords=True, spi_speed=500000, spi_port=0):
+def init_matrices(mat_list=[(0,0,0)], math_coords=True, spi_speed=125000, spi_port=0):
     """Creates a chain of led matrices set at particular offsets into the frame buffer
     The order of the led matrices in the list indicate the order they are
     physically hooked up with the first one connected to Pi.
@@ -143,7 +143,7 @@ def init_matrices(mat_list=[(0,0,0)], math_coords=True, spi_speed=500000, spi_po
     
     initialized = True
     
-def init_grid(num_rows=None, num_cols=None, angle=0, math_coords=True, spi_speed=500000, spi_port=0):
+def init_grid(num_rows=None, num_cols=None, angle=0, math_coords=True, spi_speed=125000, spi_port=0):
     """Initiallizes led matrices in a grid pattern with either a given number
     of rows and columns.
     If num_rows and num_cols is not given, it will detect the number of matrices you have
