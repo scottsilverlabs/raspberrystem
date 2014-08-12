@@ -1,3 +1,4 @@
+#Attach resistor and led between INT2 on the accelerometer and GND
 #Import accel module
 from rstem import accel
 
@@ -12,3 +13,5 @@ accel.freefall_motion_debounce(0)
 
 #Set the debounce mode to default and the threshold to 1.1
 accel.freefall_motion_threshold(1, 1.1)
+
+#Now tap the surface the case in on and the accelerometer will detect it
