@@ -96,8 +96,10 @@ menu_items = [
     ["Protector", "protector.py"],
     ["Stack-em", "stackem.py"],
     ["FlappyBird", "flappybird.py"],
-    ["Game of Life", "game_of_life.py"]
+    ["Game of Life", "game_of_life.py"],
+    ["Snake", "snake.py"]
 ]
+menu_items.sort() # put in alphabetical order by titles
 menu = Menu(menu_items)
 
 # set up buttons
