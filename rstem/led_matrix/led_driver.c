@@ -73,7 +73,7 @@ int num_matrices, container_width, container_height;
 
 // SPI Stuff  =============================================
 
-int start_SPI(unsigned int speed, int mode){
+int start_SPI(unsigned long speed, int mode){
 	char *sMode;
 	if(mode == 0){
 		sMode = "/dev/spidev0.0";
@@ -83,7 +83,7 @@ int start_SPI(unsigned int speed, int mode){
 	int err;
 	spi_mode = SPI_MODE_0;
 	bits_per_trans = 8;
-	spi_speed = 100000;
+	spi_speed = speed;
 	spi = open(sMode,O_RDWR);
 	/*
 	* spi mode
@@ -460,8 +460,8 @@ static PyObject *py_point(PyObject *self, PyObject *args){
 static PyObject *py_init_SPI(PyObject *self, PyObject *args){
 	unsigned int speed;
 	int mode;
-	if(!PyArg_ParseTuple(args, "Ii", &speed, &mode)){
-		PyErr_SetString(PyExc_TypeError, "Not an unsigned int and int!");
+	if(!PyArg_ParseTuple(args, "ki", &speed, &mode)){
+		PyErr_SetString(PyExc_TypeError, "Not an unsigned long and int!");
 		return NULL;
 	}
 	import_array();
