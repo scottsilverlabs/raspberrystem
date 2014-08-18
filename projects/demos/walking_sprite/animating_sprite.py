@@ -22,12 +22,12 @@ frames = [man1, man2, man3, man4, man5, man6, man7]
 while True:
 
     # 4. Loop through each of the frames
-    for frame in frames:
+    for current_sprite in frames:
         # 5. Erase display to clear previous frame
         led_matrix.erase()
         
         # 6. Draw current display
-        led_matrix.sprite(frame)
+        led_matrix.sprite(current_sprite)
         
         # 7. Show frame on screen
         led_matrix.show()
