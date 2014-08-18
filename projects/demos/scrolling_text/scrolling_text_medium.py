@@ -5,21 +5,34 @@ led_matrix.init_grid()  # This sets up the led matrix. It must be run before dis
 led_matrix.erase()      # This clears the led matrix display incase anything is currently being displayed.
 
 
-# Displaying moved text on the led matrix. ===============================================
+# Displaying multiple pieces of text in succession ===============================================
 
-my_text_sprite = led_matrix.LEDText("Hello World")
-# Note: my_text_sprite is a variable that holds information on how to display your text.
+# create a while loop that loops infinitly
+while True:
 
-
-# 4. Now, lets draw the my_text_sprite onto the display, but this time display the text at a different (x,y) position
-led_matrix.sprite(my_text_sprite, (-4,0))
-# Note: We can display the text at different locations by giving an (x,y) coordinate. 
-#   - This (x,y) coordinate is the location of the bottom left of the text.
-#   - If no position is given (like we did in part 1), the computer assumes you want the position to be (0,0)
-#   - So if we want to move the text to the left we give an x value that is less than 0. Like (-4,0)
-
-led_matrix.show()
-
-
-# Yay!! Now we can see that the text has been moved to the left by 4 pixels.
-# Try different (x,y) coordinates and see what you get.
+    # clear the display
+    led_matrix.erase()
+    
+    # draw the first part of text
+    led_matrix.text("Hello World", (0,0))
+    
+    # display the text
+    led_matrix.show()
+    
+    # delay for a second so we can see the text
+    time.sleep(1)
+    
+    # clear the display again so we can display the next part
+    led_matrix.erase()
+    
+    # draw the next part of the text by setting the position 8 to the left
+    led_matrix.text("Hello World", (-16,0))
+    
+    # display the text
+    led_matrix.show()
+    
+    # delay for a second so we can see the text
+    time.sleep(1)
+    
+    # it will now loop back to the beginning of the while loop and repeat
+    

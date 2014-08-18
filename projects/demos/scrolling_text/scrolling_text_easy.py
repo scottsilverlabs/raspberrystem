@@ -7,17 +7,11 @@ led_matrix.erase()      # This clears the led matrix display incase anything is 
 
 # Displaying text on the led matrix. ===============================================
 
+# Draw the text "Hello World" on the LED matrix
+# NOTE: this doesn't actually show the text on the display until we call led_matrix.show()
+led_matrix.text("Hello World")
 
-# 1. Convert your text into an LED sprite we can display on the led matrix.
-my_text_sprite = led_matrix.LEDText("Hello World")
-# Note: my_text_sprite is a variable that holds information on how to display your text.
-
-
-# 2. Now, lets draw the my_text_sprite onto the display.
-led_matrix.sprite(my_text_sprite)
-
-
-# 3. To be able to see the text we need to tell the Raspberry Pi to show the drawn text on the led matrix.
+# To be able to see the text we need to tell the Raspberry Pi to show the drawn text on the led matrix.
 led_matrix.show()
 
 

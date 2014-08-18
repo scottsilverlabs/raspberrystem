@@ -1,0 +1,37 @@
+<!-- TODO: Is this too easy?, It doesn't actually scroll..... --->
+
+<html>
+    <head>
+        <title>Scrolling Text - Easy</title>
+    </head>
+    
+    <body>
+        <h1>Scrolling Text - Easy <br> Hello ...</h1>
+            <p>In this demo we will be showing how to display text on the LED matrix.
+            <p><i>Note:</i> The text will not be scrolling so only short text will be visible.
+            
+        <h2>Setup</h2>
+            <h3>Need:</h3>
+                <ul>
+                    <li>At least 1 LED matrix (although more than 1 LED matrix allows more of the text to be visible)
+                </ul>
+                
+            <h3>Steps:</h3>
+                <ol>
+                    <li>Connect led matrix together by ....... TODO: link to already existing instructions?
+                </ol>
+                
+        <h2>Programming</h2>
+            <h3>Displaying the Text</h3>
+                <ol>
+                    <li>First, we must draw the text on the LED matrix display. To do this we call <code>led_matrix.text()</code> with
+                    the text we want to display between the parenthesis. 
+                    <p> This will tell the program that you want the given text to be shown the next time <code>led_matrix.show()</code> is called.
+                    
+                    <li>To actually see our changes to the LED matrix displayed, we next need to call <code>led_matrix.show()</code>
+                    <p>When displayed we will see part of the text displayed on the matrix. However, not all the text will be displayed.
+                    <p>For example, if we had 2 LED matrix hooked up and want to display the text "Hello World". We should see the following, where the text in the box is actually displayed and the text outside of the box is not displayed.
+                    <br><img src="easy_1.png">
+                </ol>
+    </body>
+</html>
