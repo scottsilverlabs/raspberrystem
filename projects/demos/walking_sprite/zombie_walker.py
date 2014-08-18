@@ -30,7 +30,8 @@ while True:
             led_matrix.sprite(current_sprite, (x,0))
         else:
             # show the sprite flipped vertical (faceing left)
-            led_matrix.sprite(current_sprite.flipped_vertical(), (x,0))
+            flipped_sprite = current_sprite.flipped_vertical()
+            led_matrix.sprite(flipped_sprite, (x,0))
             
         # Show sprite on screen
         led_matrix.show()

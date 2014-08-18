@@ -6,39 +6,29 @@
 
 <html>
     <head>
-        <title>Walking Sprite - Medium</title>
+        <title>Walking Sprite - Hard</title>
     </head>
     
     <body>
-        <h1>Walking Sprite - Medium <br> Jumping Man</h1>
+        <h1>Walking Sprite - Hard <br> Zombie Walker</h1>
             <p>In this demo we will be demonstrating a simple animation of a guy walking like in 
             <a href="walking_sprite_easy.html">Easy</a>
-            but add the ability to press a button to make the guy jump.</p>
+            but now, move the sprite back and forth as the guy is animated.
             
         <h2>Setup</h2>
             <h3>Need:</h3>
                 <ul>
-                    <li>At least 1 LED matrix
-                    <li>A button
-                    <li>2 jumper wires for the button
+                    <li>At least 1 LED matrix (although more than 1 LED matrix works better)
                 </ul>
                 
             <h3>Steps:</h3>
                 <ol>
                     <li>Connect led matrix together by ....... TODO: link to already existing instructions?
-                    <li>Place the button on the breadboard.
-                    <li>Using a jumper wire, connect on side of the button to a <i>GND</i> pin on the Raspberry Pi.
-                    <li>Using the other jumper wire, connect the other side of the button to pin 4 on the Raspberry Pi.
-                    <!-- TODO: Need pictures -->
                 </ol>
                 
         <h2>Programming</h2>  <!-- Explaining the animation in terms of a flipbook -->
-            <h3>Setting up the button and sprites</h3>
+            <h3>Setting up the sprites and variables</h3>
                 <ol>
-                    <li>First, we want to set up the button that is connected to port 4 of the Raspberry Pi.
-                    We set up a <code>my_button</code> variable that defines the button attached to port 4, by calling
-                    <code>button.Button(4)</code>
-                    
                     <li><p>There are 7 sprite files called <i>man1.spr</i> to <i>man7.spr</i>. These files are sprites that
                     show the walking guy and different points in his walk. 
                     <p>The sprite files are like the individual
@@ -54,6 +44,14 @@
                     <code>for i in range(1,4):<br>&nbsp;&nbsp;&nbsp;&nbsp;print(i)</code><br>
                     <p>Would print:<br>
                     <code>1<br>2<br>3<br></code>
+                    
+                    <li>We want to setup a variable called <code>moving_right</code>. This variable will be a <i>boolean</i> 
+                    (2 values <code>True</code> or <code>False</code>). The variable will be used to help the program know if the 
+                    sprite is currently walking to the right or to the left. (This is information the program needs to know, to 
+                    know how to properly draw the sprite)
+                    
+                    <li>We then setup a variable called <code>x</code> which will indicate the current horizontal position the 
+                    sprite is located. (This is another useful piece of information for the program to know how to draw the sprite.)
                     
                 </ol>
             
@@ -72,13 +70,9 @@
                 <ol>
                     <li>Clear the LED Matrix from the previous sprite that was displayed by using <code>led_matrix.erase()</code>
                     
-                    <li>In order to figure out how to draw the next sprite, we need to figure out if the user
-                    has pressed the button. If the user has pressed the button, we should display the sprite higher up off the ground.
-                    <p>To check, we create an <code>if</code> statement that checks if the user has pressed the button. 
-                    <code>my_button.is_pressed()</code> will be <code>True</code> if the user has the button pressed down making the 
-                    <code>if</code> statement to also be true and call the line under it. 
-                    <p>If the statement ends up being <code>False</code> because the user does not have the button pressed down
-                    the program will instead run the line under the <code>else:</code>.
+                    <li>In order to figure out how to draw the next sprite, we need to figure out if the sprite is currently 
+                    walking left or right. If <code>moving_right == True</code>, we should display the sprite facing the original direction (right). If <code>moving_right == False</code> the sprite is moving left and we should display the sprite facing the 
+                    other direction by drawing a sprite that has been flipped_vertically.
                     
                     <p>In the <code>if</code> statement we are drawing the sprite at either the position <code>(0,0)</code>
                     or <code>(0,2)</code>. 
@@ -88,13 +82,18 @@
                     <code>led_matrix.sprite(current_sprite, (1,2))</code> would display the sprite 1 pixel to the right and 2 pixels 
                     up from the pixel at the bottom left corner.  <!-- TODO: need to explain this better -->
                     
-                    <p><b>Try This:</b>
-                        Try changing the coordinates of the sprite when the button is pressed, and see what happens when you
-                        press the button!
-                    </p> 
-                    
                     <li>Drawing the sprite does not actually display the sprite on the LED matrix. To actually display
                     the sprite we must then call <code>led_matrix.show()</code>
+                    
+                    <li>Now we need to either increase our decrease our x variable by 1 depending if the sprite was going left
+                    or right. We determine which way it was going with an <code>if moving_right:</code> statement.
+                    
+                    <li>We then need to determine if we need to change the <code>moving_right</code>. 
+                    <p>The variable needs to be changed from <code>True</code> to <code>False</code> if the sprite has hit the
+                    right side of the LED matrix display. Which is when <code>x > (led_matrix.width() - sprite.width)</code> is 
+                    <code>True</code>.  <!-- TODO: further explain this? -->
+                    <p>Otherwise the variable needs to be changed from <code>False</code> to <code>True</code> if the sprite
+                    has hit the left side of the LED matrix display. Which is when <code>x == 0</code>
                     
                     <li>Now that the <code>current_sprite</code> has been displayed. The program should wait a little bit before
                     attempting to display the next sprite. If we don't the sprites will change too fast to be able to see the 
