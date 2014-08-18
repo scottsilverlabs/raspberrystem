@@ -21,16 +21,16 @@ x = 0  # initially we want our x value to be 0
 while True:
 
     # Loop through each of the frames
-    for sprite in frames:
+    for current_sprite in frames:
         # Erase display to clear previous sprite
         led_matrix.erase()
         
         if moving_right:
             # show the sprite as normal (facing right)
-            led_matrix.sprite(sprite, (x,0))
+            led_matrix.sprite(current_sprite, (x,0))
         else:
             # show the sprite flipped vertical (faceing left)
-            led_matrix.sprite(sprite.flipped_vertical(), (x,0))
+            led_matrix.sprite(current_sprite.flipped_vertical(), (x,0))
             
         # Show sprite on screen
         led_matrix.show()

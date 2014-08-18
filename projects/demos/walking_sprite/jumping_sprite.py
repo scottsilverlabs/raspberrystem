@@ -18,17 +18,17 @@ for i in range(1,8):  # a for loop that counts from 1 to 7
 while True:
 
     # 4. Loop through each of the frames
-    for frame in frames:
+    for current_sprite in frames:
         # 5. Erase display to clear previous frame
         led_matrix.erase()
         
         # 7. If the button is pressed we want to display the sprite jumping.
         if my_button.is_pressed():
             # draw the sprite up 2 pixels to simulate it jumping
-            led_matrix.sprite(frame, (0,2))
+            led_matrix.sprite(current_sprite, (0,2))
         else:
             # if not jumping draw the sprite at the origin
-            led_matrix.sprite(frame, (0,0))
+            led_matrix.sprite(current_sprite, (0,0))
         
         # 8. Show frame on screen
         led_matrix.show()

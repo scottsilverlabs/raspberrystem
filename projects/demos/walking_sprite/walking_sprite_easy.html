@@ -11,7 +11,7 @@
     
     <body>
         <h1>Walking Sprite - Easy</h1>
-            <p>In this demo we will be demonstrating a simple animations. This
+            <p>In this demo we will be demonstrating a simple animation of a guy walking. This
             will be acheived by quickly showing different sprites in succession
             to simulate the appearance of the sprite walking.</p>
             
@@ -33,7 +33,7 @@
                     show the walking guy and different points in his walk. 
                     <p>The sprite files are like the individual
                     pages of a flip book. We want to define these pages to the program.
-                    <p>The first thing we do is tell the program where these sprite files are
+                    <p>The first thing we do is tell the program where these sprite files are by using <code>led_matrix.LEDSprite()</code> to make sprite variables.  <!-- TODO: better way to explain this? -->
                     
                     <li>Next we list these sprites in the correct order just like putting the pages of a flipbook in the right order.
                     We call this list <code>frames</code>.
@@ -58,7 +58,7 @@
                     This will tell the LED matrix that we want our <code>current_sprite</code> on the LED matrix.
                     
                     <li>Drawing the sprite does not actually display the sprite on the LED matrix. To actually display
-                    the sprite we must call <code>led_matrix.show()</code>
+                    the sprite we must then call <code>led_matrix.show()</code>
                     
                     <li>Now that the <code>current_sprite</code> has been displayed. The program should wait a little bit before
                     attempting to display the next sprite. If we don't the sprites will change too fast to be able to see the 
