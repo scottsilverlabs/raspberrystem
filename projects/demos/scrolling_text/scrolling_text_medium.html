@@ -1,0 +1,53 @@
+<!-- TODO: Use different text than "Hello World" that would fit better? -->
+
+<html>
+    <head>
+        <title>Scrolling Text - Medium</title>
+    </head>
+    
+    <body>
+        <h1>Scrolling Text - Medium <br> Hello World</h1>
+            <p>In this demo we will be showing how to display text on the LED matrix.
+            <p>To overcome the limitation of the size of the LED matrix display.
+            We will be displaying part of the text at a time by changing the position of the displayed text
+            
+        <h2>Setup</h2>
+            <h3>Need:</h3>
+                <ul>
+                    <li>2 LED matrices connected together to make a 1x2 display
+                </ul>
+                
+            <h3>Steps:</h3>
+                <ol>
+                    <li>Connect led matrix together by ....... TODO: link to already existing instructions?
+                </ol>
+                
+        <h2>Programming</h2>
+            <ol>
+                <li>First, we want to create a <code>while</code> loop that will continuously loop infinitly. 
+                <p>We can do this by creating the conditional statement to always be <code>True</code>.
+                <!-- TODO: Should we be teaching about a while here or just link to something? -->
+                
+                <li>In the <code>while</code> loop we first want to clear the previous text that is displayed on the 
+                LED matrices. (There will be something displayed after the first iteration through the matrix.)
+                
+                <li>Next, we display the first part of "Hello World", by drawing the text at position <code>(0,0)</code>.
+                Meaning the text will be positioned at the very bottom left of the matrix.
+                <br><img src="medium_1.png">
+                
+                <li>Next, we want to show the text we drew by calling <code>led_matrix.show()</code>
+                
+                <li>We then want the program to wait a second before starting to display the next part.
+                If we don't do this, the text will be displayed to fast for use to see and read it.
+                By calling <code>time.sleep(1)</code>, the program will wait 1 second before moving onto the next line.
+                <p><b>Try This:</b> Change the amount of time to a higher or lower number. What happens?
+                
+                <li> We then want to repeat the last 4 steps, but this time display the text left 8 pixels (the width of 
+                the LED matrices) by setting the position to <code>(-16,0)</code>
+                <br><img src="medium_2.png">
+                <!-- TODO: explain how math cordinate systems work and why we did -16 -->
+                
+                <p><b>Try This:</b> How can we improve upon our code and make it work for any length of text?
+            </ol>
+    </body>
+</html>
