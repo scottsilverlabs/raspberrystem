@@ -1,0 +1,108 @@
+<!-- IDEAS:
+    - Link to an already existing setup instructions for the LED Matrix?
+    - Change terms like "while", "for", "if" into links that the user can click to get information about them?
+        - Also link to led_matrix api functions which a simple explaination of how it works?
+-->
+
+<html>
+    <head>
+        <title>Walking Sprite - Hard</title>
+    </head>
+    
+    <body>
+        <h1>Walking Sprite - Hard <br> Zombie Walker</h1>
+            <p>In this demo we will be demonstrating a simple animation of a guy walking like in 
+            <a href="walking_sprite_easy.html">Easy</a>
+            but now, move the sprite back and forth as the guy is animated.
+            
+        <h2>Setup</h2>
+            <h3>Need:</h3>
+                <ul>
+                    <li>At least 1 LED matrix (although more than 1 LED matrix works better)
+                </ul>
+                
+            <h3>Steps:</h3>
+                <ol>
+                    <li>Connect led matrix together by ....... TODO: link to already existing instructions?
+                </ol>
+                
+        <h2>Programming</h2>  <!-- Explaining the animation in terms of a flipbook -->
+            <h3>Setting up the sprites and variables</h3>
+                <ol>
+                    <li><p>There are 7 sprite files called <i>man1.spr</i> to <i>man7.spr</i>. These files are sprites that
+                    show the walking guy and different points in his walk. 
+                    <p>The sprite files are like the individual
+                    pages of a flip book. We want to define these pages to the program.
+                    <p>The first thing we do is tell the program where these sprite files are by using <code>led_matrix.LEDSprite()</code> to make sprite variables. And at the same time, put them into a list called <code>frames</code>. Similar to the process done in
+                    Easy. <!-- TODO: better way to explain this? -->
+                    <p>We can do this efficiently by using a <code>for</code> loop and taking advantage of the fact that all the
+                    sprite are labeled <i>manX.spr</i> where X is a number.  <!-- TODO: say this less mathy? -->
+                    <!-- TODO: a way to make footnote style notes to briefly explain python concepts like the following? -->
+                    <p><b>Note:</b> <code>range(1,8)</code> will tell the <code>for</code> loop to loop from 1 to 7 (not encluding 8).
+                    <code>i</code> is the variable representing the current number the for loop is on.
+                    <p><i>For example:</i><br>
+                    <code>for i in range(1,4):<br>&nbsp;&nbsp;&nbsp;&nbsp;print(i)</code><br>
+                    <p>Would print:<br>
+                    <code>1<br>2<br>3<br></code>
+                    
+                    <li>We want to setup a variable called <code>moving_right</code>. This variable will be a <i>boolean</i> 
+                    (2 values <code>True</code> or <code>False</code>). The variable will be used to help the program know if the 
+                    sprite is currently walking to the right or to the left. (This is information the program needs to know, to 
+                    know how to properly draw the sprite)
+                    
+                    <li>We then setup a variable called <code>x</code> which will indicate the current horizontal position the 
+                    sprite is located. (This is another useful piece of information for the program to know how to draw the sprite.)
+                    
+                </ol>
+            
+            <h3>Setting up the looping</h3> <!-- Same instructions as on Easy -->
+                <ol>
+                    <li>Next we want to set up an infinite loop using a <code>while</code> followed by <code>True</code>.
+                    This tells the program that <i>"while True is True, we want to loop through the indented stuff"</i>
+                    
+                    <li>Next we want to loop through all of the frames in our <code>frames</code> list.
+                    <br><code>for current_sprite in frames:</code> will go through each sprite in the <code>frames</code> 
+                    list, in order, and run the code below it. The current sprite that the <code>for</code> loop is on 
+                    when running the code below it will be the variable <code>current_sprite</code>.
+                </ol>
+            
+            <h3>Displaying sprites on the LED matrix</h3>
+                <ol>
+                    <li>Clear the LED Matrix from the previous sprite that was displayed by using <code>led_matrix.erase()</code>
+                    
+                    <li>In order to figure out how to draw the next sprite, we need to figure out if the sprite is currently 
+                    walking left or right. If <code>moving_right == True</code>, we should display the sprite facing the original direction (right). If <code>moving_right == False</code> the sprite is moving left and we should display the sprite facing the 
+                    other direction by drawing a sprite that has been flipped_vertically.
+                    
+                    <p>In the <code>if</code> statement we are drawing the sprite at either the position <code>(0,0)</code>
+                    or <code>(0,2)</code>. 
+                    <p>This extra parameter in <code>led_matrix.sprite()</code>, are the coordinates where, with respect
+                    to the bottom left corner the LED matrix, the sprite should be displayed. 
+                    <p><b>For Example:</b><br>
+                    <code>led_matrix.sprite(current_sprite, (1,2))</code> would display the sprite 1 pixel to the right and 2 pixels 
+                    up from the pixel at the bottom left corner.  <!-- TODO: need to explain this better -->
+                    
+                    <li>Drawing the sprite does not actually display the sprite on the LED matrix. To actually display
+                    the sprite we must then call <code>led_matrix.show()</code>
+                    
+                    <li>Now we need to either increase our decrease our x variable by 1 depending if the sprite was going left
+                    or right. We determine which way it was going with an <code>if moving_right:</code> statement.
+                    
+                    <li>We then need to determine if we need to change the <code>moving_right</code>. 
+                    <p>The variable needs to be changed from <code>True</code> to <code>False</code> if the sprite has hit the
+                    right side of the LED matrix display. Which is when <code>x > (led_matrix.width() - sprite.width)</code> is 
+                    <code>True</code>.  <!-- TODO: further explain this? -->
+                    <p>Otherwise the variable needs to be changed from <code>False</code> to <code>True</code> if the sprite
+                    has hit the left side of the LED matrix display. Which is when <code>x == 0</code>
+                    
+                    <li>Now that the <code>current_sprite</code> has been displayed. The program should wait a little bit before
+                    attempting to display the next sprite. If we don't the sprites will change too fast to be able to see the 
+                    animation. (Similar to if you go through a flipbook too fast.)
+                    By calling <code>time.sleep(.25)</code>, we tell the program to wait .25 or 1/4 of a second before attempting to
+                    display the next sprite. 
+                    <p><b>Try This:</b>
+                        Try changing the delay time in <code>time.sleep(.25)</code> and see how if affects the animation!
+                    </p>  
+                </ol>
+    </body>
+</html>

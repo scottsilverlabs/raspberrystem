@@ -1,0 +1,73 @@
+<!-- IDEAS:
+    - Link to an already existing setup instructions for the LED Matrix?
+    - Change terms like "while", "for", "if" into links that the user can click to get information about them?
+        - Also link to led_matrix api functions which a simple explaination of how it works?
+-->
+
+<html>
+    <head>
+        <title>Walking Sprite - Easy</title>
+    </head>
+    
+    <body>
+        <h1>Walking Sprite - Easy</h1>
+            <p>In this demo we will be demonstrating a simple animation of a guy walking. This
+            will be acheived by quickly showing different sprites in succession
+            to simulate the appearance of the sprite walking.</p>
+            
+        <h2>Setup</h2>
+            <h3>Need:</h3>
+                <ul>
+                    <li>At least 1 LED matrix
+                </ul>
+                
+            <h3>Steps:</h3>
+                <ol>
+                    <li>Connect led matrix together by ....... TODO: link to already existing instructions?
+                </ol>
+                
+        <h2>Programming</h2>  <!-- Explaining the animation in terms of a flipbook -->
+            <h3>Setting up the sprites</h3>
+                <ol>
+                    <li><p>There are 7 sprite files called <i>man1.spr</i> to <i>man7.spr</i>. These files are sprites that
+                    show the walking guy and different points in his walk. 
+                    <p>The sprite files are like the individual
+                    pages of a flip book. We want to define these pages to the program.
+                    <p>The first thing we do is tell the program where these sprite files are by using <code>led_matrix.LEDSprite()</code> to make sprite variables.  <!-- TODO: better way to explain this? -->
+                    
+                    <li>Next we list these sprites in the correct order just like putting the pages of a flipbook in the right order.
+                    We call this list <code>frames</code>.
+                </ol>
+            
+            <h3>Setting up the looping</h3>
+                <ol>
+                    <li>Next we want to set up an infinite loop using a <code>while</code> followed by <code>True</code>.
+                    This tells the program that <i>"while True is True, we want to loop through the indented stuff"</i>
+                    
+                    <li>Next we want to loop through all of the frames in our <code>frames</code> list.
+                    <br><code>for current_sprite in frames:</code> will go through each sprite in the <code>frames</code> list, in order, and run the
+                    code below it. The current sprite that the <code>for</code> loop is on when running the code below it will be the
+                    variable <code>current_sprite</code>.
+                </ol>
+            
+            <h3>Displaying sprites on the LED matrix</h3>
+                <ol>
+                    <li>Clear the LED Matrix from the previous sprite that was displayed by using <code>led_matrix.erase()</code>
+                    
+                    <li>Now draw our <code>current_sprite</code> onto the LED Matrix by using <code>led_matrix.sprite()</code>.
+                    This will tell the LED matrix that we want our <code>current_sprite</code> on the LED matrix.
+                    
+                    <li>Drawing the sprite does not actually display the sprite on the LED matrix. To actually display
+                    the sprite we must then call <code>led_matrix.show()</code>
+                    
+                    <li>Now that the <code>current_sprite</code> has been displayed. The program should wait a little bit before
+                    attempting to display the next sprite. If we don't the sprites will change too fast to be able to see the 
+                    animation. (Similar to if you go through a flipbook too fast.)
+                    By calling <code>time.sleep(.25)</code>, we tell the program to wait .25 or 1/4 of a second before attempting to
+                    display the next sprite. 
+                    <p><b>Try This:</b>
+                        Try changing the delay time in <code>time.sleep(.25)</code> and see how if affects the animation!
+                    </p>  
+                </ol>
+    </body>
+</html>

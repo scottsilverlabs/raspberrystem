@@ -1,0 +1,109 @@
+<!-- IDEAS:
+    - Link to an already existing setup instructions for the LED Matrix?
+    - Change terms like "while", "for", "if" into links that the user can click to get information about them?
+        - Also link to led_matrix api functions which a simple explaination of how it works?
+-->
+
+<html>
+    <head>
+        <title>Walking Sprite - Medium</title>
+    </head>
+    
+    <body>
+        <h1>Walking Sprite - Medium <br> Jumping Man</h1>
+            <p>In this demo we will be demonstrating a simple animation of a guy walking like in 
+            <a href="walking_sprite_easy.html">Easy</a>
+            but add the ability to press a button to make the guy jump.</p>
+            
+        <h2>Setup</h2>
+            <h3>Need:</h3>
+                <ul>
+                    <li>At least 1 LED matrix
+                    <li>A button
+                    <li>2 jumper wires for the button
+                </ul>
+                
+            <h3>Steps:</h3>
+                <ol>
+                    <li>Connect led matrix together by ....... TODO: link to already existing instructions?
+                    <li>Place the button on the breadboard.
+                    <li>Using a jumper wire, connect on side of the button to a <i>GND</i> pin on the Raspberry Pi.
+                    <li>Using the other jumper wire, connect the other side of the button to pin 4 on the Raspberry Pi.
+                    <!-- TODO: Need pictures -->
+                </ol>
+                
+        <h2>Programming</h2>  <!-- Explaining the animation in terms of a flipbook -->
+            <h3>Setting up the button and sprites</h3>
+                <ol>
+                    <li>First, we want to set up the button that is connected to port 4 of the Raspberry Pi.
+                    We set up a <code>my_button</code> variable that defines the button attached to port 4, by calling
+                    <code>button.Button(4)</code>
+                    
+                    <li><p>There are 7 sprite files called <i>man1.spr</i> to <i>man7.spr</i>. These files are sprites that
+                    show the walking guy and different points in his walk. 
+                    <p>The sprite files are like the individual
+                    pages of a flip book. We want to define these pages to the program.
+                    <p>The first thing we do is tell the program where these sprite files are by using <code>led_matrix.LEDSprite()</code> to make sprite variables. And at the same time, put them into a list called <code>frames</code>. Similar to the process done in
+                    Easy. <!-- TODO: better way to explain this? -->
+                    <p>We can do this efficiently by using a <code>for</code> loop and taking advantage of the fact that all the
+                    sprite are labeled <i>manX.spr</i> where X is a number.  <!-- TODO: say this less mathy? -->
+                    <!-- TODO: a way to make footnote style notes to briefly explain python concepts like the following? -->
+                    <p><b>Note:</b> <code>range(1,8)</code> will tell the <code>for</code> loop to loop from 1 to 7 (not encluding 8).
+                    <code>i</code> is the variable representing the current number the for loop is on.
+                    <p><i>For example:</i><br>
+                    <code>for i in range(1,4):<br>&nbsp;&nbsp;&nbsp;&nbsp;print(i)</code><br>
+                    <p>Would print:<br>
+                    <code>1<br>2<br>3<br></code>
+                    
+                </ol>
+            
+            <h3>Setting up the looping</h3> <!-- Same instructions as on Easy -->
+                <ol>
+                    <li>Next we want to set up an infinite loop using a <code>while</code> followed by <code>True</code>.
+                    This tells the program that <i>"while True is True, we want to loop through the indented stuff"</i>
+                    
+                    <li>Next we want to loop through all of the frames in our <code>frames</code> list.
+                    <br><code>for current_sprite in frames:</code> will go through each sprite in the <code>frames</code> 
+                    list, in order, and run the code below it. The current sprite that the <code>for</code> loop is on 
+                    when running the code below it will be the variable <code>current_sprite</code>.
+                </ol>
+            
+            <h3>Displaying sprites on the LED matrix</h3>
+                <ol>
+                    <li>Clear the LED Matrix from the previous sprite that was displayed by using <code>led_matrix.erase()</code>
+                    
+                    <li>In order to figure out how to draw the next sprite, we need to figure out if the user
+                    has pressed the button. If the user has pressed the button, we should display the sprite higher up off the ground.
+                    <p>To check, we create an <code>if</code> statement that checks if the user has pressed the button. 
+                    <code>my_button.is_pressed()</code> will be <code>True</code> if the user has the button pressed down making the 
+                    <code>if</code> statement to also be true and call the line under it. 
+                    <p>If the statement ends up being <code>False</code> because the user does not have the button pressed down
+                    the program will instead run the line under the <code>else:</code>.
+                    
+                    <p>In the <code>if</code> statement we are drawing the sprite at either the position <code>(0,0)</code>
+                    or <code>(0,2)</code>. 
+                    <p>This extra parameter in <code>led_matrix.sprite()</code>, are the coordinates where, with respect
+                    to the bottom left corner the LED matrix, the sprite should be displayed. 
+                    <p><b>For Example:</b><br>
+                    <code>led_matrix.sprite(current_sprite, (1,2))</code> would display the sprite 1 pixel to the right and 2 pixels 
+                    up from the pixel at the bottom left corner.  <!-- TODO: need to explain this better -->
+                    
+                    <p><b>Try This:</b>
+                        Try changing the coordinates of the sprite when the button is pressed, and see what happens when you
+                        press the button!
+                    </p> 
+                    
+                    <li>Drawing the sprite does not actually display the sprite on the LED matrix. To actually display
+                    the sprite we must then call <code>led_matrix.show()</code>
+                    
+                    <li>Now that the <code>current_sprite</code> has been displayed. The program should wait a little bit before
+                    attempting to display the next sprite. If we don't the sprites will change too fast to be able to see the 
+                    animation. (Similar to if you go through a flipbook too fast.)
+                    By calling <code>time.sleep(.25)</code>, we tell the program to wait .25 or 1/4 of a second before attempting to
+                    display the next sprite. 
+                    <p><b>Try This:</b>
+                        Try changing the delay time in <code>time.sleep(.25)</code> and see how if affects the animation!
+                    </p>  
+                </ol>
+    </body>
+</html>
