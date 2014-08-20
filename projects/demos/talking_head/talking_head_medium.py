@@ -9,14 +9,17 @@ led_matrix.erase()      # This clears the led matrix display incase anything is 
 mouth_closed = led_matrix.LEDSprite(os.path.abspath("mouth_closed.spr"))
 mouth_open = led_matrix.LEDSprite(os.path.abspath("mouth_open.spr"))
 
-# Create a speech object of "Hello World"
-my_speech = speaker.Speech("Hello World")
+## Create a speech object of "Hello World"
+#my_speech = speaker.Speech("Hello World")
 
-# Play my_speech
-my_speech.play()
+## Play my_speech
+#my_speech.play()
+
+# Start speaking the text
+speaker.say("Hello World", wait=False)
 
 # Create a while loop that keeps looping until the Raspberry Pi has stopped talking.
-while my_speech.is_playing():
+while speaker.is_talking():
 
     # Clear the led matrix
     led_matrix.erase()

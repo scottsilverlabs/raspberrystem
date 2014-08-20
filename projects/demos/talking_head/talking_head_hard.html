@@ -5,65 +5,28 @@
     
     <body>
         <h1>Talking Head - Hard <br> Soundboard</h1>
-            <p>In this demo we will be showing how to create a soundboard for the talking head
-            created in <a href="talking_head_medium.html">medium</a>.
+            <p>In this project we will be creating a soundboard for the talking head made in
+            <a href="talking_head_medium.html">medium</a>. This soundboard will allow us
+            to press the buttons on the gamer lid to make the talking head say different things.
             
-        <h2>Setup</h2>
-            <h3>Need:</h3>
+            <h2>How it Works:</h2>
+                <p>In order to make a soundboard we need to make a dictionary that will match specific
+                buttons to the sound or speech that we want to play.
+                
+                <p>Then before we start playing a sound we need to keep looping through all of the buttons
+                untill finally one of the buttons has been pressed. When pressed, the program looks at the soundboard
+                for that particular speech that matched to that button and sets that speech to be
+                the <code>my_speech</code> that will be played.
+        
+            <h2>Try This:</h2>
                 <ul>
-                    <li>1 LED matrix
-                    <li>8 buttons
-                    <li>17 jumper wires
+                    <li>Make your own custom soundboard by changeing the text in the <code>soundboard</code> variable.
+                    <li>Change the delay times in the lines <code>time.sleep(.1)</code>.
+                        <ol>
+                            <li>How does the face animation change?
+                            <li>Does the animation still end relatively when the speech is done? Why or why not?
+                            <li>What happens when the delay times aren't the same?
+                        </ol>
                 </ul>
-                
-            <h3>Steps:</h3>
-                <ol>
-                    <li>Connect the speaker????
-                    <li>Connect led matrix together by ....... TODO: link to already existing instructions?
-                    <li>Place each button in a seperate area of the breadboard <!-- TODO: teach how breadboard work? -->
-                    <li>Connect one side of each button to one of the following ports: 4, 17, 25, 24, 23, 18, 27, and 22
-                        <p>Make sure each button is connected to its own port.
-                    <li>Connect the other side of each button to the negative rail.
-                    <li>Connect the negative rail to a GND port on the Raspberry Pi.
-                </ol>
-                
-        <h2>Programming</h2>
-            <ol>
-                <li>First we create a dictionary that will match our buttons to speeches that will be talked when the button is pressed.
-                <p>The button is created using a Button object from <code>button.Button()</code> and the speech is created by 
-                <code>speaker.Speech()</code>
-                
-                <li>Then, we need to create <code>led_matrix.LEDSprite()</code> object variables for our sprites of a face
-                with its mouth open or mouth close.
-                
-                <li>Next we create a <code>while</code> loop that will loop infinitly by setting the conditional to <code>True</code>
-                
-                <li>Next we want to pick out which speech to play based on which button is pressed.
-                <p>To do this, we first set our <code>my_speech</code> variable to <code>None</code> and then we go through
-                a <code>while</code> loop until the variable has finally been set.
-                
-                <li>In this while loop, we use a <code>for</code> loop and an <code>if</code> statement to check to go through
-                each button and see if it is pressed. If it is, we set the given <code>Speech</code> object of that button
-                to the <code>my_speech</code> variable, which will allow the program to exit the <code>while</code> loop.
-                
-                <li>After we have selected the correct <code>Speech</code> object and set it to <code>my_speech</code>, we then
-                start playing the speech by calling <code>my_speech.play()</code>
-                
-                <li>Now, we create a <code>while</code> loop that will continuously loop until the speech that we just started
-                playing has finished playing. This loop will continuously open and close the mouth while the speech is playing
-                by displaying the open and closed mouth sprites in succession.
-                
-                <li>In the <code>while</code> loop we first clear the LED matrix display from the previous sprite that may be displayed.
-                
-                <li>Next, we first draw the open mouth sprite using <code>led_matrix.sprite()</code>
-                
-                <li>Then, we want display the sprite that we have just drawn using <code>led_matrix.show()</code>.
-                
-                <li>Then, to make sure the program waits a little bit to allow us to see the sprite before it moves on, we
-                can use <code>time.sleep(.1)</code> to make the program delay for a fraction of a second.
-                
-                <li>Finally, we want to repeat the last 4 steps to display the sprite of the mouth closed.
-            
-            </ol>
     </body>
 </html>

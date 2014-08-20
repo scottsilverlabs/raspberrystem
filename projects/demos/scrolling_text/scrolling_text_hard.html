@@ -6,59 +6,37 @@
     </head>
     
     <body>
-        <h1>Scrolling Text - Hard <br> Hello World</h1>
-            <p>In this demo we will be showing how to display scrolling text.
+        <h1>Scrolling Text - Hard <br> Scolling "Hello World!"</h1>
+            <p>In this project we will be scrolling the text "Hello World!" accross the LED matrices.
             
-        <h2>Setup</h2>
-            <h3>Need:</h3>
+        <h2>How it works:</h2>
+            <p>To be able to scroll the text we are using the same technique of continously erasing
+            and displaying the text like in <a href="scrolling_text_medium.html">medium</a>, but instead of
+            changing the text to be displayed each time, we are changing the position where the text is being
+            displayed on the LED matrices.
+            
+            <!-- TODO: make the following simipler.... --->
+            <p>We can change the position of the text when we draw the text by providing a second parameter 
+            to <code>led_matrix.sprite()</code> which draws a <code>LEDSprite</code> variable on the display
+            at the given position. (If a position is not provided the program assumes you want the position
+            to be (0,0))
+            
+            
+         <h2>Try This:</h2>
                 <ul>
-                    <li>2 LED matrices connected together to make a 1x2 display
-                </ul>
-                
-            <h3>Steps:</h3>
-                <ol>
-                    <li>Connect led matrix together by ....... TODO: link to already existing instructions?
-                </ol>
-                
-        <h2>Programming</h2>
-            <ol>
-                <li>First, create a variable that represents the sprite object of the text "Hello World" by using
-                <code>led_matrix.LEDSprite()</code>
-                <p>By developing this variable we save Raspberry Pi the effort of coverting our given "Hello World"
-                text at every iteration of the upcoming <code>for</code> loop, allowing a quicker scrolling of text.
-                
-                <li>Then create a <code>while</code> loop that will continuously loop infinitly. 
-                <p>We can do this by creating the conditional statement to always be <code>True</code>.
-                <!-- TODO: Should we be teaching about a while here or just link to something? -->
-                
-                
-                <li>Next, we want to get the width (in pixels) of our <code>my_text_sprite</code> so we know 
-                how far to the left should the text be positioned before the text is off the screen.
-                <p>We can do this by calling <code>my_text_sprite.width</code>.
-                
-                <li>Next, we want to set the our original x position to be the width (in pixels) of the LED matrix display using <code>led_matrix.width()</code>.
-                This is so we know how far to the right we should originally have the text positioned.
-                <br><img src="hard_1.png">
-                
-                <li>Then we create a <code>while</code> loop that will keep looping until our text 
-                has moved so far to the left that the text is no longer display.
-                <p>This will be when <code>x == -text_width</code>. Therefore by setting our conditional
-                to <code>while x > -text_width</code>, the loop while continue to be <code>True</code> until
-                <code>x == -text_width</code>
-                <br><img src="hard_2.png">
-                <!-- TODO: too wordy? -->
-                
-                <li>Inside the <code>while</code> loop we want to clear the LED matrix display from the previous
-                display, using <code>led_matrix.erase()</code>
-                
-                <li>Then, draw the text at our current x value position by setting the position to be <code>(x,0)</code>
-                
-                <li>Then, we want to show the drawn text by calling <code>led_matrix.show()</code>
-                
-                <li>Then, delay the program for a fraction of a second so the scrolling text doesn't go too fast.
-                
-                <li>Finally, we want to decrease our current x value by 1, so that in the next iteration of the
-                <code>while</code> loop the text 1 pixel to the left on the display.
-            </ol>
+                    <li>Change the text "Hello World" to something else.
+                        <ol>
+                            <li>Isn't that awesome?!
+                        </ol>
+                    <li>Change delay time in <code>time.sleep(.1)</code> to a smaller or larger number.
+                        <ol>
+                            <li>What happens as you change the number?
+                        </ol>
+                    <li>Change the number 1 in line <code>x = x - 1</code> to a larger number.
+                        <ol>
+                            <li>How does this change the way the text scrolls?
+                            <li>What happens when you make it too big of a number? Why does this happen?
+                        </ol>
+                </ul> 
     </body>
 </html>

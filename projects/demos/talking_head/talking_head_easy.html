@@ -4,48 +4,25 @@
     </head>
     
     <body>
-        <h1>Talking Head - Easy <br> Hello World</h1>
-            <p>In this demo we will be showing how to get the Raspberry Pi to convert
+        <h1>Talking Head - Easy <br> Saying "Hello World"</h1>
+            <p>In this project we will be showing how to get the Raspberry Pi to convert
             given text such as "Hello World" into speach and then play it.
             
-        <h2>Setup</h2>
-            <h3>Need:</h3>
+            <h2>How it Works:</h2>
+                <p>When we call the line <code>speaker.say("Hello World")</code>, this tells the Raspberry Pi
+                to use its magical computing powers to play the given text in a robotic voice.
+                
+            <h2>Try This:</h2>
                 <ul>
-                    <li>1 LED matrix
+                    <li>Change the text "Hello World" to something else.
+                        <ol>
+                            <li>How did it sound?
+                        </ol>
+                    <!-- TODO: better word this -->
+                    <li>Try adding more lines similar to the one above but with different text.
+                        <ol>
+                            <li>What does it do?
+                            <li>What happens if you change <code>wait=True</code> to <code>wait=False</code>?
                 </ul>
-                
-            <h3>Steps:</h3>
-                <ol>
-                    <li>Connect the speaker??
-                </ol>
-                
-        <h2>Programming</h2>
-            <ol>
-                
-                <li>First, create <code>led_matrix.LEDSprite()</code> variables <code>mouth_open</code> and <code>mouth_closed</code>
-                to be later used in the upcoming <code>while</code> loop.
-                
-                <li>Then, we create a <code>speaker.Speech()</code> object variable called <code>my_speech</code> for the
-                text we want the hear. This object converts the text into and object that Raspberry Pi can play.
-                
-                <li>Then, we play the speech by calling <code>my_speech.play()</code>
-                
-                <li>Now, we create a <code>while</code> loop that will continuously loop until the speech that we just started
-                playing has finished playing. This loop will continuously open and close the mouth while the speech is playing
-                by displaying the open and closed mouth sprites in succession.
-                    <ol>
-                        <li>In the <code>while</code> loop we first clear the LED matrix display from the previous sprite that may be displayed.
-                        
-                        <li>Next, we first draw the open mouth sprite using <code>led_matrix.sprite()</code>
-                        
-                        <li>Then, we want display the sprite that we have just drawn using <code>led_matrix.show()</code>.
-                        
-                        <li>Then, to make sure the program waits a little bit to allow us to see the sprite before it moves on, we
-                        can use <code>time.sleep(.1)</code> to make the program delay for a fraction of a second.
-                        
-                        <li>Finally, we want to repeat the last 4 steps to display the sprite of the mouth closed.
-                    </ol>
-                </li>
-            </ol>
     </body>
 </html>

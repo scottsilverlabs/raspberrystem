@@ -4,48 +4,38 @@
     </head>
     
     <body>
-        <h1>Talking Head - Medium <br> Hello World</h1>
-            <p>In this demo we will be showing how to create a talking head that will move its mouth as the text is playing.
+        <h1>Talking Head - Medium <br> Talking face saying "Hello World"</h1>
+            <p>In this project we will be making an animated face that will move its mouth while
+            the Raspberry Pi is speaking text. This will make it look like the face is actually speaking the words.
             
-        <h2>Setup</h2>
-            <h3>Need:</h3>
-                <ul>
-                    <li>1 LED matrix
-                </ul>
+            <!-- TODO: Too much detail? -->
+            <h2>How it Works:</h2>
+                <p>We first create sprite variable for both when the face's mouth is open and when its
+                closed by using <code>led_matrix.LEDSprite()</code> followed by the location of the .spr files 
+                have been made.
                 
-            <h3>Steps:</h3>
-                <ol>
-                    <li>Connect the speaker????
-                    <li>Connect led matrix together by ....... TODO: link to already existing instructions?
-                </ol>
+                <p>Then just has before in <a href="talking_head_easy.html">easy</a> we use <code>speaker.say()</code> to 
+                start speaking, however this time we wait <code>wait=False</code> because we want the program 
+                to continue executing the next lines of code while the speaker is playing the speech.
                 
-        <h2>Programming</h2>
-            <ol>
-                
-                <li>First, create <code>led_matrix.LEDSprite()</code> variables <code>mouth_open</code> and <code>mouth_closed</code>
-                to be later used in the upcoming <code>while</code> loop.
-                
-                <li>Then, we create a <code>speaker.Speech()</code> object variable called <code>my_speech</code> for the
-                text we want the hear. This object converts the text into and object that Raspberry Pi can play.
-                
-                <li>Then, we play the speech by calling <code>my_speech.play()</code>
-                
-                <li>Now, we create a <code>while</code> loop that will continuously loop until the speech that we just started
+                <p>Finally, we create a <code>while</code> loop that will continuously loop until the speech that we just started
                 playing has finished playing. This loop will continuously open and close the mouth while the speech is playing
-                by displaying the open and closed mouth sprites in succession.
-                    <ol>
-                        <li>In the <code>while</code> loop we first clear the LED matrix display from the previous sprite that may be displayed.
-                        
-                        <li>Next, we first draw the open mouth sprite using <code>led_matrix.sprite()</code>
-                        
-                        <li>Then, we want display the sprite that we have just drawn using <code>led_matrix.show()</code>.
-                        
-                        <li>Then, to make sure the program waits a little bit to allow us to see the sprite before it moves on, we
-                        can use <code>time.sleep(.1)</code> to make the program delay for a fraction of a second.
-                        
-                        <li>Finally, we want to repeat the last 4 steps to display the sprite of the mouth closed.
-                    </ol>
-                </li>
-            </ol>
+                by displaying the open and closed mouth sprites one after the other. <i>(Similar to
+                <a href="../scrolling_text/scrolling_text_medium.html">scrolling text medium</a>)</i>
+                
+            <h2>Try This:</h2>
+                <ul>
+                    <li>Change the text "Hello World" to something else.
+                        <ol>
+                            <li>Does the face talking stops talking after the speech is done?
+                                <p>Try using longer and shorter text.
+                        </ol>
+                    <li>Change the delay times in the lines <code>time.sleep(.1)</code>.
+                        <ol>
+                            <li>How does the face animation change?
+                            <li>Does the animation still end relatively when the speech is done? Why or why not?
+                            <li>What happens when the delay times aren't the same?
+                        </ol>
+                </ul>
     </body>
 </html>

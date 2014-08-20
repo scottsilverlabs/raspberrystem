@@ -8,7 +8,7 @@ led_matrix.erase()      # This clears the led matrix display incase anything is 
 # Scrolling the led matrix. ===============================================
 
 # Create a variable that holds information about the sprite
-my_text_sprite = led_matrix.LEDText("Hello World")
+my_text_sprite = led_matrix.LEDText("Hello World!")
 
 # Make a while loop that keeps looping forever
 while True:  # by making the conditional True, the while loop will never break because True is always True!

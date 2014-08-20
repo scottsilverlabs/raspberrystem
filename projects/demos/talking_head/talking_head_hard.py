@@ -7,19 +7,26 @@ led_matrix.erase()      # This clears the led matrix display incase anything is 
 
 # TODO: Create a soundboard of different speeches by that are activated by pressing buttons....
 
+# setup the button port numbers
+A = 4
+B = 17
+UP = 25
+DOWN = 24
+LEFT = 23
+RIGHT = 18
+START = 27
+SELECT = 22
 
-# TODO: better (simpler to understand, yet elegant) way to do this?
-# TODO: use less buttons?
-# create a dictionary that matches the buttons (at ports 4, 17, 25, 24, 23, 18, 27, and 22) to the sound
+# create a dictionary that matches the buttons to the sound
 soundboard = {
-    button.Button(4) : speaker.Speech("Hello World"),
-    button.Button(17) : speaker.Speech("How are you?"),
-    button.Button(25) : speaker.Speech("RaspberrySTEM is super cool!"),
-    button.Button(24) : speaker.Speech("The first 16 digits of pi is 3.141592653589793"),
-    button.Button(23) : speaker.Speech("Always bring a banana to a party!"),
-    button.Button(18) : speaker.Speech("I'm sorry Dave, I'm afraid I can't do that."),
-    button.Button(27) : speaker.Speech("I am functioning within normal parameters."),
-    button.Button(22) : speaker.Speech("EXTERMINATE!")
+    button.Button(A) : speaker.Speech("Hello World"),
+    button.Button(B) : speaker.Speech("How are you?"),
+    button.Button(UP) : speaker.Speech("RaspberrySTEM is super cool!"),
+    button.Button(DOWN) : speaker.Speech("The first 16 digits of pi is 3.141592653589793"),
+    button.Button(LEFT) : speaker.Speech("Always bring a banana to a party!"),
+    button.Button(RIGHT) : speaker.Speech("I'm sorry Dave, I'm afraid I can't do that."),
+    button.Button(START) : speaker.Speech("I am functioning within normal parameters."),
+    button.Button(SELECT) : speaker.Speech("EXTERMINATE!")
 }
 
     
@@ -40,7 +47,8 @@ while True:
                 my_speech = soundboard[button]
                 break
 
-
+    # TODO: us say instead of speech???
+    
     # Play my_speech
     my_speech.play()
 

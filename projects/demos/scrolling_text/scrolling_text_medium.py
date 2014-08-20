@@ -14,7 +14,7 @@ while True:
     led_matrix.erase()
     
     # draw the first part of text
-    led_matrix.text("Hello World", (0,0))
+    led_matrix.text("Hello")
     
     # display the text
     led_matrix.show()
@@ -25,8 +25,8 @@ while True:
     # clear the display again so we can display the next part
     led_matrix.erase()
     
-    # draw the next part of the text by setting the position 8 to the left
-    led_matrix.text("Hello World", (-16,0))
+    # draw the next part of the text
+    led_matrix.text("World")
     
     # display the text
     led_matrix.show()
