@@ -192,6 +192,8 @@ def init_grid(num_rows=None, num_cols=None, angle=0, math_coords=True, spi_speed
         raise ValueError("Angle must be a multiple of 90.")
     angle = angle % 360
     
+    print(angle)
+    
     mat_list = []
     if angle == 0:
         for row in range(num_rows): # increment through rows downward
@@ -211,12 +213,12 @@ def init_grid(num_rows=None, num_cols=None, angle=0, math_coords=True, spi_speed
                     mat_list.append(((num_rows-row - 1)*DIM_OF_MATRIX, column*DIM_OF_MATRIX, 90))  # 0 + 90
     elif angle == 180:
         for row in range(num_rows-1,-1,-1): # increment through rows upwards
-            if row % 2 == 1:
-                for column in range(num_cols-1,-1,-1):  # if odd increment right to left
-                    mat_list.append((column*DIM_OF_MATRIX, row*DIM_OF_MATRIX, 180)) # 180 + 180
+            if row % 2 == 0:
+                for column in range(num_cols-1,-1,-1):  # if even increment right to left
+                    mat_list.append((column*DIM_OF_MATRIX, row*DIM_OF_MATRIX, 180)) # 0 + 180
             else:
                 for column in range(num_cols): # if even increment left to right
-                    mat_list.append((column*DIM_OF_MATRIX, row*DIM_OF_MATRIX, 0)) # 0 + 180
+                    mat_list.append((column*DIM_OF_MATRIX, row*DIM_OF_MATRIX, 0)) # 180 + 180
     elif angle == 270: # 90 degrees counter-clockwise
         for row in range(num_rows): # increment columns right to left
             if row % 2 == 1:
