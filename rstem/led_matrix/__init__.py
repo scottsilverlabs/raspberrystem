@@ -432,11 +432,10 @@ def sprite(sprite, origin=(0,0), crop_origin=(0,0), crop_dimensions=None):
     x_end = min(x_pos + x_crop + x_crop_dim, container_width, x_pos + sprite.width)
     y_end = min(y_pos + y_crop + y_crop_dim, container_height, y_pos + sprite.height)
     
-    
     # iterate through sprite and set points to led_driver
-    y = y_start
+    y = max(y_start,0)
     while y < y_end:
-        x = x_start
+        x = max(x_start, 0)
         while x < x_end:
             x_sprite = x - x_start + x_crop
             y_sprite = y - y_start + y_crop
