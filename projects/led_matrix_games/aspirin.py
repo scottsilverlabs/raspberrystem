@@ -120,7 +120,7 @@ class Field(object):
         # remove the position that player is currently in
         del x_pos[player.position[0]]
         del y_pos[player.position[1]]
-        self.apple = Apple((random.choice(x_pos), random.choice(y_pos))
+        self.apple = Apple((random.choice(x_pos), random.choice(y_pos)))
         
     def add_striker(self):
         horizontal = None
@@ -138,12 +138,12 @@ class Field(object):
     
         if horizontal:
             direction = random.choice([Direction.LEFT, Direction.RIGHT])
-            start_position = (0, random.choice(list(y_pos))
-            self.horizontal_strikers.add(start_position, direction)
+            start_position = (0, random.choice(list(y_pos)))
+            self.horizontal_strikers.add(Striker(start_position, direction))
         else:
             direction = random.choice([Direction.UP, Direction.DOWN])
             start_position = (random.choice(list(x_pos)), 0)
-            self.vertical_strikers.add(start_position, direction)
+            self.vertical_strikers.add(Striker(start_position, direction))
                 
         return True
         
@@ -155,6 +155,7 @@ class State(object):
 state = State.IDLE
 player = None
 field = None
+title = led_matrix.LEDText("ASPIRIN - Press A to use accelometer or B to use buttons")
     
 # set up buttons
 GPIO.setmode(GPIO.BCM)
@@ -162,14 +163,14 @@ GPIO.setmode(GPIO.BCM)
 def button_handler(channel):
     global state
     if channel == START:
-        state.EXIT
+        State.EXIT
     elif state in [State.IDLE, State.SCORE] and channel in [A, B]:
         # Reset field and player to start a new game
         player = Player(accel=(channel == A))
         field = None
-        field = Field()
+        field = Field(player)
         field.new_apple()  # add the first apple
-        state = state.PLAYING
+        state = State.PLAYING
     elif state == State.PLAYING and (not player.accel) and channel in [UP, DOWN, LEFT, RIGHT]:
         if channel == UP:
             player.move(Direction.UP)
@@ -183,11 +184,11 @@ def button_handler(channel):
 
 for button in [UP, DOWN, LEFT, RIGHT, START, A, B]:
     GPIO.setup(button, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-    GPIO.add_event_detect(button, callback=button_handler, bouncetime=300)
+    GPIO.add_event_detect(button, GPIO.FALLING, callback=button_handler, bouncetime=300)
     
 # FSM =======
 while True:
-    if state == state.PLAYING:
+    if state == State.PLAYING:
         # TODO when i get home
         # DO THIS ONE THEN TEST IT OUT!! DRINK LOTS OF WATER>>>> PAST SELF would like this VERY MUCH
         led_matrix.erase()
@@ -200,11 +201,11 @@ while True:
             alpha = 0.1
             velocity = 0.0
             x_diff = velocity*alpha + (angles[0]*2*8/90)*(1 - alpha)
-        	y_diff = velocity*alpha + (angles[1]*2*8/90)*(1 - alpha)
-        	if x_diff > 0:
-        	    player.move(Direction.RIGHT)
-	        elif x_diff < 0:
-	            player.move(Direction.LEFT)
+            y_diff = velocity*alpha + (angles[1]*2*8/90)*(1 - alpha)
+            if x_diff > 0:
+                player.move(Direction.RIGHT)
+            elif x_diff < 0:
+                player.move(Direction.LEFT)
             if y_diff > 0:
                 player.move(Direction.UP)
             elif y_diff < 0:
@@ -224,34 +225,33 @@ while True:
         
         # check for collisions
         if field.player_collided_with_striker():
-            state = state.SCORE
+            state = State.SCORE
         elif field.player_collided_with_apple():
             field.new_apple()
             field.add_striker()
         
         time.sleep(.5)
-        	
         
-    elif state == state.IDLE:
+        
+    elif state == State.IDLE:
         # TODO: check speed on this
-        text = led_matrix.LEDText("ASPIRIN - Press A to use accelometer or B to use buttons")
-        x = led_matrix.width()s
-        while x > -text.width:
+        x = led_matrix.width()
+        while x > -title.width:
             # break if state has changed, (don't wait for scroll to finish)
-            if state != state.IDLE:
+            if state != State.IDLE:
                 break
             led_matrix.erase()
-            led_matrix.sprite(text, (x, led_matrix.height()/2 - (text.height/2)))
+            led_matrix.sprite(title, (x, led_matrix.height()/2 - (title.height/2)))
             led_matrix.show()
             x -= 1
             # TODO: delay needed?
             
-    elif state == state.SCORE:
+    elif state == State.SCORE:
         led_matrix.erase()
-        led_matrix.text(len(field.horizontal_strikers) + len(field.vertical_strikers))
+        led_matrix.text(str(len(field.horizontal_strikers) + len(field.vertical_strikers)))
         led_matrix.show()
         
-    elif state == state.EXIT:
+    elif state == State.EXIT:
         GPIO.cleanup()
         led_matrix.cleanup()
         sys.exit(0)
