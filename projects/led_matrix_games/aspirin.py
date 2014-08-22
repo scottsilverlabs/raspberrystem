@@ -138,29 +138,6 @@ class Field(object):
         self.strikers.add(new_striker)
         self.empty_strikers.remove(new_striker)
         return True
-#        horizontal = None
-        # get all possible combinations of horizontal and vertical strikers
-#        x_pos = set(range(led_matrix.width())) - set([striker.position[0] for striker in self.vertical_strikers])
-#        y_pos = set(range(led_matrix.height())) - set([striker.position[1] for striker in self.horizontal_strikers])
-#        if len(x_pos) == 0:
-#            if len(y_pos) == 0:
-#                return False   # both sets are empty, the entire field is filled, you win!!
-#            horizontal = True
-#        elif len(y_pos) == 0:
-#            horizontal = False
-#        else:
-#            horizontal = random.choice([True, False])    
-    
-#        if horizontal:
-#            direction = random.choice([Direction.LEFT, Direction.RIGHT])
-#            start_position = (0, random.choice(list(y_pos)))
-#            self.horizontal_strikers.add(Striker(start_position, direction))
-#        else:
-#            direction = random.choice([Direction.UP, Direction.DOWN])
-#            start_position = (random.choice(list(x_pos)), 0)
-#            self.vertical_strikers.add(Striker(start_position, direction))
-                
-#        return True
         
         
 class State(object):
@@ -204,13 +181,10 @@ for button in [UP, DOWN, LEFT, RIGHT, START, A, B]:
 # FSM =======
 while True:
     if state == State.PLAYING:
-        # TODO when i get home
-        # DO THIS ONE THEN TEST IT OUT!! DRINK LOTS OF WATER>>>> PAST SELF would like this VERY MUCH
         led_matrix.erase()
         
         # move player with accelometer, otherwise poll the buttons
         if field.player.accel:
-            # TODO: debug this
             angles = accel.angles()
             #	"Simple" lowpass filter for velocity data
             alpha = 0.5
@@ -239,14 +213,6 @@ while True:
         for striker in field.strikers:
             striker.move()
         	
-#        	x_direction = Direction.RIGHT if x_diff > 0 else Direction.LEFT
-#        	y_direction = Direction.UP if y_diff > 0 else Direction.DOWN
-#        	
-#        	# move player certain number of times vertically and horizontally
-#        	for _ in range(int(abs(x_diff))):
-#        	    player.move(x_direction)
-#    	    for _ in range(int(abs(y_diff))):
-#    	        player.move(y_direction)
     	  
 	    # draw all the objects on the field      
         field.draw()
@@ -289,18 +255,6 @@ while True:
         sys.exit(0)
     else:
         raise ValueError("Invalid State")
-
-
-        
-# TODO:
-#    - Figure out the best way to handle being able to use accelometer or controls elegantly
-#        - do we want to use interupts for buttons like before.... makes accelometer seem
-#            inconsistent.....
-#        - or should we have the move function first check if accel or buttons and then poll
-#            the directions.....
-#        - or if accelometer do the whole angle thing... if keyboards a direction must be given...
-#        - or have an update button that moves the player for accelometer all the time and does
-#            nothing (or maybe there is some other stuff we have to do....)
         
         
         
