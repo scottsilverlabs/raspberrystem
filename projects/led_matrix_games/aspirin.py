@@ -4,7 +4,10 @@ import random
 import time
 
 # set up led matrix
-led_matrix.init_grid()
+led_matrix.init_grid(angle=180)
+
+# set up accelometer
+accel.init(1)
 
 # set up buttons
 A = 4
@@ -35,18 +38,18 @@ class Striker(object):
         self.direction = direction
         
     def draw(self):
-        led_matrix.point(*self.position, color=5)
+        led_matrix.point(*self.position, color=1)
         
     def move(self):
         # check if the striker hit the wall and needs to bounce back
         if self.direction == Direction.LEFT and self.position[0] == 0:
-            self.direction == Direction.RIGHT
+            self.direction = Direction.RIGHT
         elif self.direction == Direction.RIGHT and self.position[0] == led_matrix.width()-1:
-            self.direction == Direction.LEFT
+            self.direction = Direction.LEFT
         elif self.direction == Direction.DOWN and self.position[1] == 0:
-            self.direction == Direction.UP
+            self.direction = Direction.UP
         elif self.direction == Direction.UP and self.position[1] == led_matrix.height()-1:
-            self.direction == Direction.DOWN
+            self.direction = Direction.DOWN
             
         if self.direction == Direction.LEFT:
             self.position = (self.position[0]-1, self.position[1])
@@ -69,22 +72,22 @@ class Player(object):
         self.accel = accel  # True if controls are the accelometer, False if controls are buttons
         
     def draw(self):
-        led_matrix.point(*self.position)
+        led_matrix.point(*self.position, color=8)
        
     # TODO: make this more elegant 
     def move(self, direction):
         if direction == Direction.UP:
-            if self.position[1] != led_matrix.height()-1:
+            if self.position[1] < led_matrix.height()-1:
                 self.position = (self.position[0], self.position[1]+1)
         elif direction == Direction.DOWN:
-            if self.position[1] != 0:
+            if self.position[1] > 0:
                 self.position = (self.position[0], self.position[1]-1)
         elif direction == Direction.LEFT:
-            if self.position[0] != 0:
+            if self.position[0] > 0:
                 self.position = (self.position[0]-1, self.position[1])
         elif direction == Direction.RIGHT:
-            if self.position[0] != led_matrix.width()-1:
-                self.position == (self.position[0]+1, self.position[1])
+            if self.position[0] < led_matrix.width()-1:
+                self.position = (self.position[0]+1, self.position[1])
         else:
             raise ValueError("Invalid direction given.")
             
@@ -92,23 +95,29 @@ class Field(object):
     
     def __init__(self, player):
         self.player = player
-        self.horizontal_strikers = set()
-        self.vertical_strikers = set()
+        empty_strikers = set()
+        # initialize empty strikers
+        for x_pos in range(led_matrix.width()):
+            empty_strikers.add(Striker((x_pos, 0), Direction.UP))
+        for y_pos in range(led_matrix.height()):
+            empty_strikers.add(Striker((0, y_pos), Direction.RIGHT))
+        self.empty_strikers = empty_strikers   # strikers not used yet
+        self.strikers = set()  # active strikers
         self.apple = None
         
     def draw(self):
         self.player.draw()
         self.apple.draw()
-        strikers = self.horizontal_strikers.union(self.vertical_strikers)
-        for striker in strikers:
+#        strikers = self.horizontal_strikers.union(self.vertical_strikers)
+        for striker in self.strikers:
             striker.draw()
         
     def player_collided_with_apple(self):
         return self.player.position == self.apple.position
         
     def player_collided_with_striker(self):
-        strikers = self.horizontal_strikers.union(self.vertical_strikers)
-        for striker in strikers:
+#        strikers = self.horizontal_strikers.union(self.vertical_strikers)
+        for striker in self.strikers:
             if self.player.position == striker.position:
                 return True
         return False
@@ -118,34 +127,40 @@ class Field(object):
         x_pos = range(led_matrix.width())
         y_pos = range(led_matrix.height())
         # remove the position that player is currently in
-        del x_pos[player.position[0]]
-        del y_pos[player.position[1]]
+        del x_pos[self.player.position[0]]
+        del y_pos[self.player.position[1]]
         self.apple = Apple((random.choice(x_pos), random.choice(y_pos)))
         
     def add_striker(self):
-        horizontal = None
-        # get all possible combinations of horizontal and vertical strikers
-        x_pos = set(range(led_matrix.width())) - set([striker.position[0] for striker in self.vertical_strikers])
-        y_pos = set(range(led_matrix.height())) - set([striker.position[1] for striker in self.horizontal_strikers])
-        if len(x_pos) == 0:
-            if len(y_pos) == 0:
-                return False   # both sets are empty, the entire field is filled, you win!!
-            horizontal = True
-        elif len(y_pos) == 0:
-            horizontal = False
-        else:
-            horizontal = random.choice([True, False])    
-    
-        if horizontal:
-            direction = random.choice([Direction.LEFT, Direction.RIGHT])
-            start_position = (0, random.choice(list(y_pos)))
-            self.horizontal_strikers.add(Striker(start_position, direction))
-        else:
-            direction = random.choice([Direction.UP, Direction.DOWN])
-            start_position = (random.choice(list(x_pos)), 0)
-            self.vertical_strikers.add(Striker(start_position, direction))
-                
+        if len(self.empty_strikers) == 0:
+            return False   # no more strikers to make, you win!!
+        new_striker = random.choice(list(self.empty_strikers))
+        self.strikers.add(new_striker)
+        self.empty_strikers.remove(new_striker)
         return True
+#        horizontal = None
+        # get all possible combinations of horizontal and vertical strikers
+#        x_pos = set(range(led_matrix.width())) - set([striker.position[0] for striker in self.vertical_strikers])
+#        y_pos = set(range(led_matrix.height())) - set([striker.position[1] for striker in self.horizontal_strikers])
+#        if len(x_pos) == 0:
+#            if len(y_pos) == 0:
+#                return False   # both sets are empty, the entire field is filled, you win!!
+#            horizontal = True
+#        elif len(y_pos) == 0:
+#            horizontal = False
+#        else:
+#            horizontal = random.choice([True, False])    
+    
+#        if horizontal:
+#            direction = random.choice([Direction.LEFT, Direction.RIGHT])
+#            start_position = (0, random.choice(list(y_pos)))
+#            self.horizontal_strikers.add(Striker(start_position, direction))
+#        else:
+#            direction = random.choice([Direction.UP, Direction.DOWN])
+#            start_position = (random.choice(list(x_pos)), 0)
+#            self.vertical_strikers.add(Striker(start_position, direction))
+                
+#        return True
         
         
 class State(object):
@@ -153,7 +168,6 @@ class State(object):
     
 # starting variables
 state = State.IDLE
-player = None
 field = None
 title = led_matrix.LEDText("ASPIRIN - Press A to use accelometer or B to use buttons")
     
@@ -162,6 +176,7 @@ GPIO.setmode(GPIO.BCM)
 
 def button_handler(channel):
     global state
+    global field
     if channel == START:
         State.EXIT
     elif state in [State.IDLE, State.SCORE] and channel in [A, B]:
@@ -171,15 +186,15 @@ def button_handler(channel):
         field = Field(player)
         field.new_apple()  # add the first apple
         state = State.PLAYING
-    elif state == State.PLAYING and (not player.accel) and channel in [UP, DOWN, LEFT, RIGHT]:
-        if channel == UP:
-            player.move(Direction.UP)
-        elif channel == DOWN:
-            player.move(Direction.DOWN)
-        elif channel == LEFT:
-            player.move(Direction.LEFT)
-        elif channel == RIGHT:
-            player.move(Direction.RIGHT)
+#    elif state == State.PLAYING and (not field.player.accel) and channel in [UP, DOWN, LEFT, RIGHT]:
+#        if channel == UP:
+#            field.player.move(Direction.UP)
+#        elif channel == DOWN:
+#            field.player.move(Direction.DOWN)
+#        elif channel == LEFT:
+#            field.player.move(Direction.LEFT)
+#        elif channel == RIGHT:
+#            field.player.move(Direction.RIGHT)
     
 
 for button in [UP, DOWN, LEFT, RIGHT, START, A, B]:
@@ -193,23 +208,36 @@ while True:
         # DO THIS ONE THEN TEST IT OUT!! DRINK LOTS OF WATER>>>> PAST SELF would like this VERY MUCH
         led_matrix.erase()
         
-        # move player with accelometer, otherwise button_handler takes care of moving player
-        if player.accel:
+        # move player with accelometer, otherwise poll the buttons
+        if field.player.accel:
             # TODO: debug this
             angles = accel.angles()
             #	"Simple" lowpass filter for velocity data
-            alpha = 0.1
+            alpha = 0.5
             velocity = 0.0
             x_diff = velocity*alpha + (angles[0]*2*8/90)*(1 - alpha)
             y_diff = velocity*alpha + (angles[1]*2*8/90)*(1 - alpha)
             if x_diff > 0:
-                player.move(Direction.RIGHT)
+                field.player.move(Direction.RIGHT)
             elif x_diff < 0:
-                player.move(Direction.LEFT)
+                field.player.move(Direction.LEFT)
             if y_diff > 0:
-                player.move(Direction.UP)
+                field.player.move(Direction.DOWN)
             elif y_diff < 0:
-                player.move(Direction.DOWN)
+                field.player.move(Direction.UP)
+        else:
+            if GPIO.input(UP) == 0:
+                field.player.move(Direction.UP)
+            if GPIO.input(DOWN) == 0:
+                field.player.move(Direction.DOWN)
+            if GPIO.input(LEFT) == 0:
+                field.player.move(Direction.LEFT)
+            if GPIO.input(RIGHT) == 0:
+                field.player.move(Direction.RIGHT)
+                
+        # move the strikers
+        for striker in field.strikers:
+            striker.move()
         	
 #        	x_direction = Direction.RIGHT if x_diff > 0 else Direction.LEFT
 #        	y_direction = Direction.UP if y_diff > 0 else Direction.DOWN
@@ -222,15 +250,18 @@ while True:
     	  
 	    # draw all the objects on the field      
         field.draw()
+        led_matrix.show()
         
         # check for collisions
         if field.player_collided_with_striker():
             state = State.SCORE
         elif field.player_collided_with_apple():
             field.new_apple()
-            field.add_striker()
+            ret = field.add_striker()
+            if ret == False:
+                state = State.SCORE
         
-        time.sleep(.5)
+        time.sleep(.1)
         
         
     elif state == State.IDLE:
@@ -244,11 +275,12 @@ while True:
             led_matrix.sprite(title, (x, led_matrix.height()/2 - (title.height/2)))
             led_matrix.show()
             x -= 1
-            # TODO: delay needed?
+            time.sleep(.05)
             
     elif state == State.SCORE:
         led_matrix.erase()
-        led_matrix.text(str(len(field.horizontal_strikers) + len(field.vertical_strikers)))
+        led_matrix.text(str(len(field.strikers)))
+#        led_matrix.text(str(len(field.horizontal_strikers) + len(field.vertical_strikers)))
         led_matrix.show()
         
     elif state == State.EXIT:
@@ -258,11 +290,6 @@ while True:
     else:
         raise ValueError("Invalid State")
 
-
-
-# TODO: set up buttons
-#GPIO.setup(A, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-#GPIO.setup(START, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
         
 # TODO:
