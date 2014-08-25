@@ -128,7 +128,7 @@ def button_handler(button):
     global curr_state
     if button == START:
         curr_state = State.EXIT
-    if curr_state == State.PLAYING:
+    elif curr_state == State.PLAYING:
         if button == UP and (snake.length() == 1 or snake.direction != Direction.DOWN):
             snake.direction = Direction.UP
         elif button == DOWN and (snake.length() == 1 or snake.direction != Direction.UP):

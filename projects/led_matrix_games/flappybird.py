@@ -78,6 +78,8 @@ class Pipe(object):
     def __init__(self, x_position=None, width=2, opening_height=3, opening_location=3):
         if x_position is None:
             self.x_position = led_matrix.width()
+        else:
+            self.x_position = x_position
         self.width = width
         self.opening_height = opening_height      # height of opening from opening_location
         self.opening_location = opening_location  # y coordinate of opening
