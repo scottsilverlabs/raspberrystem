@@ -342,7 +342,7 @@ class States(object):
 
     
 # play background music
-speaker.Sound("/usr/share/scratch/Media/Sounds/Music\ Loops/Cave.mp3").play(-1)
+#speaker.Sound("/usr/share/scratch/Media/Sounds/Music\ Loops/Cave.mp3").play(-1)
 
 # define what to do during a button press
 def button_handler(channel):

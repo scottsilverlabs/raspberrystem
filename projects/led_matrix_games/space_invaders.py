@@ -25,6 +25,7 @@ import sys
 
 #Initialize matrix, accelerometer, and GPIO, the matrix layout and accelerometer channel may changes from user to user
 led_matrix.init_grid()
+
 accel.init(1)
 GPIO.setmode(GPIO.BCM)
 
@@ -41,12 +42,12 @@ start_time = time.time()
 
 # Set up States for finite state machine
 class State(object):
-    PLAYING, IDLE, WIN, LOSE = range(4)
+    PLAYING, IDLE, WIN, LOSE, EXIT = range(5)
     
-state == State.IDLE
+state = State.IDLE
 
 #Function to add missle at the players position to set of current missles
-def fire_missle(channel):
+def fire_missle():
     missles.append(Missle([int(round(player_pos[0])), int(round(player_pos[1]))],[0, 1]))
 
 
@@ -121,22 +122,26 @@ B = 17
 
 # what to do during a button press
 def button_handler(button):
-    global curr_state
+    global state
+    global player_pos
+    global missles
+    global enemies
     if button == START:
         state = State.EXIT
-    elif state == State.PLAYING and button == A:
-        fire_missle()
-    elif state in [State.IDLE, State.WIN, State.LOSE] and button == A:
-        # reset variables and then start the game
-        player_pos = [7, 0]
-        missles = []
-        enemies = []
-        #Setup initial enemies
-        for i in range(5):
-            enemies.append(Enemy([i*3, 15], [1, 0]))
-        for i in range(5):
-            enemies.append(Enemy([15-i*3 , 13], [-1, 0]))
-        state = State.PLAYING
+    elif button == A:
+        if state == State.PLAYING:
+            fire_missle()
+        else:
+            # reset variables and then start the game
+            player_pos = [7, 0]
+            missles = []
+            enemies = []
+            #Setup initial enemies
+            for i in range(5):
+                enemies.append(Enemy([i*3, 15], [1, 0]))
+            for i in range(5):
+                enemies.append(Enemy([15-i*3 , 13], [-1, 0]))
+            state = State.PLAYING
 
 GPIO.setmode(GPIO.BCM)
 for button in [A, START]:

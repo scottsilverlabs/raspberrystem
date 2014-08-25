@@ -29,7 +29,7 @@ class Menu(object):
         items = []
         # convert titles
         for i, item in enumerate(menu_items):
-            f = os.path.abspath(item[1])
+            f = os.path.join(os.path.dirname(os.path.abspath(__file__)), item[1])
             if not os.path.isfile(f):
                 raise IOError("File '" + f + "' could not be found.")
             items.append({
@@ -71,12 +71,12 @@ class Menu(object):
         l = self.items
         self.items = l[n:] + l[:n]
     
-    def scroll_up(self):
+    def scroll_down(self):
         self._rotate(1)
         self.scrolling_text_pos = 0
         self.scrolling_text_clock = Menu.HOLD_CLOCK_TIME
         
-    def scroll_down(self):
+    def scroll_up(self):
         self._rotate(-1)
         self.scrolling_text_pos = 0
         self.scrolling_text_clock = Menu.HOLD_CLOCK_TIME
@@ -93,6 +93,7 @@ class Menu(object):
     
 # set up menu
 menu_items = [
+    ["Aspirin", "aspirin.py"],
     ["Dice", "dice.py"],
     ["Protector", "protector.py"],
     ["Breakout", "breakout.py"],
@@ -151,6 +152,7 @@ while True:
         led_matrix.erase()
         menu.draw()
         led_matrix.show()
+        time.sleep(0.01)
     elif curr_state == IN_GAME:
         menu.run_selected_item()  # run game and wait for it to die
         curr_state = IN_MENU

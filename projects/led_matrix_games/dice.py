@@ -34,7 +34,8 @@ GPIO.setmode(GPIO.BCM)
 # set up dice sprites
 dice = []
 for value in range(1,7):
-    dice.append(led_matrix.LEDSprite(os.path.abspath("dice_sprites/" + str(value) + ".spr")))
+    sprite = os.path.join(os.path.dirname(os.path.abspath(__file__)), "dice_sprites", str(value) + ".spr")
+    dice.append(led_matrix.LEDSprite(sprite))
     
 # set up buttons
 UP = 25

@@ -2,12 +2,18 @@ from rstem import led_matrix, accel
 import RPi.GPIO as GPIO
 import random
 import time
+import sys
 
 # set up led matrix
-led_matrix.init_grid(angle=180)
+led_matrix.init_grid()
+
+# this game takes a while to start, so show loading
+led_matrix.text("Load..")
+led_matrix.show()
 
 # set up accelometer
 accel.init(1)
+
 
 # set up buttons
 A = 4
@@ -147,6 +153,7 @@ class State(object):
 state = State.IDLE
 field = None
 title = led_matrix.LEDText("ASPIRIN - Press A to use accelometer or B to use buttons")
+
     
 # set up buttons
 GPIO.setmode(GPIO.BCM)
@@ -155,7 +162,7 @@ def button_handler(channel):
     global state
     global field
     if channel == START:
-        State.EXIT
+        state = State.EXIT
     elif state in [State.IDLE, State.SCORE] and channel in [A, B]:
         # Reset field and player to start a new game
         player = Player(accel=(channel == A))
@@ -178,6 +185,7 @@ for button in [UP, DOWN, LEFT, RIGHT, START, A, B]:
     GPIO.setup(button, GPIO.IN, pull_up_down=GPIO.PUD_UP)
     GPIO.add_event_detect(button, GPIO.FALLING, callback=button_handler, bouncetime=300)
     
+    
 # FSM =======
 while True:
     if state == State.PLAYING:
@@ -187,7 +195,7 @@ while True:
         if field.player.accel:
             angles = accel.angles()
             #	"Simple" lowpass filter for velocity data
-            alpha = 0.5
+            alpha = 0.2
             velocity = 0.0
             x_diff = velocity*alpha + (angles[0]*2*8/90)*(1 - alpha)
             y_diff = velocity*alpha + (angles[1]*2*8/90)*(1 - alpha)

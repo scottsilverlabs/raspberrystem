@@ -137,12 +137,12 @@ def button_handler(button):
             snake.direction = Direction.LEFT
         elif button == RIGHT and (snake.length() == 1 or snake.direction != Direction.LEFT):
             snake.direction = Direction.RIGHT
-    elif button == SELECT:
+    elif button == SELECT or button == A:
         curr_state = State.RESET
 
 
 GPIO.setmode(GPIO.BCM)
-for button in [UP, DOWN, LEFT, RIGHT, START, SELECT]:
+for button in [UP, DOWN, LEFT, RIGHT, START, SELECT, A]:
     GPIO.setup(button, GPIO.IN, pull_up_down = GPIO.PUD_UP)
     GPIO.add_event_detect(button, GPIO.FALLING, callback=button_handler, bouncetime=300)
     
@@ -188,7 +188,7 @@ while True:
         # display horizontal scrolling title
         title = led_matrix.LEDText("SNAKE")
         x_pos = led_matrix.width() - 1
-        while x_pos > - title.width:
+        while x_pos > -title.width - 1:
             # break if state has changed, so we don't have to wait for it to finish
             if curr_state != State.IDLE: 
                 break

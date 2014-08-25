@@ -23,7 +23,7 @@ import sys
 import time
 
 #Initialize hardware
-led_matrix.init_grid()   # works best with a 2x2 matrix
+led_matrix.init_grid()   # TODO: need to hook up 2x2 grid
 accel.init(1)
 
 #Initialize game data
@@ -44,7 +44,7 @@ class State(object):
     PLAYING, IDLE, WIN, LOSE, RESET, EXIT = range(6)
 
 # set current state
-state = State.RESET
+state = State.IDLE
 
 #Useful clamp function
 def clamp(value, minimum, maximum):
@@ -194,10 +194,10 @@ B = 17
 
 # what to do during a button press
 def button_handler(button):
-    global curr_state
+    global state
     if button == START:
         state = State.EXIT
-    elif button == A:
+    elif button == A and state != State.PLAYING:
         state = State.RESET
 
 
@@ -217,20 +217,21 @@ while True:
         ball = Ball([8,1],[1,1])
         #Declare paddle for use in ball class
         p = Paddle([7, 0], [4, 0])
-        state = state.PLAYING
+        state = State.PLAYING
         
-    elif state = State.IDLE:
+    elif state == State.IDLE:
         # display breakout title
-        msg = led_matrix.LEDText("BREAKOUT")
-        x = led_matrix.width()
-        while x > -msg.width:
-            if state != State.IDLE:
-                break
-            led_matrix.erase()
-            led_matrix.sprite(msg, (x, 0))
-            led_matrix.show()
-            x -= 1
-            time.sleep(.1)
+        scroll_text("BREAKOUT")
+#        msg = led_matrix.LEDText("BREAKOUT")
+#        x = led_matrix.width()
+#        while x > -msg.width:
+#            if state != State.IDLE:
+#                break
+#            led_matrix.erase()
+#            led_matrix.sprite(msg, (x, 0))
+#            led_matrix.show()
+#            x -= 1
+#            time.sleep(.1)
 
     elif state == State.PLAYING:
     #	Clear frame buffer

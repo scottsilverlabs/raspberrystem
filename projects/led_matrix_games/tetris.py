@@ -36,7 +36,8 @@ SHAPES = "IJLOSTZ"
 shape_sprites = {}
 for shape in SHAPES:
     # store LEDSprite of tetris piece
-    shape_sprites[shape] = led_matrix.LEDSprite(os.path.abspath("tetris_sprites/" + shape + ".spr"))
+    sprite = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tetris_sprites", shape + ".spr")
+    shape_sprites[shape] = led_matrix.LEDSprite(sprite)
 
 def valid_shape(shape):
     """
