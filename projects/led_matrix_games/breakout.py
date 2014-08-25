@@ -23,7 +23,7 @@ import sys
 import time
 
 #Initialize hardware
-led_matrix.init_grid(2,2)   # works best with a 2x2 matrix
+led_matrix.init_grid()   # works best with a 2x2 matrix
 accel.init(1)
 
 #Initialize game data

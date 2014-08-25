@@ -489,7 +489,7 @@ class LEDSprite(object):
             if errors is not None or (output.find("ERROR") != -1):
                 raise IOError(output)
                 
-            if output.find("text") != -1:  # file is a text file
+            if output.find("text") != -1 or output.find("FORTRAN") != -1:  # file is a text file
                 if filename[-4:] != ".spr":
                     raise ValueError("Filename must have '.spr' extension.")
                 f = open(filename, 'r')
@@ -606,6 +606,9 @@ class LEDSprite(object):
         
         @param angle: angle to rotate self in an interval of 90 degrees
         @type angle: int
+        
+        @returns: self
+        @rtype: L{LEDSprite}
         @raises ValueError: If angle is not multiple of 90
         @note: If no angle given, will rotate sprite 90 degrees.
         """
@@ -637,6 +640,7 @@ class LEDSprite(object):
             temp = self.width
             self.width = self.height
             self.height = temp
+        return self
         
     def rotated(self, angle=90):
         """Same as L{rotate} only it returns a copy of the rotated sprite
@@ -648,8 +652,18 @@ class LEDSprite(object):
         sprite_copy.rotate(angle)
         return sprite_copy
         
+    def copy(self):
+        """Copies sprite
+        @returns: A copy of sprite without affecting original sprite
+        @rtype: L{LEDSprite}
+        """
+        return copy.deepcopy(self)
+        
     def invert(self):
-        """Inverts the sprite."""
+        """Inverts the sprite.
+        @returns: self
+        @rtype: L{LEDSprite}
+        """
         for y, line in enumerate(self.bitmap):
             for x, pixel in enumerate(line):
                 if pixel < 16:
