@@ -97,6 +97,7 @@ menu_items = [
     ["Protector", "protector.py"],
     ["Breakout", "breakout.py"],
     ["Stack-em", "stackem.py"],
+    ["Space Invaders", "space_invaders.py"],
     ["FlappyBird", "flappybird.py"],
     ["Game of Life", "game_of_life.py"],
     ["Snake", "snake.py"]
