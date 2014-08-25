@@ -1,5 +1,19 @@
-#In this project the user adds the Ball class, which handles
-#most of the game physics, and adds the win and lose functions.
+
+#
+# Copyright (c) 2014, Scott Silver Labs, LLC.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#       http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
 
 #Imports
 from rstem import led_matrix
@@ -39,22 +53,14 @@ def clamp(value, minimum, maximum):
 def scroll_text(string):
     """Scrolls the given text"""
     msg = led_matrix.LEDText(string, font_name='large')
+    prev_state = state
     for i in range(len(string)*6 + 15):
+        if state != prev_state:
+            return  # leav if state has changed in the middle of scrolling
         led_matrix.erase()
         led_matrix.text(msg, (15 - i, 7))
         led_matrix.show()
-
-#Display losing score
-def lose():
-	scroll_text("You lost! Score: %i" % (score))
-#		time.sleep(0.1)
-#	sys.exit(0)
-
-#If all bricks are destroyed, display winning score
-def win():
-	scroll_text("You won! Score: %i" % (score))
-#	sys.exit(0)
-
+        time.sleep(0.1)
 
 #Simple class for player Paddle
 class Paddle:
@@ -66,8 +72,6 @@ class Paddle:
 	def move(self, x):
 		self.pos[0] = int(x)
 
-#Declare paddle for use in ball class
-p = Paddle([7, 0], [4, 0])
 
 #Class for ball which handles most game physics
 class Ball:
@@ -211,6 +215,8 @@ while True:
 		        bricks.append(Brick([x*4, 15 - y*3 - 1],[3, 2]))
         #Initialize ball
         ball = Ball([8,1],[1,1])
+        #Declare paddle for use in ball class
+        p = Paddle([7, 0], [4, 0])
         state = state.PLAYING
         
     elif state = State.IDLE:
@@ -258,11 +264,11 @@ while True:
 	    time.sleep(0.1)
 	    ball_tick = (ball_tick + 1) & (MAX_BALL_TICK - 1)
 	
-    elif state == State.WIN:
-        win()
-        
     elif state == State.LOSE:
-        lose()
+	    scroll_text("You lost! Score: %i" % (score))
+        
+    elif state == State.WIN:
+	    scroll_text("You won! Score: %i" % (score))
     
     elif state == State.EXIT:
         led_matrix.cleanup()

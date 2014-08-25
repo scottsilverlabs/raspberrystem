@@ -95,6 +95,7 @@ class Menu(object):
 menu_items = [
     ["Dice", "dice.py"],
     ["Protector", "protector.py"],
+    ["Breakout", "breakout.py"],
     ["Stack-em", "stackem.py"],
     ["FlappyBird", "flappybird.py"],
     ["Game of Life", "game_of_life.py"],
