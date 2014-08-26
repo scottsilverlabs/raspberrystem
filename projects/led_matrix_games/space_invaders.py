@@ -99,6 +99,7 @@ class Enemy:
         self.dir = direction
     
     def update(self):
+        global state
         self.pos[0] = self.pos[0] + self.dir[0]
         self.pos[1] = self.pos[1] + self.dir[1]
 #        If it hits a wall move down two and change direction

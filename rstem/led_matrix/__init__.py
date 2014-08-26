@@ -539,6 +539,12 @@ class LEDSprite(object):
         self.bitmap = bitmap
         self.height = bitmap_height
         self.width = bitmap_width
+        
+    def width(self):
+        return self.width
+        
+    def height(self):
+        return self.height
 
     def append(self, sprite):
         """Appends given sprite to the right of itself.

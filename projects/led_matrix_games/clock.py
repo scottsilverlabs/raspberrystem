@@ -1,4 +1,5 @@
 from rstem import led_matrix, button
+import RPi.GPIO as GPIO
 import time
 import sys
 
@@ -6,11 +7,21 @@ import sys
 #led_matrix.init_grid()
 led_matrix.init_matrices([(0,8),(8,8),(8,0),(0,0)])
 
+A = 4
+B = 17
+UP = 25
+DOWN = 24
+LEFT = 23
+RIGHT = 18
+START = 27
+SELECT = 22
 
-start_button = button.Button(button.START)
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(START, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+
 
 while True:
-    if start_button.is_pressed():
+    if GPIO.input(START) == 0:
         button.cleanup()
         led_matrix.cleanup()
         sys.exit(0)

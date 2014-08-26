@@ -179,8 +179,15 @@ try:
             
             # add a new pipe
             if pipe_clock % pipe_spacing == 0:
-                # TODO make random opening holes
-                opening_location = randint(1,led_matrix.height() - 4)
+                # set hole opening to be random, but not too far away from the previous one
+                THRESHOLD = 4
+                if len(pipes) != 0:
+                    max_opening = min(pipes[-1].opening_location + THRESHOLD, led_matrix.height() - 4)
+                    min_opening = max(pipes[-1].opening_location - THRESHOLD, 1)
+                else:
+                    max_opening = led_matrix.height() - 4
+                    min_opening = 1
+                opening_location = randint(min_opening, max_opening)
                 pipes.append(Pipe(opening_location=opening_location))
                 
             # increment pipe_clock indefinitly, (we will never hit the max)

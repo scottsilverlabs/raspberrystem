@@ -177,11 +177,17 @@ for but in [A, START]:
 while True:
     if curr_state == State.IDLE:
         # TODO: display scrollling vertical text 
-        led_matrix.point(0,0)
-        led_matrix.point(WIDTH-1,0)
-        led_matrix.point(0,HEIGHT-1)
-        led_matrix.point(WIDTH-1, HEIGHT-1)
-        led_matrix.show()
+        text = led_matrix.LEDText("STACK-EM", font_name="large")
+        x_pos = led_matrix.width()
+        y_pos = led_matrix.height()/2 - text.width/2
+        while x_pos > -text.width:
+            if state != State.IDLE:
+                break
+            led_matrix.erase()
+            led_matrix.sprite(text, (x_pos, y_pos))
+            led_matrix.show()
+            x_pos -= 1
+            time.sleep(.1)
 
     elif curr_state == State.PLAYING:
         # show the blocks
@@ -230,12 +236,6 @@ while True:
         
 #        global button_pressed
     button_pressed = False
-    
-    
-    
-    
-    
-    
     
     
 

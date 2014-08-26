@@ -34,7 +34,7 @@ ball = None
 score = 0
 start_time = time.time()
 ball_tick = 0
-MAX_BALL_TICK = 4
+MAX_BALL_TICK = 1
 
 #Initialize player movement data
 velocity = 0.0

@@ -377,7 +377,7 @@ wall_params = [
         # WALL_SCENE 0
         "more_cols_min":5,
         "more_cols_max":8,
-        "tunnel_min":4,
+        "tunnel_min":5,
         "tunnel_max":HEIGHT - 3,
         "start_rate":2,  # slow
         "period":5,
@@ -385,7 +385,7 @@ wall_params = [
         # WALL_SCENE 1
         "more_cols_min":3,
         "more_cols_max":6,
-        "tunnel_min":2,
+        "tunnel_min":4,
         "tunnel_max":HEIGHT - 4,
         "start_rate":3,  # faster
         "period":5,
@@ -393,7 +393,7 @@ wall_params = [
         # WALL_SCENE 2
         "more_cols_min":3,
         "more_cols_max":5,
-        "tunnel_min":2,
+        "tunnel_min":3,
         "tunnel_max":HEIGHT - 5,
         "start_rate":5,  # fastest
         "period":5,
