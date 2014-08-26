@@ -2,7 +2,7 @@
 import numpy as np
 import cv2
 from rstem import led_matrix
-ANGLE_FACTOR = 2
+ANGLE_FACTOR = 1
 GRID_SIZE = 6
 IMAGE_SIZE = ANGLE_FACTOR*8*GRID_SIZE
 cap = cv2.VideoCapture(0)
