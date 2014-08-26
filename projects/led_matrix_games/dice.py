@@ -23,7 +23,9 @@ import random
 
 
 # set up led matrix
-led_matrix.init_grid()
+#led_matrix.init_grid(2,2)
+led_matrix.init_matrices([(0,8),(8,8),(8,0),(0,0)])
+
 
 # set up accelerometer
 accel.init(1)

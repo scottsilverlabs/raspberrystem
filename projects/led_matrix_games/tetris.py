@@ -23,7 +23,9 @@ from rstem import led_matrix
 import RPi.GPIO as GPIO
 
 # initialization
-led_matrix.init_grid(angle=270)  # make longwise
+#led_matrix.init_grid(angle=270)  # make longwise
+led_matrix.init_matrices([(0,8),(8,8),(8,0),(0,0)])
+
 GPIO.setmode(GPIO.BCM)
 
 # game variables

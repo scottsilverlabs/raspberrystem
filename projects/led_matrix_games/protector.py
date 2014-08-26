@@ -344,13 +344,14 @@ class States(object):
 # play background music
 #speaker.Sound("/usr/share/scratch/Media/Sounds/Music\ Loops/Cave.mp3").play(-1)
 
+exit = False
+
 # define what to do during a button press
 def button_handler(channel):
     # exit if START button pressed
+    global exit
     if channel == START:
-        led_matrix.cleanup()
-        GPIO.cleanup()
-        sys.exit(0)
+        exit = True
     if channel in [LEFT, RIGHT, UP, DOWN]:
         ship.deferred_adjust(channel)  # add direction to direction queue
     if channel in [A]:
@@ -364,13 +365,13 @@ for g in [A, LEFT, DOWN, UP, RIGHT, START]:
 
 
 # set up led matrix
-led_matrix.init_grid()
+#led_matrix.init_grid(2,2)
+led_matrix.init_matrices([(0,8),(8,8),(8,0),(0,0)])
+
 WIDTH = led_matrix.width()
 HEIGHT = led_matrix.height()
 
 # define walls
-global wall_params
-global no_wall_params
 wall_params = [
     {
         # WALL_SCENE 0
@@ -439,6 +440,11 @@ next_tick = time.time() + POLL_PERIOD
 
 # state machine that runs through game
 while state.current() != DONE:
+    if exit:
+        led_matrix.cleanup()
+        GPIO.cleanup()
+        sys.exit(0)
+
     if state.current() in [WALL_SCENE, WALL_2_ENEMY_SCENE, ENEMY_SCENE, BIG_BOSS]:
         if state.first_time():
             if state.current() == WALL_SCENE:
@@ -483,6 +489,8 @@ while state.current() != DONE:
         text = led_matrix.LEDText("GAME OVER!!!")
         pos_x, pos_y = (led_matrix.width(),0)
         while -pos_x < text.width:
+            if exit:
+                break  # break if user pressed the start button
             time.sleep(.1)
             led_matrix.erase()
             led_matrix.text(text, (pos_x, pos_y))

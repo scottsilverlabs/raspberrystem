@@ -24,7 +24,9 @@ import time
 import sys
 
 #Initialize matrix, accelerometer, and GPIO, the matrix layout and accelerometer channel may changes from user to user
-led_matrix.init_grid()
+#led_matrix.init_grid(2,2)
+led_matrix.init_matrices([(0,8),(8,8),(8,0),(0,0)])
+
 
 accel.init(1)
 GPIO.setmode(GPIO.BCM)

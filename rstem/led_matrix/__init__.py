@@ -109,6 +109,7 @@ def init_matrices(mat_list=[(0,0,0)], math_coords=True, spi_speed=125000, spi_po
     physically hooked up with the first one connected to Pi.
     
     @param mat_list: list of tuples that contains led matrix and offset
+        (in math coordinates if math_coords==True, else in programmer coordinate if math_coords==False)
         ex: [(0,0,0),(7,0,90)]
     @type mat_list: list of size 2 or 3 tuples (mix or match)
     @param math_coords: True to use math coordinates, False to use programming coordinates

@@ -77,7 +77,9 @@ class Block(object):
 # SETUP ==========================
 
 # setup led matrix
-led_matrix.init_grid(angle=270)
+#led_matrix.init_grid(angle=270)
+led_matrix.init_matrices([(0,8),(8,8),(8,0),(0,0)])
+
 HEIGHT = led_matrix.height()
 WIDTH = led_matrix.width()
 

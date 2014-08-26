@@ -3,7 +3,9 @@ import time
 import sys
 
 # initialize led matrix
-led_matrix.init_grid()
+#led_matrix.init_grid()
+led_matrix.init_matrices([(0,8),(8,8),(8,0),(0,0)])
+
 
 start_button = button.Button(button.START)
 

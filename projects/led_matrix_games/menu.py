@@ -134,7 +134,9 @@ def button_handler(channel):
         menu.scroll_down()
 
 def setup():
-    led_matrix.init_grid(math_coords=False)
+#    led_matrix.init_grid(math_coords=False)
+    led_matrix.init_matrices([(0,0),(8,0),(8,8),(0,8)], math_coords=False)
+
     # TODO: set up for 2x2 display
     GPIO.setmode(GPIO.BCM)
     for button in [A, UP, DOWN]:
