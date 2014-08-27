@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 #
 # Copyright (c) 2014, Scott Silver Labs, LLC.
 #
@@ -18,7 +20,6 @@ import time
 import os
 import random
 import sys
-from itertools import izip
 from rstem import led_matrix
 import RPi.GPIO as GPIO
 
@@ -104,9 +105,8 @@ class Stack(object):
         @rtype: int        
         """
         # remove lines in reverse so we don't mess it up if multiple lines need to be removed
-        reverse_enumerate = lambda l : izip(xrange(len(l)-1, -1, -1), reversed(l))     
         score = 0
-        for y, line in reverse_enumerate(self.points):
+        for y, line in reversed(list(enumerate(self.points))):
             if all(pixel != 16 for pixel in line):
                 score += 1
                 del self.points[y]
@@ -247,7 +247,7 @@ title.rotate(-90)
 
         
 while True:
-    # state when a piece is slowling moving down the display
+    # state when a piece is slowly moving down the display
     if curr_state == State.MOVINGDOWN:
         # up speed if score is a multiple of 5
         if speed != 0 and speed % 5 == 0:

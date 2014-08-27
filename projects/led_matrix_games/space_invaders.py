@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 
 #
 # Copyright (c) 2014, Scott Silver Labs, LLC.
@@ -14,9 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-#Imports, need sys for exit function
-#This project finishes the game and adds winning
-#losing and scoring functions.
+
 from rstem import led_matrix
 from rstem import accel
 import RPi.GPIO as GPIO
