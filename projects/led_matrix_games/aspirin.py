@@ -28,7 +28,7 @@ START = 27
 SELECT = 22
 
 # accelometer threshold
-THRESHOLD = 5
+THRESHOLD = 3
 
         
 class State(object):

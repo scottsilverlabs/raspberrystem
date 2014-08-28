@@ -100,6 +100,13 @@ led_matrix.init_matrices([(0,8),(8,8),(8,0),(0,0)])
 HEIGHT = led_matrix.height()
 WIDTH = led_matrix.width()
 
+if WIDTH > 8:
+    LEFT_EDGE = 3
+    RIGHT_EDGE = 12
+else:
+    LEFT_EDGE = -1
+    RIGHT_EDGE = WIDTH
+
 # initialize variables
 curr_state = State.IDLE  # current state used for state machine
 blocks = []              # current block elements on screen
@@ -173,11 +180,11 @@ def button_handler(channel):
                 curr_width -= 1
             curr_speed += 5  # update current speed
         curr_width = min(blocks[-1].width, curr_width)
-        blocks.append(Block([0, blocks[-1].origin[1]+1], curr_width))
+        blocks.append(Block([LEFT_EDGE+1, blocks[-1].origin[1]+1], curr_width))
         
     elif curr_state in [State.IDLE, State.WIN, State.LOSE]:
         # set up game
-        blocks = [Block([0,0], start_width)]  # set up first block
+        blocks = [Block([LEFT_EDGE+1,0], start_width)]  # set up first block
         curr_width = start_width
         curr_speed = start_speed
         led_matrix.erase()
@@ -224,6 +231,12 @@ while True:
         # show the blocks
         led_matrix.erase()
         draw_blocks()
+        # draw edge lines if not whole screen
+        if LEFT_EDGE != 0:
+            led_matrix.line((LEFT_EDGE, 0), (LEFT_EDGE, HEIGHT-1))
+        if RIGHT_EDGE != WIDTH:
+            led_matrix.line((RIGHT_EDGE, 0), (RIGHT_EDGE, HEIGHT-1))
+        
         led_matrix.show()
         time.sleep(1.0/curr_speed)
     
@@ -231,9 +244,9 @@ while True:
         if blocks[-1].moving:
             # change direction if hit edge of screen
             if curr_direction == Direction.RIGHT:
-                if blocks[-1].origin[0] + blocks[-1].width == WIDTH:
+                if blocks[-1].origin[0] + blocks[-1].width == RIGHT_EDGE:
                     curr_direction = Direction.LEFT
-            elif blocks[-1].origin[0] == 0:
+            elif blocks[-1].origin[0] == LEFT_EDGE+1:
                 curr_direction = Direction.RIGHT
                 
             # move top block in curr_direction at curr_speed
@@ -249,11 +262,21 @@ while True:
         blocks[-1].color = 0
         led_matrix.erase()
         draw_blocks()
+        # draw edge lines if not whole screen
+        if LEFT_EDGE != 0:
+            led_matrix.line((LEFT_EDGE, 0), (LEFT_EDGE, HEIGHT-1))
+        if RIGHT_EDGE != WIDTH:
+            led_matrix.line((RIGHT_EDGE, 0), (RIGHT_EDGE, HEIGHT-1))
         led_matrix.show()
         time.sleep(.2)
         led_matrix.erase()
         blocks[-1].color = 0xF
         draw_blocks()
+        # draw edge lines if not whole screen
+        if LEFT_EDGE != 0:
+            led_matrix.line((LEFT_EDGE, 0), (LEFT_EDGE, HEIGHT-1))
+        if RIGHT_EDGE != WIDTH:
+            led_matrix.line((RIGHT_EDGE, 0), (RIGHT_EDGE, HEIGHT-1))
         led_matrix.show()
         time.sleep(.2)
 
