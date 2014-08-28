@@ -23,14 +23,34 @@ import os
 import sys
 import time
 
+# button ports
+A = 4
+B = 17
+UP = 25
+DOWN = 24
+LEFT = 23
+RIGHT = 18
+START = 27
+SELECT = 22
+
+
+# states
+IN_MENU = 1
+IN_GAME = 2
+curr_state = IN_MENU
+
 class Menu(object):
 
     HOLD_CLOCK_TIME = -30 # number of cycles to hold scrolling text
     
-    def __init__(self, menu_items):
+    def __init__(self, menu_items, show_loading=False):
         items = []
         # convert titles
         for i, item in enumerate(menu_items):
+            if show_loading:
+                led_matrix.erase()
+                led_matrix.text(str(len(menu_items) - i))
+                led_matrix.show()
             f = os.path.join(os.path.dirname(os.path.abspath(__file__)), item[1])
             if not os.path.isfile(f):
                 raise IOError("File '" + f + "' could not be found.")
@@ -92,40 +112,8 @@ class Menu(object):
         cleanup()
         os.system(sys.executable + " " + selected["file"])
         setup()  # resetup
-    
-# set up menu
-menu_items = [
-    ["Aspirin", "aspirin.py"],
-    ["Clock", "clock.py"],
-    ["Dice", "dice.py"],
-    ["Protector", "protector.py"],
-    ["Breakout", "breakout.py"],
-    ["Tetris", "tetris.py"],
-    ["Stack-em", "stackem.py"],
-    ["Space Invaders", "space_invaders.py"],
-    ["FlappyBird", "flappybird.py"],
-    ["Game of Life", "game_of_life.py"],
-    ["Snake", "snake.py"]
-]
-menu_items.sort() # put in alphabetical order by titles
-menu = Menu(menu_items)
-
-# set up buttons
-A = 4
-B = 17
-UP = 25
-DOWN = 24
-LEFT = 23
-RIGHT = 18
-START = 27
-SELECT = 22
-
-
-# states
-IN_MENU = 1
-IN_GAME = 2
-curr_state = IN_MENU
-
+        
+        
 def button_handler(channel):
     if channel == A:
         global curr_state
@@ -150,8 +138,31 @@ def cleanup():
     for button in [A, UP, DOWN]:
         GPIO.remove_event_detect(button)
     GPIO.cleanup()
+    
+    
+# set up led matrix
+setup()    
+    
+# set up menu
+menu_items = [
+    ["Aspirin", "aspirin.py"],
+    ["Clock", "clock.py"],
+    ["Dice", "dice.py"],
+    ["Protector", "protector.py"],
+    ["Breakout", "breakout.py"],
+    ["Tetris", "tetris.py"],
+    ["Stack-em", "stackem.py"],
+    ["Space Invaders", "space_invaders.py"],
+    ["FlappyBird", "flappybird.py"],
+    ["Game of Life", "game_of_life.py"],
+    ["Snake", "snake.py"]
+]
+menu_items.sort() # put in alphabetical order by titles
+menu = Menu(menu_items, show_loading=True)
 
-setup()
+
+
+
 while True:
     if curr_state == IN_MENU:
         led_matrix.erase()

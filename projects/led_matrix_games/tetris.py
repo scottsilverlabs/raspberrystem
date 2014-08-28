@@ -348,7 +348,7 @@ while True:
                 break
             # display title in the center of the screen
             led_matrix.erase()
-            led_matrix.sprite(title, (led_matrix.width()/2 - title.width/2, y_pos))
+            led_matrix.sprite(title, (int(led_matrix.width()/2) - int(title.width/2), y_pos))
             led_matrix.show()
             y_pos += 1
             time.sleep(.1)

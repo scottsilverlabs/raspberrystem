@@ -27,6 +27,18 @@ RIGHT = 18
 START = 27
 SELECT = 22
 
+# accelometer threshold
+THRESHOLD = 5
+
+        
+class State(object):
+    PLAYING, IDLE, SCORE, EXIT = range(4)
+    
+# starting variables
+state = State.IDLE
+field = None
+title = led_matrix.LEDText("ASPIRIN - Press A to use accelometer or B to use buttons")
+
 
 class Direction(object):
     LEFT, RIGHT, UP, DOWN = range(4)
@@ -73,7 +85,7 @@ class Player(object):
     def __init__(self, position=None, accel=False):
         # set position to be center of screen if position is not given
         if position is None:
-            self.position = (led_matrix.width()/2, led_matrix.height()/2)
+            self.position = (int(led_matrix.width()/2), int(led_matrix.height()/2))
         else:
             self.position = position
         
@@ -132,8 +144,8 @@ class Field(object):
         
     def new_apple(self):
         # set up list of x and y choices 
-        x_pos = range(led_matrix.width())
-        y_pos = range(led_matrix.height())
+        x_pos = list(range(led_matrix.width()))
+        y_pos = list(range(led_matrix.height()))
         # remove the position that player is currently in
         del x_pos[self.player.position[0]]
         del y_pos[self.player.position[1]]
@@ -147,14 +159,6 @@ class Field(object):
         self.empty_strikers.remove(new_striker)
         return True
         
-        
-class State(object):
-    PLAYING, IDLE, SCORE, EXIT = range(4)
-    
-# starting variables
-state = State.IDLE
-field = None
-title = led_matrix.LEDText("ASPIRIN - Press A to use accelometer or B to use buttons")
 
     
 # set up buttons
@@ -197,17 +201,20 @@ while True:
         if field.player.accel:
             angles = accel.angles()
             #	"Simple" lowpass filter for velocity data
-            alpha = 0.2
-            velocity = 0.0
-            x_diff = velocity*alpha + (angles[0]*2*8/90)*(1 - alpha)
-            y_diff = velocity*alpha + (angles[1]*2*8/90)*(1 - alpha)
-            if x_diff > 0:
+            x = angles[0]
+            y = angles[1]
+            
+#            alpha = 0.2
+#            velocity = 0.0
+#            x_diff = velocity*alpha + (angles[0]*2*8/90)*(1 - alpha)
+#            y_diff = velocity*alpha + (angles[1]*2*8/90)*(1 - alpha)
+            if x > THRESHOLD:
                 field.player.move(Direction.RIGHT)
-            elif x_diff < 0:
+            elif x < -THRESHOLD:
                 field.player.move(Direction.LEFT)
-            if y_diff > 0:
+            if y > THRESHOLD:
                 field.player.move(Direction.DOWN)
-            elif y_diff < 0:
+            elif y < -THRESHOLD:
                 field.player.move(Direction.UP)
         else:
             if GPIO.input(UP) == 0:
