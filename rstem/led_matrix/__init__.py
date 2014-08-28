@@ -442,6 +442,8 @@ def sprite(sprite, origin=(0,0), crop_origin=(0,0), crop_dimensions=None):
         while x < x_end:
             x_sprite = x - x_start + x_crop
             y_sprite = y - y_start + y_crop
+            x_sprite = int(x_sprite)
+            y_sprite = int(y_sprite)
             if container_math_coords:
                 y_sprite = sprite.height - 1 - y_sprite
             point((x, y), color=sprite.bitmap[y_sprite][x_sprite])

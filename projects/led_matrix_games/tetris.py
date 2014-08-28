@@ -32,7 +32,8 @@ GPIO.setmode(GPIO.BCM)
 # game variables
 score = 0
 BLINKING_TIME = 7 # number of cycles to blink full lines
-speed = .5  # speed of piece falling down (at start)
+speed = 0.5  # speed of piece falling down (at start)
+init_speed = speed
 
 class State(object):
     IDLE, RESET, MOVINGDOWN, BLINKING, DONE, EXIT = range(6)
@@ -74,11 +75,14 @@ class Sidebar(object):
         self.x_pos = x_pos
         
     def draw(self):
-        led_matrix.line((x_pos, 0), (x_pos, led_matrix.height()-1))
+        led_matrix.line((self.x_pos, 0), (self.x_pos, led_matrix.height()-1))
         # draw the next piece
-        next_piece.draw(pos=(x_pos + 2, led_matrix.height() - 5))
-        # draw the score
-        led_matrix.text(str(score), (x_pos + 2, 0))
+        next_piece.draw(pos=(self.x_pos + 3, led_matrix.height() - 5))
+        # draw the score (aligned nicely)
+        if score < 10:
+            led_matrix.text(str(score), (self.x_pos + 5, 1))
+        else:
+            led_matrix.text(str(score), (self.x_pos + 1, 1))
 
 class Stack(object):
     """Represents the stack of rested tetris pieces"""
@@ -93,8 +97,6 @@ class Stack(object):
     def height(self):
         return len(self.points)
         
-    def width(self):
-        return self.width
         
     def add(self, piece):
         """Adds given piece to the stack
@@ -160,8 +162,9 @@ class Piece(object):
         if not valid_shape(shape):
             raise ValueError("Not a valid shape")
         if pos is None:
-            pos = (stack.width()/2 - 1, led_matrix.height())
-        self.pos = pos
+            self.pos = (int(stack.width/2 - 1), int(led_matrix.height()))
+        else:
+            self.pos = pos
         self.sprite = shape_sprites[shape].copy()  # get a copy of sprite
         
     def rotate(self, clockwise=True):
@@ -173,7 +176,7 @@ class Piece(object):
             self.sprite.rotate(270)
             
         # move piece over if goes off display
-        while self.pos[0] + self.sprite.width - 1 >= stack.width():
+        while self.pos[0] + self.sprite.width - 1 >= stack.width:
             self.pos = (self.pos[0] - 1, self.pos[1])
         
     def coverage(self, pos=None):
@@ -193,7 +196,7 @@ class Piece(object):
                     coverage.add((pos[0] + x, pos[1] + y))
         return coverage
             
-    def can_movedown(self, stack):
+    def can_movedown(self):
         """Tests whether piece can move down without colliding with other piece
         or falling off edge (hit bottom)
         @param stack: current stack object
@@ -214,14 +217,14 @@ class Piece(object):
         """Moves piece down one pixel."""
         self.pos = (self.pos[0], self.pos[1] - 1)
         
-    def moveright(self, stack):
+    def moveright(self):
         new_pos = (self.pos[0] + 1, self.pos[1])
         # if we are not running off the stack width and not running into the stack, change position
-        if self.pos[0] + self.sprite.width < stack.width()  \
+        if self.pos[0] + self.sprite.width < stack.width  \
             and len(self.coverage(new_pos).intersection(stack.coverage())) == 0:
             self.pos = new_pos
     
-    def moveleft(self, stack):
+    def moveleft(self):
         new_pos = (self.pos[0] - 1, self.pos[1])
         # if we are not running off the display and not running into the stack, change position
         if self.pos[0] - 1 >= 0  \
@@ -242,15 +245,21 @@ def button_handler(channel):
     if channel == START:
         curr_state = State.EXIT
         return
-    if curr_state == State.MOVINGDOWN:
-        if channel == LEFT:
-            while GPIO.input(LEFT) == 0:
-                curr_piece.moveleft(stack)
-        elif channel == RIGHT:
-            while GPIO.input(RIGHT) == 0:
-                curr_piece.moveright(stack)
-        elif channel == A or channel == UP:
-            curr_piece.rotate(90)
+    if curr_state == State.MOVINGDOWN and curr_piece is not None:
+        try:
+            if channel == LEFT:
+                while GPIO.input(LEFT) == 0:
+                    curr_piece.moveleft()
+                    time.sleep(.2)
+            elif channel == RIGHT:
+                while GPIO.input(RIGHT) == 0:
+                    curr_piece.moveright()
+                    time.sleep(.2)
+            elif channel == A or channel == UP:
+                curr_piece.rotate(90)
+        except AttributeError:
+            # catch AttributeError that can happen if curr_piece is NoneType
+            pass
     elif (curr_state == State.IDLE or curr_state == State.DONE) and channel == A:
         curr_state = State.RESET
 
@@ -275,8 +284,10 @@ while True:
     # state when a piece is slowly moving down the display
     if curr_state == State.MOVINGDOWN:
         # up speed if score is a multiple of 5
-        if speed != 0 and speed % 5 == 0:
-            speed = speed/1.25
+        if score != 0 and score % 5 == 0:
+            new_speed = init_speed - (score/5*0.1)
+            if new_speed > 0:
+                speed = new_speed
     
         # check if stack hit the top of display
         if stack.height() >= led_matrix.height() - 1:
@@ -284,7 +295,7 @@ while True:
             continue
             
         # check if piece can't move down, and if so, add piece to stack and start blinking any full lines
-        if not curr_piece.can_movedown(stack):
+        if not curr_piece.can_movedown():
             stack.add(curr_piece)  # add piece to stack
             curr_piece = None      # piece is no longer curr_piece
             blinking_clock = BLINKING_TIME  # set up blinking clock 
@@ -304,7 +315,7 @@ while True:
         
         # speed up delay if DOWN button is held down
         if GPIO.input(DOWN) == 0:
-            time.sleep(.05)
+            time.sleep(.005)
         else:
             time.sleep(speed)
 
@@ -322,6 +333,8 @@ while True:
             led_matrix.erase()
             # draw stack with full lines off every other cycle
             stack.draw(blinking_off=(blinking_clock % 2))
+            if sidebar is not None:
+                sidebar.draw()
             led_matrix.show()
             blinking_clock -= 1
             time.sleep(.1)
@@ -348,8 +361,7 @@ while True:
         else:
             stack = Stack(8)  # if screen too width only use left half for stack
             sidebar = None
-            sidebar = Sidebar()
-        stack = Stack()
+            sidebar = Sidebar(8)
         curr_piece = Piece(random.choice(SHAPES))
         next_piece = Piece(random.choice(SHAPES))
         curr_state = State.MOVINGDOWN
