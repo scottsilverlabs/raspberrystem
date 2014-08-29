@@ -193,8 +193,6 @@ def init_grid(num_rows=None, num_cols=None, angle=0, math_coords=True, spi_speed
         raise ValueError("Angle must be a multiple of 90.")
     angle = angle % 360
     
-    print(angle)
-    
     mat_list = []
     if angle == 0:
         for row in range(num_rows): # increment through rows downward
