@@ -58,7 +58,7 @@ class Striker(object):
         self.direction = direction
         
     def draw(self):
-        led_matrix.point(*self.position, color=1)
+        led_matrix.point(*self.position, color=3)
         
     def move(self):
         # check if the striker hit the wall and needs to bounce back

@@ -178,7 +178,7 @@ def button_handler(channel):
         if len(blocks) % change_level == 0:  # check if to up difficulty
             if curr_width > 1:
                 curr_width -= 1
-            curr_speed += 5  # update current speed
+            curr_speed += 8  # update current speed
         curr_width = min(blocks[-1].width, curr_width)
         blocks.append(Block([LEFT_EDGE+1, blocks[-1].origin[1]+1], curr_width))
         

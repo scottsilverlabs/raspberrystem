@@ -20,7 +20,7 @@ import os
 import time
 import random
 import sys
-from rstem import led_matrix, speaker
+from rstem import led_matrix
 import RPi.GPIO as GPIO
 from collections import deque
 

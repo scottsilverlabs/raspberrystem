@@ -37,11 +37,15 @@ SELECT = 22
 # states
 IN_MENU = 1
 IN_GAME = 2
+KONAMI = 3
 curr_state = IN_MENU
+
+konami_number = 0
+konami_code = [UP, UP, DOWN, DOWN, LEFT, RIGHT, LEFT, RIGHT, B, A]
 
 class Menu(object):
 
-    HOLD_CLOCK_TIME = -30 # number of cycles to hold scrolling text
+    HOLD_CLOCK_TIME = -15 # number of cycles to hold scrolling text
     
     def __init__(self, menu_items, show_loading=False):
         items = []
@@ -115,13 +119,23 @@ class Menu(object):
         
         
 def button_handler(channel):
-    if channel == A:
-        global curr_state
-        curr_state = IN_GAME
-    elif channel == UP:
-        menu.scroll_up()
-    elif channel == DOWN:
-        menu.scroll_down()
+    global konami_number
+    global curr_state
+    if channel == konami_code[konami_number]:
+        konami_number += 1  # continue progress towards konami code
+        if konami_number == len(konami_code):  # konami code complete
+            curr_state = KONAMI
+            konami_number = 0
+            return
+    else:
+        konami_number = 0  # reset progress, wrong button pressed
+    if curr_state != KONAMI:
+        if channel == A and konami_number == 0:
+            curr_state = IN_GAME
+        elif channel == UP:
+            menu.scroll_up()
+        elif channel == DOWN:
+            menu.scroll_down()
 
 def setup():
 #    led_matrix.init_grid(math_coords=False)
@@ -129,13 +143,13 @@ def setup():
 
     # TODO: set up for 2x2 display
     GPIO.setmode(GPIO.BCM)
-    for button in [A, UP, DOWN]:
+    for button in [A, UP, DOWN, LEFT, RIGHT, B, START, SELECT]:
         GPIO.setup(button, GPIO.IN, pull_up_down=GPIO.PUD_UP)
         GPIO.add_event_detect(button, GPIO.FALLING, callback=button_handler, bouncetime=300)
         
 def cleanup():
     led_matrix.cleanup()
-    for button in [A, UP, DOWN]:
+    for button in [A, UP, DOWN, LEFT, RIGHT, B, START, SELECT]:
         GPIO.remove_event_detect(button)
     GPIO.cleanup()
     
@@ -172,5 +186,31 @@ while True:
     elif curr_state == IN_GAME:
         menu.run_selected_item()  # run game and wait for it to die
         curr_state = IN_MENU
-    
+    elif curr_state == KONAMI:
+        from random import shuffle, randint
+        words = ["Brian", "Jason", "Jon", "Joe", "Steph"]
+        shuffle(words)
+        raspberrySTEM = "RaspberrySTEM"
+        for name in words:
+            sprite = led_matrix.LEDText(name)
+            y_pos = randint(0,led_matrix.height()-sprite.height)
+            x_pos = led_matrix.width()
+            while x_pos >= -sprite.width:
+                led_matrix.erase()
+                led_matrix.sprite(sprite, (x_pos, y_pos))
+                led_matrix.show()
+                x_pos -= 1
+                time.sleep(.05)
+        
+        logo = led_matrix.LEDText(raspberrySTEM, font_name="large")
+        y_pos = int(led_matrix.height()/2) - int(logo.height/2)
+        x_pos = led_matrix.width()
+        while x_pos >= -logo.width:
+            led_matrix.erase()
+            led_matrix.sprite(logo, (x_pos, y_pos))
+            led_matrix.show()
+            x_pos -= 1
+            time.sleep(0.05)
+        curr_state = IN_MENU
+        
     
