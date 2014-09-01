@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 #
 # Copyright (c) 2014, Scott Silver Labs, LLC.
 #
@@ -21,7 +23,9 @@ import random
 import sys
 
 # set up led matrix
-led_matrix.init_grid()
+#led_matrix.init_grid(2,2)
+led_matrix.init_matrices([(0,8),(8,8),(8,0),(0,0)])
+
 
 # set up buttons
 A = 4
@@ -78,6 +82,8 @@ class Pipe(object):
     def __init__(self, x_position=None, width=2, opening_height=3, opening_location=3):
         if x_position is None:
             self.x_position = led_matrix.width()
+        else:
+            self.x_position = x_position
         self.width = width
         self.opening_height = opening_height      # height of opening from opening_location
         self.opening_location = opening_location  # y coordinate of opening
@@ -175,8 +181,15 @@ try:
             
             # add a new pipe
             if pipe_clock % pipe_spacing == 0:
-                # TODO make random opening holes
-                opening_location = randint(1,led_matrix.height() - 4)
+                # set hole opening to be random, but not too far away from the previous one
+                THRESHOLD = 4
+                if len(pipes) != 0:
+                    max_opening = min(pipes[-1].opening_location + THRESHOLD, led_matrix.height() - 4)
+                    min_opening = max(pipes[-1].opening_location - THRESHOLD, 1)
+                else:
+                    max_opening = led_matrix.height() - 4
+                    min_opening = 1
+                opening_location = randint(min_opening, max_opening)
                 pipes.append(Pipe(opening_location=opening_location))
                 
             # increment pipe_clock indefinitly, (we will never hit the max)

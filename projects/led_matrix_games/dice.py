@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 #
 # Copyright (c) 2014, Scott Silver Labs, LLC.
 #
@@ -23,7 +25,9 @@ import random
 
 
 # set up led matrix
-led_matrix.init_grid()
+#led_matrix.init_grid(2,2)
+led_matrix.init_matrices([(0,8),(8,8),(8,0),(0,0)])
+
 
 # set up accelerometer
 accel.init(1)
@@ -34,7 +38,8 @@ GPIO.setmode(GPIO.BCM)
 # set up dice sprites
 dice = []
 for value in range(1,7):
-    dice.append(led_matrix.LEDSprite(os.path.abspath("dice_sprites/" + str(value) + ".spr")))
+    sprite = os.path.join(os.path.dirname(os.path.abspath(__file__)), "dice_sprites", str(value) + ".spr")
+    dice.append(led_matrix.LEDSprite(sprite))
     
 # set up buttons
 UP = 25

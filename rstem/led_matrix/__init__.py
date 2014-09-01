@@ -109,6 +109,7 @@ def init_matrices(mat_list=[(0,0,0)], math_coords=True, spi_speed=125000, spi_po
     physically hooked up with the first one connected to Pi.
     
     @param mat_list: list of tuples that contains led matrix and offset
+        (in math coordinates if math_coords==True, else in programmer coordinate if math_coords==False)
         ex: [(0,0,0),(7,0,90)]
     @type mat_list: list of size 2 or 3 tuples (mix or match)
     @param math_coords: True to use math coordinates, False to use programming coordinates
@@ -211,12 +212,12 @@ def init_grid(num_rows=None, num_cols=None, angle=0, math_coords=True, spi_speed
                     mat_list.append(((num_rows-row - 1)*DIM_OF_MATRIX, column*DIM_OF_MATRIX, 90))  # 0 + 90
     elif angle == 180:
         for row in range(num_rows-1,-1,-1): # increment through rows upwards
-            if row % 2 == 1:
-                for column in range(num_cols-1,-1,-1):  # if odd increment right to left
-                    mat_list.append((column*DIM_OF_MATRIX, row*DIM_OF_MATRIX, 180)) # 180 + 180
+            if row % 2 == 0:
+                for column in range(num_cols-1,-1,-1):  # if even increment right to left
+                    mat_list.append((column*DIM_OF_MATRIX, row*DIM_OF_MATRIX, 180)) # 0 + 180
             else:
                 for column in range(num_cols): # if even increment left to right
-                    mat_list.append((column*DIM_OF_MATRIX, row*DIM_OF_MATRIX, 0)) # 0 + 180
+                    mat_list.append((column*DIM_OF_MATRIX, row*DIM_OF_MATRIX, 0)) # 180 + 180
     elif angle == 270: # 90 degrees counter-clockwise
         for row in range(num_rows): # increment columns right to left
             if row % 2 == 1:
@@ -432,14 +433,15 @@ def sprite(sprite, origin=(0,0), crop_origin=(0,0), crop_dimensions=None):
     x_end = min(x_pos + x_crop + x_crop_dim, container_width, x_pos + sprite.width)
     y_end = min(y_pos + y_crop + y_crop_dim, container_height, y_pos + sprite.height)
     
-    
     # iterate through sprite and set points to led_driver
-    y = y_start
+    y = max(y_start,0)
     while y < y_end:
-        x = x_start
+        x = max(x_start, 0)
         while x < x_end:
             x_sprite = x - x_start + x_crop
             y_sprite = y - y_start + y_crop
+            x_sprite = int(x_sprite)
+            y_sprite = int(y_sprite)
             if container_math_coords:
                 y_sprite = sprite.height - 1 - y_sprite
             point((x, y), color=sprite.bitmap[y_sprite][x_sprite])
@@ -488,7 +490,7 @@ class LEDSprite(object):
             if errors is not None or (output.find("ERROR") != -1):
                 raise IOError(output)
                 
-            if output.find("text") != -1:  # file is a text file
+            if output.find("text") != -1 or output.find("FORTRAN") != -1:  # file is a text file
                 if filename[-4:] != ".spr":
                     raise ValueError("Filename must have '.spr' extension.")
                 f = open(filename, 'r')
@@ -537,6 +539,12 @@ class LEDSprite(object):
         self.bitmap = bitmap
         self.height = bitmap_height
         self.width = bitmap_width
+        
+    def width(self):
+        return self.width
+        
+    def height(self):
+        return self.height
 
     def append(self, sprite):
         """Appends given sprite to the right of itself.
@@ -608,6 +616,9 @@ class LEDSprite(object):
         
         @param angle: angle to rotate self in an interval of 90 degrees
         @type angle: int
+        
+        @returns: self
+        @rtype: L{LEDSprite}
         @raises ValueError: If angle is not multiple of 90
         @note: If no angle given, will rotate sprite 90 degrees.
         """
@@ -650,6 +661,13 @@ class LEDSprite(object):
         sprite_copy = copy.deepcopy(self)
         sprite_copy.rotate(angle)
         return sprite_copy
+        
+    def copy(self):
+        """Copies sprite
+        @returns: A copy of sprite without affecting original sprite
+        @rtype: L{LEDSprite}
+        """
+        return copy.deepcopy(self)
         
     def invert(self):
         """Inverts the sprite.

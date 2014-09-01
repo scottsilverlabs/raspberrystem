@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 #
 # Copyright (c) 2014, Scott Silver Labs, LLC.
 #
@@ -111,7 +113,9 @@ GROW_CYCLES = 0  # number of pixels - 1 to grow when eat apple
 score = 0
 
 # initialize led matrix
-led_matrix.init_grid()
+#led_matrix.init_grid(2,2)
+led_matrix.init_matrices([(0,8),(8,8),(8,0),(0,0)])
+
 
 # setup buttons
 UP = 25
@@ -128,7 +132,7 @@ def button_handler(button):
     global curr_state
     if button == START:
         curr_state = State.EXIT
-    if curr_state == State.PLAYING:
+    elif curr_state == State.PLAYING:
         if button == UP and (snake.length() == 1 or snake.direction != Direction.DOWN):
             snake.direction = Direction.UP
         elif button == DOWN and (snake.length() == 1 or snake.direction != Direction.UP):
@@ -137,12 +141,12 @@ def button_handler(button):
             snake.direction = Direction.LEFT
         elif button == RIGHT and (snake.length() == 1 or snake.direction != Direction.LEFT):
             snake.direction = Direction.RIGHT
-    elif button == SELECT:
+    elif button == SELECT or button == A:
         curr_state = State.RESET
 
 
 GPIO.setmode(GPIO.BCM)
-for button in [UP, DOWN, LEFT, RIGHT, START, SELECT]:
+for button in [UP, DOWN, LEFT, RIGHT, START, SELECT, A]:
     GPIO.setup(button, GPIO.IN, pull_up_down = GPIO.PUD_UP)
     GPIO.add_event_detect(button, GPIO.FALLING, callback=button_handler, bouncetime=300)
     
@@ -182,13 +186,14 @@ while True:
             snake.growing = True         # snake starts growing
             snake.grow_clock = GROW_CYCLES  # reset grow clock
             
-        time.sleep(.30)
+        time.sleep(.20)
         
     elif curr_state == State.IDLE:
         # display horizontal scrolling title
-        title = led_matrix.LEDText("SNAKE")
+        title = led_matrix.LEDText("SNAKE", font_name="large")
         x_pos = led_matrix.width() - 1
-        while x_pos > - title.width:
+        y_pos = led_matrix.height()/2 - title.height/2
+        while x_pos > -title.width - 1:
             # break if state has changed, so we don't have to wait for it to finish
             if curr_state != State.IDLE: 
                 break

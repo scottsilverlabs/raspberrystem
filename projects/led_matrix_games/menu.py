@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 #
 # Copyright (c) 2014, Scott Silver Labs, LLC.
 #
@@ -21,15 +23,39 @@ import os
 import sys
 import time
 
+# button ports
+A = 4
+B = 17
+UP = 25
+DOWN = 24
+LEFT = 23
+RIGHT = 18
+START = 27
+SELECT = 22
+
+
+# states
+IN_MENU = 1
+IN_GAME = 2
+KONAMI = 3
+curr_state = IN_MENU
+
+konami_number = 0
+konami_code = [UP, UP, DOWN, DOWN, LEFT, RIGHT, LEFT, RIGHT, B, A]
+
 class Menu(object):
 
-    HOLD_CLOCK_TIME = -30 # number of cycles to hold scrolling text
+    HOLD_CLOCK_TIME = -15 # number of cycles to hold scrolling text
     
-    def __init__(self, menu_items):
+    def __init__(self, menu_items, show_loading=False):
         items = []
         # convert titles
         for i, item in enumerate(menu_items):
-            f = os.path.abspath(item[1])
+            if show_loading:
+                led_matrix.erase()
+                led_matrix.text(str(len(menu_items) - i))
+                led_matrix.show()
+            f = os.path.join(os.path.dirname(os.path.abspath(__file__)), item[1])
             if not os.path.isfile(f):
                 raise IOError("File '" + f + "' could not be found.")
             items.append({
@@ -71,12 +97,12 @@ class Menu(object):
         l = self.items
         self.items = l[n:] + l[:n]
     
-    def scroll_up(self):
+    def scroll_down(self):
         self._rotate(1)
         self.scrolling_text_pos = 0
         self.scrolling_text_clock = Menu.HOLD_CLOCK_TIME
         
-    def scroll_down(self):
+    def scroll_up(self):
         self._rotate(-1)
         self.scrolling_text_pos = 0
         self.scrolling_text_clock = Menu.HOLD_CLOCK_TIME
@@ -90,65 +116,101 @@ class Menu(object):
         cleanup()
         os.system(sys.executable + " " + selected["file"])
         setup()  # resetup
-    
-# set up menu
-menu_items = [
-    ["Dice", "dice.py"],
-    ["Protector", "protector.py"],
-    ["Stack-em", "stackem.py"],
-    ["FlappyBird", "flappybird.py"],
-    ["Game of Life", "game_of_life.py"],
-    ["Snake", "snake.py"]
-]
-menu_items.sort() # put in alphabetical order by titles
-menu = Menu(menu_items)
-
-# set up buttons
-A = 4
-B = 17
-UP = 25
-DOWN = 24
-LEFT = 23
-RIGHT = 18
-START = 27
-SELECT = 22
-
-
-# states
-IN_MENU = 1
-IN_GAME = 2
-curr_state = IN_MENU
-
+        
+        
 def button_handler(channel):
-    if channel == A:
-        global curr_state
-        curr_state = IN_GAME
-    elif channel == UP:
-        menu.scroll_up()
-    elif channel == DOWN:
-        menu.scroll_down()
+    global konami_number
+    global curr_state
+    if channel == konami_code[konami_number]:
+        konami_number += 1  # continue progress towards konami code
+        if konami_number == len(konami_code):  # konami code complete
+            curr_state = KONAMI
+            konami_number = 0
+            return
+    else:
+        konami_number = 0  # reset progress, wrong button pressed
+    if curr_state != KONAMI:
+        if channel == A and konami_number == 0:
+            curr_state = IN_GAME
+        elif channel == UP:
+            menu.scroll_up()
+        elif channel == DOWN:
+            menu.scroll_down()
 
 def setup():
-    led_matrix.init_grid(math_coords=False)
+#    led_matrix.init_grid(math_coords=False)
+    led_matrix.init_matrices([(0,0),(8,0),(8,8),(0,8)], math_coords=False)
+
+    # TODO: set up for 2x2 display
     GPIO.setmode(GPIO.BCM)
-    for button in [A, UP, DOWN]:
+    for button in [A, UP, DOWN, LEFT, RIGHT, B, START, SELECT]:
         GPIO.setup(button, GPIO.IN, pull_up_down=GPIO.PUD_UP)
         GPIO.add_event_detect(button, GPIO.FALLING, callback=button_handler, bouncetime=300)
         
 def cleanup():
     led_matrix.cleanup()
-    for button in [A, UP, DOWN]:
+    for button in [A, UP, DOWN, LEFT, RIGHT, B, START, SELECT]:
         GPIO.remove_event_detect(button)
     GPIO.cleanup()
+    
+    
+# set up led matrix
+setup()    
+    
+# set up menu
+menu_items = [
+    ["Aspirin", "aspirin.py"],
+    ["Clock", "clock.py"],
+    ["Dice", "dice.py"],
+    ["Protector", "protector.py"],
+    ["Breakout", "breakout.py"],
+    ["Tetris", "tetris.py"],
+    ["Stack-em", "stackem.py"],
+    ["Space Invaders", "space_invaders.py"],
+    ["FlappyBird", "flappybird.py"],
+    ["Game of Life", "game_of_life.py"],
+    ["Snake", "snake.py"]
+]
+menu_items.sort() # put in alphabetical order by titles
+menu = Menu(menu_items, show_loading=True)
 
-setup()
+
+
+
 while True:
     if curr_state == IN_MENU:
         led_matrix.erase()
         menu.draw()
         led_matrix.show()
+        time.sleep(0.01)
     elif curr_state == IN_GAME:
         menu.run_selected_item()  # run game and wait for it to die
         curr_state = IN_MENU
-    
+    elif curr_state == KONAMI:
+        from random import shuffle, randint
+        words = ["Brian", "Jason", "Jon", "Joe", "Steph"]
+        shuffle(words)
+        raspberrySTEM = "RaspberrySTEM"
+        for name in words:
+            sprite = led_matrix.LEDText(name)
+            y_pos = randint(0,led_matrix.height()-sprite.height)
+            x_pos = led_matrix.width()
+            while x_pos >= -sprite.width:
+                led_matrix.erase()
+                led_matrix.sprite(sprite, (x_pos, y_pos))
+                led_matrix.show()
+                x_pos -= 1
+                time.sleep(.05)
+        
+        logo = led_matrix.LEDText(raspberrySTEM, font_name="large")
+        y_pos = int(led_matrix.height()/2) - int(logo.height/2)
+        x_pos = led_matrix.width()
+        while x_pos >= -logo.width:
+            led_matrix.erase()
+            led_matrix.sprite(logo, (x_pos, y_pos))
+            led_matrix.show()
+            x_pos -= 1
+            time.sleep(0.05)
+        curr_state = IN_MENU
+        
     

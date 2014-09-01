@@ -20,9 +20,19 @@ import RPi.GPIO as GPIO
 GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)
 
+# variables that can be used by user programs
 PRESSED = GPIO.FALLING
 RELEASED = GPIO.RISING
 BOTH = GPIO.BOTH
+
+A = 4
+B = 17
+UP = 25
+DOWN = 24
+LEFT = 23
+RIGHT = 18
+START = 27
+SELECT = 22
 
 def cleanup():
     """Cleans up the GPIO port"""
