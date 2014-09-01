@@ -1,0 +1,40 @@
+<!-- IDEAS:
+    - Link to an already existing setup instructions for the LED Matrix?
+    - Change terms like "while", "for", "if" into links that the user can click to get information about them?
+        - Also link to led_matrix api functions which a simple explaination of how it works?
+-->
+
+<html>
+    <head>
+        <title>Walking Sprite - Hard</title>
+    </head>
+    
+    <body>
+        <h1>Walking Sprite - Hard <br> Zombie Walker</h1>
+            <p>In this project we will be demonstrating a simple animation of a guy walking like in 
+            <a href="walking_sprite_easy.html">easy</a>
+            but now, allow the sprite to move back and forth as the guy is being animated.
+            
+            <h2>How it Works:</h2>
+                <p>To animate the sprite we follow the same procedure as in <a href="walking_sprite_easy.html">easy</a>
+                
+                <p>To make the sprite move along the LED matrices we need to change the position of the 
+                sprite everytime we draw the sprite using <code>led_matrix.sprite()</code> by setting a second
+                parameter that provides where (in coordinates) the sprite should be displayed. 
+                
+                <!-- TODO: a little too much of hand waving here? -->
+                <p>Through the magic of <code>while</code> loops and the use of the <code>flipped_vertical()</code> function
+                we can make the sprite look like its walking back and forth.
+                
+            <h2>Try This:</h2>
+               <ul>
+                    <li>Change the delay time of <code>.2</code> seconds on the line <code>time.sleep(.2)</code>
+                        <ol>
+                            <li>How does this change the animation?
+                            <li>How does this change how fast the guy walks?
+                            <!-- TODO: not sure if I should have this question -->
+                            <li>How could we change the speed the guy walks without changing the animation?
+                        </ol>
+                </ul>
+    </body>
+</html>

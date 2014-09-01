@@ -1,0 +1,38 @@
+<!-- TODO: Is this too easy?, It doesn't actually scroll..... --->
+
+<html>
+    <head>
+        <title>Scrolling Text - Easy</title>
+    </head>
+    
+    <body>
+        <h1>Scrolling Text - Easy <br> Displaying "hello" on the LED matrices</h1>
+            <p>In this project we will be displaying text onto the LED matrix display.
+            However, it will not be scrolling. For text that is scrolling, see <a href="scrolling_text_hard.html">hard</a>.
+            
+            <h2>How it works:</h2>
+                <p>Drawing the text on the LED matrix is a 2 step process:
+                    <ol>
+                        <li>First we must draw the text on the screen with <code>led_matrix.text()</code>
+                        <li>Then we must tell the Raspberry Pi that we want to show what we have drawn
+                            on the LED matrices, with <code>led_matrix.show()</code>.
+                    </ol>
+                        
+            <h2>Try This:</h2>
+                <ul>
+                    <li>Change the text "Hello" to something else and see how it displays.
+                        <!-- TODO: have questions like this? -->
+                        <ol>
+                            <li>Does your whole text display?
+                            <li>How could we show longer text?
+                        </ol>
+                    <li>Add more than one <code>led_matrix.text()</code> lines, with different text in the parentheses before calling <code>led_matrix.show()</code>
+                        <ol>
+                            <li>What happens? Why?
+                            <li>How do you think we could show one piece of text, wait a couple seconds, clear the screen,
+                            and then display the next piece of text?
+                                <br><i>See <a href="scrolling_text_medium.html">medium</a> for the answer.</i>
+                        </ol>
+                </ul>
+    </body>
+</html>

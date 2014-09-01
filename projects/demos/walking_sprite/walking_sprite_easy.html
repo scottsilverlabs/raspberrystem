@@ -1,0 +1,40 @@
+<!-- IDEAS:
+    - Link to an already existing setup instructions for the LED Matrix?
+    - Change terms like "while", "for", "if" into links that the user can click to get information about them?
+        - Also link to led_matrix api functions which a simple explaination of how it works?
+-->
+
+<html>
+    <head>
+        <title>Walking Sprite - Easy</title>
+    </head>
+    
+    <body>
+        <h1>Walking Sprite - Easy</h1>
+            <p>In this project we will be demonstrating a simple animation of a guy walking. This
+            will be acheived by quickly showing different sprites in succession
+            to simulate the appearance of the sprite walking. Kind of like a flipbook.</p>
+
+            <h2>How it Works:</h2>
+                <!-- TODO: better explain this... -->
+                <p>We first develop the sprites we want to use by calling <code>led_matrix.LEDSprite()</code> on 
+                the already created <code>.spr</code> files in the same folder. These varibles will be used to
+                draw on the LED matrices.
+                
+                <p>To animate a sprites, we need to quickly flash different sprites together in succession, 
+                just like pages in a flipbook. To do this, we will use the a technique where we clear the
+                display, draw and show one sprite for a couple of seconds, and then repeat for the other sprites.
+                Once we have gone through all the sprites, we will then repeat the process again, starting with the
+                first sprite again.
+                
+            <h2>Try This:</h2>
+                <ul>
+                    <li>Change the delay time of <code>.25</code> seconds on the line <code>time.sleep(.25)</code>
+                        <ol>
+                            <li>How does this change the animation?
+                            <li>What happens when you make the number bigger?
+                            <li>What happens when you make the number smaller?
+                        </ol>
+                </ul>
+    </body>
+</html>

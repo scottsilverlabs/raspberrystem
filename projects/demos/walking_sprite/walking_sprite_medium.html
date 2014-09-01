@@ -1,0 +1,45 @@
+<!-- IDEAS:
+    - Link to an already existing setup instructions for the LED Matrix?
+    - Change terms like "while", "for", "if" into links that the user can click to get information about them?
+        - Also link to led_matrix api functions which a simple explaination of how it works?
+-->
+
+<html>
+    <head>
+        <title>Walking Sprite - Medium</title>
+    </head>
+    
+    <body>
+        <h1>Walking Sprite - Medium <br> Jumping Man</h1>
+            <p>In this project we are demonstrating a simple animation of a guy walking like in 
+            <a href="walking_sprite_easy.html">easy</a>
+            but added the ability to press the A button to make the guy jump.</p>
+            
+            <h2>How it Works:</h2>
+                <p>We first develop the sprites we want to use by calling <code>led_matrix.LEDSprite()</code> on 
+                the already created <code>.spr</code> files in the same folder. (This is similar to how we did
+                it in <a href="walking_sprite_easy.html">easy</a>, but more efficent by using a <code>for</code> 
+                loop.)
+                
+                <p>To animate the sprites, we quickly flash through different sprites together in succession just like
+                in <a href="walking_sprite_easy.html">easy</a>. However, before we draw the sprite, we first need to 
+                decide if the A button has been pressed by checking <code>my_button.is_pressed()</code> 
+                with an <code>if</code> statement, and then draw the sprite 2 pixels 
+                higher (to simulate a jump) if the button is pressed.
+                
+            <h2>Try This:</h2>
+                <ul>
+                    <li>Change the delay time of <code>.25</code> seconds on the line <code>time.sleep(.25)</code>
+                        <ol>
+                            <li>How does this change the animation?
+                            <li>What happens when you make the number bigger?
+                            <li>What happens when you make the number smaller?
+                        </ol>
+                    <li>Try changing the coordinates of the sprite when the button is pressed.
+                        <ol>
+                            <li>What happens to the animated guy when you press the button?
+                            <!-- TODO: another question -->
+                        </ol>
+                </ul>
+    </body>
+</html>

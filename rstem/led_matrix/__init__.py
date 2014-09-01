@@ -603,6 +603,9 @@ class LEDSprite(object):
     def rotate(self, angle=90):
         """Rotates sprite at 90 degree intervals. 
         
+        @returns: self
+        @rtype: L{LEDSprite}
+        
         @param angle: angle to rotate self in an interval of 90 degrees
         @type angle: int
         @raises ValueError: If angle is not multiple of 90
@@ -636,6 +639,7 @@ class LEDSprite(object):
             temp = self.width
             self.width = self.height
             self.height = temp
+        return self
         
     def rotated(self, angle=90):
         """Same as L{rotate} only it returns a copy of the rotated sprite
@@ -648,7 +652,10 @@ class LEDSprite(object):
         return sprite_copy
         
     def invert(self):
-        """Inverts the sprite."""
+        """Inverts the sprite.
+        @returns: self
+        @rtype: L{LEDSprite}
+        """
         for y, line in enumerate(self.bitmap):
             for x, pixel in enumerate(line):
                 if pixel < 16:
@@ -662,6 +669,44 @@ class LEDSprite(object):
         """
         sprite_copy = copy.deepcopy(self)
         sprite_copy.invert()
+        return sprite_copy
+        
+    def flip_horizontal(self):
+        """Flips the sprite horizontally.
+        @returns: self
+        @rtype: L{LEDSprite}
+        """
+        self.bitmap.reverse()
+        return self
+        
+    def flipped_horizontal(self):
+        """Same as L{flip_horizontal} only it returns a copy of the flipped sprite
+        and does not affect the original.
+        @returns: sprite flipped horizontally
+        @rtype: L{LEDSprite}
+        """
+        sprite_copy = copy.deepcopy(self)
+        sprite_copy.flip_horizontal()
+        return sprite_copy
+        
+        
+    def flip_vertical(self):
+        """Flips the sprite vertically.
+        @returns: self
+        @rtype: L{LEDSprite}
+        """
+        for line in self.bitmap:
+            line.reverse()
+        return self
+        
+    def flipped_vertical(self):
+        """Same as L{flip_vertical} only it returns a copy of the flipped sprite
+        and does not affect the original.
+        @returns: sprite flipped vertically
+        @rtype: L{LEDSprite}
+        """
+        sprite_copy = copy.deepcopy(self)
+        sprite_copy.flip_vertical()
         return sprite_copy
 
 

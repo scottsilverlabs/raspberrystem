@@ -1,0 +1,37 @@
+<!-- TODO: Use different text than "Hello World" that would fit better? -->
+
+<html>
+    <head>
+        <title>Scrolling Text - Medium</title>
+    </head>
+    
+    <body>
+        <h1>Scrolling Text - Medium <br> Displaying "Hello" and then "World"</h1>
+            <p>In this project we will be displaying the text "Hello" followed by "World"
+            in succession one after another. 
+            
+            <h2>How it works:</h2>
+                <p>To display the text we are following the same process we did in <a href="scrolling_text_easy.html">easy</a>.
+                (Drawing the text with <code>led_matrix.text</code>, then showing it with <code>led_matrix.show()</code>)
+                
+                <p>However, one change we do is clear the screen of the previous text displayed using <code>led_matrix.erase()</code>
+                before displaying the next piece of text and then create a delay using <code>time.sleep(1)</code> to allow 
+                the user to see the text for a second before the next text is displayed.
+                
+                <p>Also, to keep this going on forever we use a <code>while</code> loop.
+                
+            <h2>Try This:</h2>
+                <ul>
+                    <li>Change the text "Hello" and "World" to something else.
+                        <ol>
+                            <li>Does it matter what order you put the text in?
+                        </ol>
+                    <li>Change the <code>time.sleep(1)</code> lines to a different number of seconds instead of 1.
+                        <ol>
+                            <li>What happens when you make the number larger than 1?
+                            <li>What happens when you make the number between 0 and 1 (like 0.5)?
+                            <li>How could you make a longer pause after displaying "World" and before the next "Hello"?
+                        </ol>
+                </ul> 
+    </body>
+</html>
