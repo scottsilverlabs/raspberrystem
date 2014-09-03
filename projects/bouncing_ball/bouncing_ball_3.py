@@ -15,7 +15,7 @@
 #
 import time
 from itertools import cycle
-from rstem import led
+from rstem import led_matrix
 from rstem import accel
 
 x = 0.0
@@ -26,12 +26,12 @@ period = 0.01
 sprite_period = 0.2
 sprite_steps = sprite_period/period
 step = 0
-sprites = cycle([LEDSprite("ball%d.txt" % i) for i in range(4)])
+sprites = cycle([led_matrix.LEDSprite("ball%d.spr" % i) for i in range(4)])
 sprite = sprites.next()
 while True:
     # Draw the ball
     led.erase()
-    led.sprite(sprite, (int(x), int(y)))
+    led.sprite(sprite, (x, y))
     led.show()
 
     # Change to next sprite, once every sprite_steps

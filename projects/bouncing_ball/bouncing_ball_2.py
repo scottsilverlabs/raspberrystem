@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 import time
-from rstem import led
+from rstem import led_matrix
 
 x = 0.0
 y = 0.0
@@ -24,13 +24,13 @@ period = 0.01
 sprite_period = 0.2
 sprite_steps = sprite_period/period
 step = 0
-sprites = [LEDSprite("ball%d.txt" % i) for i in range(4)]
+sprites = [led_matrix.LEDSprite("ball%d.spr" % i) for i in range(4)]
 while True:
     # Draw the ball
     sprite = sprites[n]
-    led.erase()
-    led.sprite(sprite, (int(x), int(y)))
-    led.show()
+    led_matrix.erase()
+    led_matrix.sprite(sprite, (x, y))
+    led_matrix.show()
 
     # Change to next sprite, once every sprite_steps
     step += 1
@@ -40,9 +40,9 @@ while True:
     # Move the point to a new position.  If it hits a wall, reverse the
     # direction of the ball.
     x, y = (x+xdist, y+ydist)
-    if x >= (led.width() - (sprite.width() - 1)) or x < 0:
+    if x >= (led_matrix.width() - (sprite.width() - 1)) or x < 0:
         xdist = - xdist
-    if y >= (led.height() - (sprite.height() - 1)) or y < 0:
+    if y >= (led_matrix.height() - (sprite.height() - 1)) or y < 0:
         ydist = - ydist
 
     time.sleep(period)

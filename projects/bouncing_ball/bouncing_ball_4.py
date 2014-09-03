@@ -15,7 +15,7 @@
 #
 import time
 from itertools import cycle
-from rstem import led
+from rstem import led_matrix
 from rstem import accel
 
 period = 0.01
@@ -32,7 +32,7 @@ class Ball():
         Ball.next_color = (Ball.next_color % 15) + 1
 
     def draw(self):
-        led.point(int(self.x), int(self.y))
+        led_matrix.point(self.x, self.y)
 
     def move(self, angle=None):
         # Gravity
@@ -53,9 +53,9 @@ class Ball():
 ball = Ball()
 while True:
     # Draw the ball
-    led.erase()
+    led_matrix.erase()
     ball.draw()
-    led.show()
+    led_matrix.show()
 
     # Move it (in the presense of gravity)
     ball.move(accel.get_angle())
