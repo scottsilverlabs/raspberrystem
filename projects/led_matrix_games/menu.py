@@ -61,7 +61,7 @@ class Menu(object):
             items.append({
                 "title": item[0], 
                 "file": f,
-                "text": led_matrix.LEDText(item[0])
+                "text": led_matrix.LEDText(item[0], font_name="large")
                 })
         self.items = items
         self.scrolling_text_pos = 0
@@ -80,7 +80,7 @@ class Menu(object):
             if item["title"] == selected_item["title"]:
                 # display selected text scrolling
                 x = self.scrolling_text_pos
-                led_matrix.text(selected_item["text"], (x, pos_y))
+                led_matrix.sprite(selected_item["text"], (x, pos_y))
                 if self.scrolling_text_clock == self.scrolling_text_cycle:
                     self.scrolling_text_clock = 0
                     if self.scrolling_text_pos < -selected_item["text"].width:
@@ -89,7 +89,7 @@ class Menu(object):
                         self.scrolling_text_pos -= 1
                 self.scrolling_text_clock += 1
             else:
-                led_matrix.text(item["text"], (0, pos_y))
+                led_matrix.sprite(item["text"], (0, pos_y))
             pos_y += item["text"].height + 1
     
     def _rotate(self, n):
@@ -192,7 +192,7 @@ while True:
         shuffle(words)
         raspberrySTEM = "RaspberrySTEM"
         for name in words:
-            sprite = led_matrix.LEDText(name)
+            sprite = led_matrix.LEDText(name, font_name="large")
             y_pos = randint(0,led_matrix.height()-sprite.height)
             x_pos = led_matrix.width()
             while x_pos >= -sprite.width:
