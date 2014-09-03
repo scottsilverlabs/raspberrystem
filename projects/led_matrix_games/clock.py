@@ -36,13 +36,14 @@ SELECT = 22
 
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(START, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(SELECT, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
 # notify menu we are ready for the led matrix
 print("READY")
 sys.stdout.flush()
 
 while True:
-    if GPIO.input(START) == 0:
+    if GPIO.input(START) == 0 or GPIO.input(SELECT) == 0:
         button.cleanup()
         led_matrix.cleanup()
         sys.exit(0)

@@ -41,6 +41,8 @@ SELECT = 22
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(A, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 GPIO.setup(START, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(SELECT, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+
 
 def randint(min, max):
     return int(random.random() * (max - min + 1)) + min
@@ -125,7 +127,7 @@ try:
 
     def button_handler(channel):
         global state
-        if channel == START:
+        if channel in [START, SELECT]:
             state = State.EXIT
             return
         if state == State.RESET:
@@ -140,6 +142,8 @@ try:
     # runt button_handler if START or A button is pressed
     GPIO.add_event_detect(A, GPIO.FALLING, callback=button_handler, bouncetime=300)
     GPIO.add_event_detect(START, GPIO.FALLING, callback=button_handler, bouncetime=300)
+    GPIO.add_event_detect(SELECT, GPIO.FALLING, callback=button_handler, bouncetime=300)
+
 
     # notify menu we are ready for the led matrix
     print("READY")

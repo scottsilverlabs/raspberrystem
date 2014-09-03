@@ -128,7 +128,7 @@ def button_handler(button):
     global player_pos
     global missles
     global enemies
-    if button == START:
+    if button in [START, SELECT]:
         state = State.EXIT
     elif button == A:
         if state == State.PLAYING:
@@ -146,7 +146,7 @@ def button_handler(button):
             state = State.PLAYING
 
 GPIO.setmode(GPIO.BCM)
-for button in [A, START]:
+for button in [A, START, SELECT]:
     GPIO.setup(button, GPIO.IN, pull_up_down = GPIO.PUD_UP)
     GPIO.add_event_detect(button, GPIO.FALLING, callback=button_handler, bouncetime=300)
     

@@ -160,7 +160,7 @@ GPIO.setmode(GPIO.BCM)
 def button_handler(channel):
     global state
     global field
-    if channel == START:
+    if channel in [START, SELECT]:
         state = State.EXIT
     elif state in [State.IDLE, State.SCORE] and channel in [A, B]:
         # Reset field and player to start a new game
@@ -180,7 +180,7 @@ def button_handler(channel):
 #            field.player.move(Direction.RIGHT)
     
 
-for button in [UP, DOWN, LEFT, RIGHT, START, A, B]:
+for button in [UP, DOWN, LEFT, RIGHT, START, A, B, SELECT]:
     GPIO.setup(button, GPIO.IN, pull_up_down=GPIO.PUD_UP)
     GPIO.add_event_detect(button, GPIO.FALLING, callback=button_handler, bouncetime=300)
     

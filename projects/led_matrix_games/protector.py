@@ -353,7 +353,7 @@ exit = False
 def button_handler(channel):
     # exit if START button pressed
     global exit
-    if channel == START:
+    if channel in [START, SELECT]:
         exit = True
     if channel in [LEFT, RIGHT, UP, DOWN]:
         ship.deferred_adjust(channel)  # add direction to direction queue
@@ -362,7 +362,7 @@ def button_handler(channel):
 
 # set up gpio inputs
 GPIO.setmode(GPIO.BCM)
-for g in [A, LEFT, DOWN, UP, RIGHT, START]:
+for g in [A, LEFT, DOWN, UP, RIGHT, START, SELECT]:
     GPIO.setup(g, GPIO.IN, pull_up_down = GPIO.PUD_UP)
     GPIO.add_event_detect(g, GPIO.FALLING, callback=button_handler, bouncetime=100)
 

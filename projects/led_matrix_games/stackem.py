@@ -147,7 +147,7 @@ def button_handler(channel):
     button_pressed = True
     
     # if START pressed exit the game
-    if channel == START:
+    if channel in [START, SELECT]:
         curr_state = State.EXIT
         return
     
@@ -193,7 +193,7 @@ def button_handler(channel):
         curr_state = State.PLAYING
 
 GPIO.setmode(GPIO.BCM)
-for but in [A, START]:
+for but in [A, START, SELECT]:
     GPIO.setup(but, GPIO.IN, pull_up_down=GPIO.PUD_UP)
     GPIO.add_event_detect(but, GPIO.FALLING, callback=button_handler, bouncetime=300)
 

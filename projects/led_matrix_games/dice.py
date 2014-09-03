@@ -53,6 +53,7 @@ SELECT = 22
 
 # setup start button to exit game
 GPIO.setup(START, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(SELECT, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
 # setup A button to roll dice
 GPIO.setup(A, GPIO.IN, pull_up_down=GPIO.PUD_UP)
@@ -72,7 +73,7 @@ sys.stdout.flush()
 
 while True:
     # exit if start button is pressed
-    if GPIO.input(START) == 0:
+    if GPIO.input(START) == 0 or GPIO.input(SELECT) == 0:
         led_matrix.cleanup()
         GPIO.cleanup()
         sys.exit(0)

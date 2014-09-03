@@ -199,14 +199,14 @@ B = 17
 # what to do during a button press
 def button_handler(button):
     global state
-    if button == START:
+    if button in [START, SELECT]:
         state = State.EXIT
     elif button == A and state != State.PLAYING:
         state = State.RESET
 
 
 GPIO.setmode(GPIO.BCM)
-for button in [A, START]:
+for button in [A, START, SELCT]:
     GPIO.setup(button, GPIO.IN, pull_up_down = GPIO.PUD_UP)
     GPIO.add_event_detect(button, GPIO.FALLING, callback=button_handler, bouncetime=300)
 

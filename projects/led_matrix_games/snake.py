@@ -130,7 +130,7 @@ B = 17
 # what to do during a button press
 def button_handler(button):
     global curr_state
-    if button == START:
+    if button in [START, SELECT]:
         curr_state = State.EXIT
     elif curr_state == State.PLAYING:
         if button == UP and (snake.length() == 1 or snake.direction != Direction.DOWN):

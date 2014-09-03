@@ -242,7 +242,7 @@ class Piece(object):
 # what to do when button is pressed
 def button_handler(channel):
     global curr_state
-    if channel == START:
+    if channel in [START, SELECT]:
         curr_state = State.EXIT
         return
     if curr_state == State.MOVINGDOWN and curr_piece is not None:
