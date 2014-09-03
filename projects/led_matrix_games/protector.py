@@ -427,8 +427,8 @@ enemy_scene = 0
 
 wall = Wall(color=5)
 ship = Ship((2,4), color=0xF)
-missiles = Missiles(direction=RIGHT, color=1)
-enemy_missiles = Missiles(direction=LEFT, color=1)
+missiles = Missiles(direction=RIGHT, color=5)
+enemy_missiles = Missiles(direction=LEFT, color=5)
 enemies = Enemies(enemy_missiles, color=0xA)
 all_sprites = [wall, ship, missiles, enemies, enemy_missiles]
 
