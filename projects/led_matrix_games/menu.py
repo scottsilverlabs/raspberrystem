@@ -188,7 +188,7 @@ while True:
         curr_state = IN_MENU
     elif curr_state == KONAMI:
         from random import shuffle, randint
-        words = ["Brian", "Jason", "Jon", "Joe", "Steph"]
+        words = ["Brian", "Jason", "Jon", "Joe", "Steph", "Jed", "Tess"]
         shuffle(words)
         raspberrySTEM = "RaspberrySTEM"
         for name in words:

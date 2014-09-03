@@ -44,7 +44,6 @@ class Direction(object):
     LEFT, RIGHT, UP, DOWN = range(4)
 
 class Apple(object):
-    # TODO: make the apple 2x2?
     def __init__(self, position):
         self.position = position
         
@@ -94,7 +93,6 @@ class Player(object):
     def draw(self):
         led_matrix.point(*self.position, color=8)
        
-    # TODO: make this more elegant 
     def move(self, direction):
         if direction == Direction.UP:
             if self.position[1] < led_matrix.height()-1:
@@ -248,7 +246,6 @@ while True:
         
         
     elif state == State.IDLE:
-        # TODO: check speed on this
         x = led_matrix.width()
         while x > -title.width:
             # break if state has changed, (don't wait for scroll to finish)
