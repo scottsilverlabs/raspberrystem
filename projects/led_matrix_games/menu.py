@@ -167,7 +167,7 @@ def GPIO_setup():
     GPIO.setmode(GPIO.BCM)
     for button in [A, UP, DOWN, LEFT, RIGHT, B, START, SELECT]:
         GPIO.setup(button, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-        GPIO.add_event_detect(button, GPIO.FALLING, callback=button_handler, bouncetime=300)
+        GPIO.add_event_detect(button, GPIO.FALLING, callback=button_handler, bouncetime=50)
         
 def GPIO_cleanup():
     for button in [A, UP, DOWN, LEFT, RIGHT, B, START, SELECT]:

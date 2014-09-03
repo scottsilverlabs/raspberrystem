@@ -195,7 +195,7 @@ def button_handler(channel):
 GPIO.setmode(GPIO.BCM)
 for but in [A, START, SELECT]:
     GPIO.setup(but, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-    GPIO.add_event_detect(but, GPIO.FALLING, callback=button_handler, bouncetime=300)
+    GPIO.add_event_detect(but, GPIO.FALLING, callback=button_handler, bouncetime=50)
 
 title = led_matrix.LEDText("STACK-EM", font_name="large")
    

@@ -148,7 +148,7 @@ def button_handler(button):
 GPIO.setmode(GPIO.BCM)
 for button in [UP, DOWN, LEFT, RIGHT, START, SELECT, A]:
     GPIO.setup(button, GPIO.IN, pull_up_down = GPIO.PUD_UP)
-    GPIO.add_event_detect(button, GPIO.FALLING, callback=button_handler, bouncetime=300)
+    GPIO.add_event_detect(button, GPIO.FALLING, callback=button_handler, bouncetime=50)
 
 
 # notify menu we are ready for the led matrix

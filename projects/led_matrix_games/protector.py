@@ -364,7 +364,7 @@ def button_handler(channel):
 GPIO.setmode(GPIO.BCM)
 for g in [A, LEFT, DOWN, UP, RIGHT, START, SELECT]:
     GPIO.setup(g, GPIO.IN, pull_up_down = GPIO.PUD_UP)
-    GPIO.add_event_detect(g, GPIO.FALLING, callback=button_handler, bouncetime=100)
+    GPIO.add_event_detect(g, GPIO.FALLING, callback=button_handler, bouncetime=50)
 
 
 # set up led matrix
