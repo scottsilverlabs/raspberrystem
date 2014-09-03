@@ -279,6 +279,10 @@ for character in reversed("TETRI"):
 # rotate title up
 title.rotate(-90)
 
+
+# notify menu we are ready for the led matrix
+print("READY")
+sys.stdout.flush()
         
 while True:
     # state when a piece is slowly moving down the display

@@ -66,6 +66,10 @@ base_elevation = accel.angles()[2]
 # set change in angle/acceleration needed to roll dice
 THRESHOLD = 20
 
+# notify menu we are ready for the led matrix
+print("READY")
+sys.stdout.flush()
+
 while True:
     # exit if start button is pressed
     if GPIO.input(START) == 0:

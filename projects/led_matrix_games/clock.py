@@ -37,6 +37,9 @@ SELECT = 22
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(START, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
+# notify menu we are ready for the led matrix
+print("READY")
+sys.stdout.flush()
 
 while True:
     if GPIO.input(START) == 0:

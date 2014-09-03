@@ -211,6 +211,10 @@ title.rotate(-90)
         
 # State Machine ==================
 
+# notify menu we are ready for the led matrix
+print("READY")
+sys.stdout.flush()
+
 while True:
     if curr_state == State.IDLE:
         # display scrolling virtical text

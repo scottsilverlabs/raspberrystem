@@ -210,6 +210,9 @@ for button in [A, START]:
     GPIO.setup(button, GPIO.IN, pull_up_down = GPIO.PUD_UP)
     GPIO.add_event_detect(button, GPIO.FALLING, callback=button_handler, bouncetime=300)
 
+# notify menu we are ready for the led matrix
+print("READY")
+sys.stdout.flush()
 
 while True:
     if state == State.RESET:

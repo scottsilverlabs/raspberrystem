@@ -104,6 +104,10 @@ while True:
     next_gen = [[0 for i in range(num_cols)] for j in range(num_rows)]
     # TODO allow sprite input instead of random grid?
 
+    # notify menu we are ready for the led matrix
+    print("READY")
+    sys.stdout.flush()
+
     # single game loop
     while True:
         if exit_button.is_pressed():

@@ -441,6 +441,10 @@ enemies.collideswith(wall, ship, missiles)
 next_tick = time.time() + POLL_PERIOD
 
 
+# notify menu we are ready for the led matrix
+print("READY")
+sys.stdout.flush()
+
 # state machine that runs through game
 while state.current() != DONE:
     if exit:

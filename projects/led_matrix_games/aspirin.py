@@ -8,11 +8,6 @@ import sys
 #led_matrix.init_grid(2,2)
 led_matrix.init_matrices([(0,8),(8,8),(8,0),(0,0)])
 
-
-# this game takes a while to start, so show loading
-led_matrix.text("Load..")
-led_matrix.show()
-
 # set up accelometer
 accel.init(1)
 
@@ -189,6 +184,10 @@ for button in [UP, DOWN, LEFT, RIGHT, START, A, B]:
     GPIO.setup(button, GPIO.IN, pull_up_down=GPIO.PUD_UP)
     GPIO.add_event_detect(button, GPIO.FALLING, callback=button_handler, bouncetime=300)
     
+
+# notify menu we are ready for the led matrix
+print("READY")
+sys.stdout.flush()
     
 # FSM =======
 while True:

@@ -151,6 +151,10 @@ for button in [A, START]:
     GPIO.add_event_detect(button, GPIO.FALLING, callback=button_handler, bouncetime=300)
     
 
+# notify menu we are ready for the led matrix
+print("READY")
+sys.stdout.flush()
+
 #	Start game
 while True:
     if state == State.WIN:

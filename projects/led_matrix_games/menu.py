@@ -43,6 +43,8 @@ curr_state = IN_MENU
 konami_number = 0
 konami_code = [UP, UP, DOWN, DOWN, LEFT, RIGHT, LEFT, RIGHT, B, A]
 
+loading_text = led_matrix.LEDText("LOADING")
+
 class Menu(object):
 
     HOLD_CLOCK_TIME = -15 # number of cycles to hold scrolling text
@@ -112,10 +114,34 @@ class Menu(object):
         return self.items[0]
                 
     def run_selected_item(self):
+        # start child process
         selected = self.selected_item()
-        cleanup()
-        os.system(sys.executable + " " + selected["file"])
-        setup()  # resetup
+        GPIO_cleanup()
+        proc = subprocess.Popen([sys.executable, selected["file"]], stdout=subprocess.PIPE, close_fds=False)
+        finished = False
+        # display loading screen until child process wants the led matrix
+        while proc.poll() and not finished:
+            x_pos = 0
+            y_pos = int(led_matrix.height()/2) - int(loading_text.height/2)
+            while x_pos >= -loading_text.width:
+                led_matrix.erase()
+                led_matrix.sprite(loading_text, (x_pos, y_pos))
+                led_matrix.show()
+                x_pos -= 1
+
+                # check if child process is ready to take control of matrix
+                data = proc.stdout.readline()
+                if data and data.decode("utf-8") == "READY\n":
+                    finished = True
+                    break
+                time.sleep(0.05)
+
+        led_matrix.erase()  # clear the display
+        led_matrix.show()
+        # TODO: find out if we need to clean up led matrix too
+        # wait till child process finishes
+        proc.wait()
+        GPIO_setup() # resetup GPIO
         
         
 def button_handler(channel):
@@ -137,25 +163,21 @@ def button_handler(channel):
         elif channel == DOWN:
             menu.scroll_down()
 
-def setup():
-#    led_matrix.init_grid(math_coords=False)
-    led_matrix.init_matrices([(0,0),(8,0),(8,8),(0,8)], math_coords=False)
-
-    # TODO: set up for 2x2 display
+def GPIO_setup():
     GPIO.setmode(GPIO.BCM)
     for button in [A, UP, DOWN, LEFT, RIGHT, B, START, SELECT]:
         GPIO.setup(button, GPIO.IN, pull_up_down=GPIO.PUD_UP)
         GPIO.add_event_detect(button, GPIO.FALLING, callback=button_handler, bouncetime=300)
         
-def cleanup():
-    led_matrix.cleanup()
+def GPIO_cleanup():
     for button in [A, UP, DOWN, LEFT, RIGHT, B, START, SELECT]:
         GPIO.remove_event_detect(button)
     GPIO.cleanup()
     
     
 # set up led matrix
-setup()    
+led_matrix.init_matrices([(0,0),(8,0),(8,8),(0,8)], math_coords=False)
+GPIO_setup()    
     
 # set up menu
 menu_items = [
