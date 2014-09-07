@@ -206,7 +206,7 @@ def button_handler(button):
 
 
 GPIO.setmode(GPIO.BCM)
-for button in [A, START, SELCT]:
+for button in [A, START, SELECT]:
     GPIO.setup(button, GPIO.IN, pull_up_down = GPIO.PUD_UP)
     GPIO.add_event_detect(button, GPIO.FALLING, callback=button_handler, bouncetime=50)
 

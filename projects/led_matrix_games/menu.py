@@ -22,6 +22,7 @@ import subprocess
 import os
 import sys
 import time
+import fcntl
 
 # button ports
 A = 4
@@ -118,10 +119,17 @@ class Menu(object):
         selected = self.selected_item()
         GPIO_cleanup()
         proc = subprocess.Popen([sys.executable, selected["file"]], stdout=subprocess.PIPE, close_fds=False)
+        
+        # make proc.stdout a non-blocking file
+        fd = proc.stdout.fileno()
+        fl = fcntl.fcntl(fd, fcntl.F_GETFL)
+        fcntl.fcntl(fd, fcntl.F_SETFL, fl | os.O_NONBLOCK)
+        
         finished = False
+        print("starting up")
         # display loading screen until child process wants the led matrix
-        while proc.poll() and not finished:
-            x_pos = 0
+        while not proc.poll() and not finished:
+            x_pos = led_matrix.width()
             y_pos = int(led_matrix.height()/2) - int(loading_text.height/2)
             while x_pos >= -loading_text.width:
                 led_matrix.erase()
@@ -129,12 +137,21 @@ class Menu(object):
                 led_matrix.show()
                 x_pos -= 1
 
+                # read stdout of the game process
+                try: 
+                    data = proc.stdout.readline()
+                except:
+                    data = False
+                if data:
+                    print(data)
+                    
                 # check if child process is ready to take control of matrix
-                data = proc.stdout.readline()
                 if data and data.decode("utf-8") == "READY\n":
                     finished = True
                     break
                 time.sleep(0.05)
+                
+        print("wait for game to die")
 
         led_matrix.erase()  # clear the display
         led_matrix.show()
@@ -167,7 +184,7 @@ def GPIO_setup():
     GPIO.setmode(GPIO.BCM)
     for button in [A, UP, DOWN, LEFT, RIGHT, B, START, SELECT]:
         GPIO.setup(button, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-        GPIO.add_event_detect(button, GPIO.FALLING, callback=button_handler, bouncetime=50)
+        GPIO.add_event_detect(button, GPIO.FALLING, callback=button_handler, bouncetime=150)
         
 def GPIO_cleanup():
     for button in [A, UP, DOWN, LEFT, RIGHT, B, START, SELECT]:
@@ -181,17 +198,17 @@ GPIO_setup()
     
 # set up menu
 menu_items = [
-    ["Aspirin", "aspirin.py"],
-    ["Clock", "clock.py"],
-    ["Dice", "dice.py"],
-    ["Protector", "protector.py"],
-    ["Breakout", "breakout.py"],
-    ["Tetris", "tetris.py"],
-    ["Stack-em", "stackem.py"],
-    ["Space Invaders", "space_invaders.py"],
-    ["FlappyBird", "flappybird.py"],
-    ["Game of Life", "game_of_life.py"],
-    ["Snake", "snake.py"]
+    ["ASPIRIN", "aspirin.py"],
+    ["CLOCK", "clock.py"],
+    ["DICE", "dice.py"],
+    ["PROTECTOR", "protector.py"],
+    ["BREAKOUT", "breakout.py"],
+    ["TETRIS", "tetris.py"],
+    ["STACK-EM", "stackem.py"],
+    ["SPACE INVADERS", "space_invaders.py"],
+    ["FLAPPYBIRD", "flappybird.py"],
+    ["GAME OF LIFE", "game_of_life.py"],
+    ["SNAKE", "snake.py"]
 ]
 menu_items.sort() # put in alphabetical order by titles
 menu = Menu(menu_items, show_loading=True)
