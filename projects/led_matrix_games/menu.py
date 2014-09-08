@@ -44,7 +44,7 @@ curr_state = IN_MENU
 konami_number = 0
 konami_code = [UP, UP, DOWN, DOWN, LEFT, RIGHT, LEFT, RIGHT, B, A]
 
-loading_text = led_matrix.LEDText("LOADING")
+loading_text = led_matrix.LEDText("LOADING...")
 
 class Menu(object):
 
@@ -126,14 +126,18 @@ class Menu(object):
         fcntl.fcntl(fd, fcntl.F_SETFL, fl | os.O_NONBLOCK)
         
         finished = False
+        percentage = 0   # percentage of loading
         print("starting up")
         # display loading screen until child process wants the led matrix
         while not proc.poll() and not finished:
             x_pos = led_matrix.width()
-            y_pos = int(led_matrix.height()/2) - int(loading_text.height/2)
+            y_pos = int(led_matrix.height()/2) - int(loading_text.height)
             while x_pos >= -loading_text.width:
                 led_matrix.erase()
+                # print "LOADING..."
                 led_matrix.sprite(loading_text, (x_pos, y_pos))
+                # print progress bar
+                led_matrix.rect((0,y_pos + int(loading_text.height) + 4), (int(percentage*led_matrix.width()), 3), fill=True)
                 led_matrix.show()
                 x_pos -= 1
 
@@ -142,13 +146,21 @@ class Menu(object):
                     data = proc.stdout.readline()
                 except:
                     data = False
-                if data:
-                    print(data)
                     
                 # check if child process is ready to take control of matrix
-                if data and data.decode("utf-8") == "READY\n":
-                    finished = True
-                    break
+                if data:
+                    game_printout = data.decode("utf-8")
+                    print(game_printout)
+                    # update progress bar if "P**" is given
+                    if game_printout[0] == "P" and game_printout[1:-1].isdigit():
+                        new_percentage = int(game_printout[1:-1])
+                        if 0 <= new_percentage <= 100:
+                            percentage = int(new_percentage)/100  # update percentage
+                            
+                    # break out of while loop to let game take over led matrix
+                    elif game_printout == "READY\n":
+                        finished = True
+                        break
                 time.sleep(0.05)
                 
         print("wait for game to die")
