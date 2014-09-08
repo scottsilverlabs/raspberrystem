@@ -22,6 +22,10 @@ import time
 import random
 import sys
 
+# notify of progress
+print("P50")
+sys.stdout.flush()
+
 # set up led matrix
 #led_matrix.init_grid(2,2)
 led_matrix.init_matrices([(0,8),(8,8),(8,0),(0,0)])
@@ -42,6 +46,10 @@ GPIO.setmode(GPIO.BCM)
 GPIO.setup(A, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 GPIO.setup(START, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 GPIO.setup(SELECT, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+
+# notify of progress
+print("P80")
+sys.stdout.flush()
 
 
 def randint(min, max):
@@ -138,6 +146,10 @@ try:
             bird.start_flap()
         elif state == State.END:
             state = State.RESET
+
+    # notify of progress
+    print("P90")
+    sys.stdout.flush()
             
     # runt button_handler if START or A button is pressed
     GPIO.add_event_detect(A, GPIO.FALLING, callback=button_handler, bouncetime=50)

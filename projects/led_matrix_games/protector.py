@@ -20,9 +20,18 @@ import os
 import time
 import random
 import sys
+
+# notify of progress
+print("P25")
+sys.stdout.flush()
+
 from rstem import led_matrix
 import RPi.GPIO as GPIO
 from collections import deque
+
+# notify of progress
+print("P50")
+sys.stdout.flush()
 
 # set up buttons
 A = 4
@@ -360,12 +369,19 @@ def button_handler(channel):
     if channel in [A]:
         missiles.new(ship.origin)  # generate new missle from ship
 
+# notify of progress
+print("P60")
+sys.stdout.flush()
+
 # set up gpio inputs
 GPIO.setmode(GPIO.BCM)
 for g in [A, LEFT, DOWN, UP, RIGHT, START, SELECT]:
     GPIO.setup(g, GPIO.IN, pull_up_down = GPIO.PUD_UP)
     GPIO.add_event_detect(g, GPIO.FALLING, callback=button_handler, bouncetime=50)
 
+# notify of progress
+print("P70")
+sys.stdout.flush()
 
 # set up led matrix
 #led_matrix.init_grid(2,2)
@@ -425,12 +441,20 @@ state = States(
 wall_scene = 0
 enemy_scene = 0
 
+# notify of progress
+print("P80")
+sys.stdout.flush()
+
 wall = Wall(color=5)
 ship = Ship((2,4), color=0xF)
 missiles = Missiles(direction=RIGHT, color=5)
 enemy_missiles = Missiles(direction=LEFT, color=5)
 enemies = Enemies(enemy_missiles, color=0xA)
 all_sprites = [wall, ship, missiles, enemies, enemy_missiles]
+
+# notify of progress
+print("P90")
+sys.stdout.flush()
 
 wall.collideswith(ship, missiles, enemy_missiles, enemies)
 ship.collideswith(wall, enemies, enemy_missiles)

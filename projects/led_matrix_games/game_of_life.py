@@ -22,6 +22,10 @@ from rstem import led_matrix, button
 import random
 import time
 
+# notify of progress
+print("P50")
+sys.stdout.flush()
+
 # initialize led matrix
 #led_matrix.init_grid(2,2)
 led_matrix.init_matrices([(0,8),(8,8),(8,0),(0,0)])
@@ -40,6 +44,10 @@ SELECT = 22
 # setup exit and restart button
 exit_button = button.Button(START)
 restart_button = button.Button(A)
+
+# notify of progress
+print("P60")
+sys.stdout.flush()
 
 # initialize variables
 num_rows, num_cols, curr_gen, next_gen = (None, None, None, None)
@@ -100,7 +108,15 @@ while True:
     # variables
     num_rows = led_matrix.height()
     num_cols = led_matrix.width()
+
+    # notify of progress
+    print("P80")
+    sys.stdout.flush()
     curr_gen = random_grid(num_cols, num_rows)
+
+    # notify of progress
+    print("P90")
+    sys.stdout.flush()
     next_gen = [[0 for i in range(num_cols)] for j in range(num_rows)]
     # TODO allow sprite input instead of random grid?
 

@@ -127,7 +127,6 @@ class Menu(object):
         
         finished = False
         percentage = 0   # percentage of loading
-        print("starting up")
         # display loading screen until child process wants the led matrix
         while not proc.poll() and not finished:
             x_pos = led_matrix.width()
@@ -137,7 +136,7 @@ class Menu(object):
                 # print "LOADING..."
                 led_matrix.sprite(loading_text, (x_pos, y_pos))
                 # print progress bar
-                led_matrix.rect((0,y_pos + int(loading_text.height) + 4), (int(percentage*led_matrix.width()), 3), fill=True)
+                led_matrix.rect((0,y_pos + int(loading_text.height) + 2), (int(percentage*led_matrix.width()), 3), fill=True)
                 led_matrix.show()
                 x_pos -= 1
 
@@ -150,7 +149,6 @@ class Menu(object):
                 # check if child process is ready to take control of matrix
                 if data:
                     game_printout = data.decode("utf-8")
-                    print(game_printout)
                     # update progress bar if "P**" is given
                     if game_printout[0] == "P" and game_printout[1:-1].isdigit():
                         new_percentage = int(game_printout[1:-1])
@@ -163,8 +161,6 @@ class Menu(object):
                         break
                 time.sleep(0.05)
                 
-        print("wait for game to die")
-
         led_matrix.erase()  # clear the display
         led_matrix.show()
         # TODO: find out if we need to clean up led matrix too
