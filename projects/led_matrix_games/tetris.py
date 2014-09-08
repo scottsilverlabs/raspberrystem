@@ -284,7 +284,7 @@ def button_handler(channel):
 GPIO.setmode(GPIO.BCM)
 for button in [UP, DOWN, LEFT, RIGHT, SELECT, START, A, B]:
     GPIO.setup(button, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-    GPIO.add_event_detect(button, GPIO.FALLING, callback=button_handler, bouncetime=50)
+    GPIO.add_event_detect(button, GPIO.FALLING, callback=button_handler, bouncetime=100)
 
 # notify of progress
 print("P90")

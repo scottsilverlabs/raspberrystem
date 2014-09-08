@@ -152,9 +152,9 @@ try:
     sys.stdout.flush()
             
     # runt button_handler if START or A button is pressed
-    GPIO.add_event_detect(A, GPIO.FALLING, callback=button_handler, bouncetime=50)
-    GPIO.add_event_detect(START, GPIO.FALLING, callback=button_handler, bouncetime=50)
-    GPIO.add_event_detect(SELECT, GPIO.FALLING, callback=button_handler, bouncetime=50)
+    GPIO.add_event_detect(A, GPIO.FALLING, callback=button_handler, bouncetime=100)
+    GPIO.add_event_detect(START, GPIO.FALLING, callback=button_handler, bouncetime=100)
+    GPIO.add_event_detect(SELECT, GPIO.FALLING, callback=button_handler, bouncetime=100)
 
 
     # notify menu we are ready for the led matrix
