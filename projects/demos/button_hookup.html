@@ -1,18 +1,25 @@
 <html>
     <body>
-        <h1>Hooking up a button</h1>
+        <h1>Button Cell</h1>
         <h2>Need:</h2>
             <ul>
-                <li>1 tactile button
-                <li>2 jumper wires
+                <li>2 tactile buttons
+                <li>4 jumper wires
             </ul>
-        <h2>Steps:</h2>
+        <h2>Setting up the buttons:</h2>
             <ol>
-                <li>Connect the tactile button to the breadboard
-                <li>Using a jumper wire, connect one side of the button to a GND port on the Raspberry Pi
-                <li>Using the other jumper wire, connect the other side of the button to the specific port number you would like to use.
-                    <br><i>These port numbers can be any port that has a number. (ie, anything but 3.3V, 5V, and GND ports)</i>
-                    <!-- TODO: insert wiring diagram -->
+                <li>Place the 2 tactile buttons onto the breadboard horizontally so that one is to the left of the other button.
+                <li>Using jumper wires, connect one side of each of the buttons to a GND port on the Raspberry Pi.
+                <li>Using one of the jumper wires, connect the other side of the left button to port 23 on the Raspberry Pi.
+                <li>Using the last jumper wire, connect the other side of the right button to port 18 on the Raspberry Pi.
+                    <br>[insert wiring diagram]
+            </ol>
+        <h2>Running the program:</h2>
+            <ol>
+                <li>Click the folder icon on the top left of the computer screen.
+                <li>Select the "button_test.py" program
+                <li>Click the play button on the top left of the computer screen.
+                <li>Try pressing the left and right buttons. You will see the '0' move left and right along the screen.
             </ol>
     </body>
 </html>

@@ -21,6 +21,10 @@ import RPi.GPIO as GPIO
 import time
 import sys
 
+# notify of progress
+print("P50")
+sys.stdout.flush()
+
 # initialize led matrix
 #led_matrix.init_grid()
 led_matrix.init_matrices([(0,8),(8,8),(8,0),(0,0)])
@@ -34,12 +38,24 @@ RIGHT = 18
 START = 27
 SELECT = 22
 
+# notify of progress
+print("P70")
+sys.stdout.flush()
+
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(START, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(SELECT, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
+# notify of progress
+print("P100")
+sys.stdout.flush()
+
+# notify menu we are ready for the led matrix
+print("READY")
+sys.stdout.flush()
 
 while True:
-    if GPIO.input(START) == 0:
+    if GPIO.input(START) == 0 or GPIO.input(SELECT) == 0:
         button.cleanup()
         led_matrix.cleanup()
         sys.exit(0)

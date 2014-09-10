@@ -20,9 +20,18 @@ import os
 import time
 import random
 import sys
+
+# notify of progress
+print("P25")
+sys.stdout.flush()
+
 from rstem import led_matrix
 import RPi.GPIO as GPIO
 from collections import deque
+
+# notify of progress
+print("P50")
+sys.stdout.flush()
 
 # set up buttons
 A = 4
@@ -353,19 +362,26 @@ exit = False
 def button_handler(channel):
     # exit if START button pressed
     global exit
-    if channel == START:
+    if channel in [START, SELECT]:
         exit = True
     if channel in [LEFT, RIGHT, UP, DOWN]:
         ship.deferred_adjust(channel)  # add direction to direction queue
     if channel in [A]:
         missiles.new(ship.origin)  # generate new missle from ship
 
+# notify of progress
+print("P60")
+sys.stdout.flush()
+
 # set up gpio inputs
 GPIO.setmode(GPIO.BCM)
-for g in [A, LEFT, DOWN, UP, RIGHT, START]:
+for g in [A, LEFT, DOWN, UP, RIGHT, START, SELECT]:
     GPIO.setup(g, GPIO.IN, pull_up_down = GPIO.PUD_UP)
     GPIO.add_event_detect(g, GPIO.FALLING, callback=button_handler, bouncetime=100)
 
+# notify of progress
+print("P70")
+sys.stdout.flush()
 
 # set up led matrix
 #led_matrix.init_grid(2,2)
@@ -425,12 +441,20 @@ state = States(
 wall_scene = 0
 enemy_scene = 0
 
+# notify of progress
+print("P80")
+sys.stdout.flush()
+
 wall = Wall(color=5)
 ship = Ship((2,4), color=0xF)
-missiles = Missiles(direction=RIGHT, color=1)
-enemy_missiles = Missiles(direction=LEFT, color=1)
+missiles = Missiles(direction=RIGHT, color=5)
+enemy_missiles = Missiles(direction=LEFT, color=5)
 enemies = Enemies(enemy_missiles, color=0xA)
 all_sprites = [wall, ship, missiles, enemies, enemy_missiles]
+
+# notify of progress
+print("P90")
+sys.stdout.flush()
 
 wall.collideswith(ship, missiles, enemy_missiles, enemies)
 ship.collideswith(wall, enemies, enemy_missiles)
@@ -440,6 +464,10 @@ enemies.collideswith(wall, ship, missiles)
 
 next_tick = time.time() + POLL_PERIOD
 
+
+# notify menu we are ready for the led matrix
+print("READY")
+sys.stdout.flush()
 
 # state machine that runs through game
 while state.current() != DONE:

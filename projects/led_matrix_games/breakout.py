@@ -23,11 +23,21 @@ import RPi.GPIO as GPIO
 import sys
 import time
 
+# notify of progress
+print("P50")
+sys.stdout.flush()
+
 #Initialize hardware
 #led_matrix.init_grid(2,2)
 led_matrix.init_matrices([(0,8),(8,8),(8,0),(0,0)])
 
+print("P60")
+sys.stdout.flush()
+
 accel.init(1)
+
+print("P70")
+sys.stdout.flush()
 
 #Initialize game data
 bricks = []
@@ -199,17 +209,25 @@ B = 17
 # what to do during a button press
 def button_handler(button):
     global state
-    if button == START:
+    if button in [START, SELECT]:
         state = State.EXIT
     elif button == A and state != State.PLAYING:
         state = State.RESET
 
+print("P80")
+sys.stdout.flush()
 
 GPIO.setmode(GPIO.BCM)
-for button in [A, START]:
+for button in [A, START, SELECT]:
     GPIO.setup(button, GPIO.IN, pull_up_down = GPIO.PUD_UP)
-    GPIO.add_event_detect(button, GPIO.FALLING, callback=button_handler, bouncetime=300)
+    GPIO.add_event_detect(button, GPIO.FALLING, callback=button_handler, bouncetime=100)
+    
+print("P100")
+sys.stdout.flush()
 
+# notify menu we are ready for the led matrix
+print("READY")
+sys.stdout.flush()
 
 while True:
     if state == State.RESET:

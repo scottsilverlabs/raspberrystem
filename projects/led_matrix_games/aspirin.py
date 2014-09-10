@@ -4,17 +4,20 @@ import random
 import time
 import sys
 
+# notify of progress
+print("P50")
+sys.stdout.flush()
+
 # set up led matrix
 #led_matrix.init_grid(2,2)
 led_matrix.init_matrices([(0,8),(8,8),(8,0),(0,0)])
 
-
-# this game takes a while to start, so show loading
-led_matrix.text("Load..")
-led_matrix.show()
-
 # set up accelometer
 accel.init(1)
+
+# notify of progress
+print("P60")
+sys.stdout.flush()
 
 
 # set up buttons
@@ -39,12 +42,14 @@ state = State.IDLE
 field = None
 title = led_matrix.LEDText("ASPIRIN - Press A to use accelometer or B to use buttons")
 
+# notify of progress
+print("P90")
+sys.stdout.flush()
 
 class Direction(object):
     LEFT, RIGHT, UP, DOWN = range(4)
 
 class Apple(object):
-    # TODO: make the apple 2x2?
     def __init__(self, position):
         self.position = position
         
@@ -94,7 +99,6 @@ class Player(object):
     def draw(self):
         led_matrix.point(*self.position, color=8)
        
-    # TODO: make this more elegant 
     def move(self, direction):
         if direction == Direction.UP:
             if self.position[1] < led_matrix.height()-1:
@@ -167,7 +171,7 @@ GPIO.setmode(GPIO.BCM)
 def button_handler(channel):
     global state
     global field
-    if channel == START:
+    if channel in [START, SELECT]:
         state = State.EXIT
     elif state in [State.IDLE, State.SCORE] and channel in [A, B]:
         # Reset field and player to start a new game
@@ -187,10 +191,17 @@ def button_handler(channel):
 #            field.player.move(Direction.RIGHT)
     
 
-for button in [UP, DOWN, LEFT, RIGHT, START, A, B]:
+for button in [UP, DOWN, LEFT, RIGHT, START, A, B, SELECT]:
     GPIO.setup(button, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-    GPIO.add_event_detect(button, GPIO.FALLING, callback=button_handler, bouncetime=300)
+    GPIO.add_event_detect(button, GPIO.FALLING, callback=button_handler, bouncetime=100)
     
+# notify of progress
+print("P100")
+sys.stdout.flush()
+
+# notify menu we are ready for the led matrix
+print("READY")
+sys.stdout.flush()
     
 # FSM =======
 while True:
@@ -248,7 +259,6 @@ while True:
         
         
     elif state == State.IDLE:
-        # TODO: check speed on this
         x = led_matrix.width()
         while x > -title.width:
             # break if state has changed, (don't wait for scroll to finish)

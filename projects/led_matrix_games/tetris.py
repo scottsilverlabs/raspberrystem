@@ -20,14 +20,27 @@ import time
 import os
 import random
 import sys
+
+# notify of progress
+print("P25")
+sys.stdout.flush()
+
 from rstem import led_matrix
 import RPi.GPIO as GPIO
+
+# notify of progress
+print("P50")
+sys.stdout.flush()
 
 # initialization
 #led_matrix.init_grid(angle=270)  # make longwise
 led_matrix.init_matrices([(0,8),(8,8),(8,0),(0,0)])
 
 GPIO.setmode(GPIO.BCM)
+
+# notify of progress
+print("P70")
+sys.stdout.flush()
 
 # game variables
 score = 0
@@ -62,6 +75,10 @@ for shape in SHAPES:
     # store LEDSprite of tetris piece
     sprite = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tetris_sprites", shape + ".spr")
     shape_sprites[shape] = led_matrix.LEDSprite(sprite)
+
+# notify of progress
+print("P80")
+sys.stdout.flush()
 
 def valid_shape(shape):
     """
@@ -242,7 +259,7 @@ class Piece(object):
 # what to do when button is pressed
 def button_handler(channel):
     global curr_state
-    if channel == START:
+    if channel in [START, SELECT]:
         curr_state = State.EXIT
         return
     if curr_state == State.MOVINGDOWN and curr_piece is not None:
@@ -267,7 +284,11 @@ def button_handler(channel):
 GPIO.setmode(GPIO.BCM)
 for button in [UP, DOWN, LEFT, RIGHT, SELECT, START, A, B]:
     GPIO.setup(button, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-    GPIO.add_event_detect(button, GPIO.FALLING, callback=button_handler, bouncetime=300)
+    GPIO.add_event_detect(button, GPIO.FALLING, callback=button_handler, bouncetime=100)
+
+# notify of progress
+print("P90")
+sys.stdout.flush()
     
 # create intro title (a vertical display of "TETRIS")
 title = led_matrix.LEDText("S").rotate(90)
@@ -279,6 +300,10 @@ for character in reversed("TETRI"):
 # rotate title up
 title.rotate(-90)
 
+
+# notify menu we are ready for the led matrix
+print("READY")
+sys.stdout.flush()
         
 while True:
     # state when a piece is slowly moving down the display

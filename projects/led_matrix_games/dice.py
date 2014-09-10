@@ -23,6 +23,9 @@ import os
 import sys
 import random
 
+# notify of progress
+print("P50")
+sys.stdout.flush()
 
 # set up led matrix
 #led_matrix.init_grid(2,2)
@@ -35,11 +38,19 @@ accel.init(1)
 # set up GPIO
 GPIO.setmode(GPIO.BCM)
 
+# notify of progress
+print("P60")
+sys.stdout.flush()
+
 # set up dice sprites
 dice = []
 for value in range(1,7):
     sprite = os.path.join(os.path.dirname(os.path.abspath(__file__)), "dice_sprites", str(value) + ".spr")
     dice.append(led_matrix.LEDSprite(sprite))
+
+# notify of progress
+print("P90")
+sys.stdout.flush()
     
 # set up buttons
 UP = 25
@@ -53,9 +64,14 @@ SELECT = 22
 
 # setup start button to exit game
 GPIO.setup(START, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(SELECT, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
 # setup A button to roll dice
 GPIO.setup(A, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+
+# notify of progress
+print("P90")
+sys.stdout.flush()
 
 # create flag to indicate to display some dice initially on start up
 just_started = True
@@ -66,9 +82,13 @@ base_elevation = accel.angles()[2]
 # set change in angle/acceleration needed to roll dice
 THRESHOLD = 20
 
+# notify menu we are ready for the led matrix
+print("READY")
+sys.stdout.flush()
+
 while True:
     # exit if start button is pressed
-    if GPIO.input(START) == 0:
+    if GPIO.input(START) == 0 or GPIO.input(SELECT) == 0:
         led_matrix.cleanup()
         GPIO.cleanup()
         sys.exit(0)
@@ -80,6 +100,6 @@ while True:
         for y in range(0, led_matrix.height(), 8):
             for x in range(0, led_matrix.width(), 8):
                 led_matrix.sprite(random.choice(dice), (x+1,y+1))
-        led_matrix.show()
         just_started = False
 
+    led_matrix.show()

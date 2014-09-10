@@ -23,6 +23,10 @@ from . import led_driver     # c extension that controls led matrices and contai
 import copy
 import subprocess
 
+import RPi.GPIO as GPIO
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(14, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+
 # global variables for use
 BITS_PER_PIXEL = 4     # 4 bits to represent color
 DIM_OF_MATRIX = 8     # 8x8 led matrix elements
@@ -143,6 +147,8 @@ def init_matrices(mat_list=[(0,0,0)], math_coords=True, spi_speed=125000, spi_po
         spi_initialized = True
     
     initialized = True
+
+
     
 def init_grid(num_rows=None, num_cols=None, angle=0, math_coords=True, spi_speed=125000, spi_port=0):
     """Initiallizes led matrices in a grid pattern with either a given number
@@ -160,6 +166,14 @@ def init_grid(num_rows=None, num_cols=None, angle=0, math_coords=True, spi_speed
     @raise ValueError: num_rows*num_cols != number of matrices
     @raise ValueError: angle is not a multiple of 90
     """
+    # check if pin 14 has been grounded (CREATOR lid), if not, we are using GAMER lid and need
+    # to set up matrices manually
+    if GPIO.input(14):
+        global container_math_coords
+        init_matrices([(0,0),(8,0),(8,8),(0,8)], math_coords=False, spi_speed=spi_speed, spi_port=spi_port)
+        container_math_coords = math_coords
+        return
+
     # initialize spi bus right away because we need it for led_driver.detect()
     global spi_initialized
     if not spi_initialized:
