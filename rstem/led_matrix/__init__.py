@@ -147,6 +147,8 @@ def init_matrices(mat_list=[(0,0,0)], math_coords=True, spi_speed=125000, spi_po
         spi_initialized = True
     
     initialized = True
+
+
     
 def init_grid(num_rows=None, num_cols=None, angle=0, math_coords=True, spi_speed=125000, spi_port=0):
     """Initiallizes led matrices in a grid pattern with either a given number

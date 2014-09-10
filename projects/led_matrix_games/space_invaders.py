@@ -18,17 +18,33 @@
 
 from rstem import led_matrix
 from rstem import accel
+import sys
+
+# notify of progress
+print("P25")
+sys.stdout.flush()
+
 import RPi.GPIO as GPIO
 import time
-import sys
+
+# notify of progress
+print("P50")
+sys.stdout.flush()
 
 #Initialize matrix, accelerometer, and GPIO, the matrix layout and accelerometer channel may changes from user to user
 #led_matrix.init_grid(2,2)
 led_matrix.init_matrices([(0,8),(8,8),(8,0),(0,0)])
 
+# notify of progress
+print("P60")
+sys.stdout.flush()
 
 accel.init(1)
 GPIO.setmode(GPIO.BCM)
+
+# notify of progress
+print("P70")
+sys.stdout.flush()
 
 #Game entity data
 player_pos = [7, 0]
@@ -128,7 +144,7 @@ def button_handler(button):
     global player_pos
     global missles
     global enemies
-    if button == START:
+    if button in [START, SELECT]:
         state = State.EXIT
     elif button == A:
         if state == State.PLAYING:
@@ -145,11 +161,19 @@ def button_handler(button):
                 enemies.append(Enemy([15-i*3 , 13], [-1, 0]))
             state = State.PLAYING
 
+# notify of progress
+print("P80")
+sys.stdout.flush()
+
 GPIO.setmode(GPIO.BCM)
-for button in [A, START]:
+for button in [A, START, SELECT]:
     GPIO.setup(button, GPIO.IN, pull_up_down = GPIO.PUD_UP)
-    GPIO.add_event_detect(button, GPIO.FALLING, callback=button_handler, bouncetime=300)
+    GPIO.add_event_detect(button, GPIO.FALLING, callback=button_handler, bouncetime=100)
     
+
+# notify menu we are ready for the led matrix
+print("READY")
+sys.stdout.flush()
 
 #	Start game
 while True:

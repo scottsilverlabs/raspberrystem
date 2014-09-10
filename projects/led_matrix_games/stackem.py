@@ -17,10 +17,19 @@
 #
 
 import time
-from rstem import led_matrix
-import RPi.GPIO as GPIO
 import sys
+from rstem import led_matrix
+
+# notify of progress
+print("P25")
+sys.stdout.flush()
+
+import RPi.GPIO as GPIO
 import os
+
+# notify of progress
+print("P50")
+sys.stdout.flush()
 
 class State:
     WIN, LOSE, PLAYING, IDLE, EXIT = range(5)
@@ -97,6 +106,10 @@ class Block(object):
 #led_matrix.init_grid(angle=270)
 led_matrix.init_matrices([(0,8),(8,8),(8,0),(0,0)])
 
+# notify of progress
+print("P60")
+sys.stdout.flush()
+
 HEIGHT = led_matrix.height()
 WIDTH = led_matrix.width()
 
@@ -147,7 +160,7 @@ def button_handler(channel):
     button_pressed = True
     
     # if START pressed exit the game
-    if channel == START:
+    if channel in [START, SELECT]:
         curr_state = State.EXIT
         return
     
@@ -193,11 +206,20 @@ def button_handler(channel):
         curr_state = State.PLAYING
 
 GPIO.setmode(GPIO.BCM)
-for but in [A, START]:
+for but in [A, START, SELECT]:
     GPIO.setup(but, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-    GPIO.add_event_detect(but, GPIO.FALLING, callback=button_handler, bouncetime=300)
+    GPIO.add_event_detect(but, GPIO.FALLING, callback=button_handler, bouncetime=200)
+
+# notify of progress
+print("P70")
+sys.stdout.flush()
 
 title = led_matrix.LEDText("STACK-EM", font_name="large")
+
+# notify of progress
+print("P80")
+sys.stdout.flush()
+
    
 # create intro title (a vertical display of "STACKEM")
 title = led_matrix.LEDText("M").rotate(90)
@@ -208,8 +230,16 @@ for character in reversed("STACKE"):
     title.append(led_matrix.LEDText(character).rotate(90))
 # rotate title up
 title.rotate(-90)   
+
+# notify of progress
+print("P100")
+sys.stdout.flush()
         
 # State Machine ==================
+
+# notify menu we are ready for the led matrix
+print("READY")
+sys.stdout.flush()
 
 while True:
     if curr_state == State.IDLE:

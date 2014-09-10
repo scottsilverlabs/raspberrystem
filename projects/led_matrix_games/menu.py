@@ -22,6 +22,7 @@ import subprocess
 import os
 import sys
 import time
+import fcntl
 
 # button ports
 A = 4
@@ -43,6 +44,8 @@ curr_state = IN_MENU
 konami_number = 0
 konami_code = [UP, UP, DOWN, DOWN, LEFT, RIGHT, LEFT, RIGHT, B, A]
 
+loading_text = led_matrix.LEDText("LOADING...")
+
 class Menu(object):
 
     HOLD_CLOCK_TIME = -15 # number of cycles to hold scrolling text
@@ -61,7 +64,7 @@ class Menu(object):
             items.append({
                 "title": item[0], 
                 "file": f,
-                "text": led_matrix.LEDText(item[0])
+                "text": led_matrix.LEDText(item[0], font_name="large")
                 })
         self.items = items
         self.scrolling_text_pos = 0
@@ -80,7 +83,7 @@ class Menu(object):
             if item["title"] == selected_item["title"]:
                 # display selected text scrolling
                 x = self.scrolling_text_pos
-                led_matrix.text(selected_item["text"], (x, pos_y))
+                led_matrix.sprite(selected_item["text"], (x, pos_y))
                 if self.scrolling_text_clock == self.scrolling_text_cycle:
                     self.scrolling_text_clock = 0
                     if self.scrolling_text_pos < -selected_item["text"].width:
@@ -89,7 +92,7 @@ class Menu(object):
                         self.scrolling_text_pos -= 1
                 self.scrolling_text_clock += 1
             else:
-                led_matrix.text(item["text"], (0, pos_y))
+                led_matrix.sprite(item["text"], (0, pos_y))
             pos_y += item["text"].height + 1
     
     def _rotate(self, n):
@@ -112,10 +115,58 @@ class Menu(object):
         return self.items[0]
                 
     def run_selected_item(self):
+        # start child process
         selected = self.selected_item()
-        cleanup()
-        os.system(sys.executable + " " + selected["file"])
-        setup()  # resetup
+        GPIO_cleanup()
+        proc = subprocess.Popen([sys.executable, selected["file"]], stdout=subprocess.PIPE, close_fds=False)
+        
+        # make proc.stdout a non-blocking file
+        fd = proc.stdout.fileno()
+        fl = fcntl.fcntl(fd, fcntl.F_GETFL)
+        fcntl.fcntl(fd, fcntl.F_SETFL, fl | os.O_NONBLOCK)
+        
+        finished = False
+        percentage = 0   # percentage of loading
+        # display loading screen until child process wants the led matrix
+        while not proc.poll() and not finished:
+            x_pos = led_matrix.width()
+            y_pos = int(led_matrix.height()/2) - int(loading_text.height)
+            while x_pos >= -loading_text.width:
+                led_matrix.erase()
+                # print "LOADING..."
+                led_matrix.sprite(loading_text, (x_pos, y_pos))
+                # print progress bar
+                led_matrix.rect((0,y_pos + int(loading_text.height) + 2), (int(percentage*led_matrix.width()), 3), fill=True)
+                led_matrix.show()
+                x_pos -= 1
+
+                # read stdout of the game process
+                try: 
+                    data = proc.stdout.readline()
+                except:
+                    data = False
+                    
+                # check if child process is ready to take control of matrix
+                if data:
+                    game_printout = data.decode("utf-8")
+                    # update progress bar if "P**" is given
+                    if game_printout[0] == "P" and game_printout[1:-1].isdigit():
+                        new_percentage = int(game_printout[1:-1])
+                        if 0 <= new_percentage <= 100:
+                            percentage = int(new_percentage)/100  # update percentage
+                            
+                    # break out of while loop to let game take over led matrix
+                    elif game_printout == "READY\n":
+                        finished = True
+                        break
+                time.sleep(0.05)
+                
+        led_matrix.erase()  # clear the display
+        led_matrix.show()
+        # TODO: find out if we need to clean up led matrix too
+        # wait till child process finishes
+        proc.wait()
+        GPIO_setup() # resetup GPIO
         
         
 def button_handler(channel):
@@ -137,39 +188,35 @@ def button_handler(channel):
         elif channel == DOWN:
             menu.scroll_down()
 
-def setup():
-#    led_matrix.init_grid(math_coords=False)
-    led_matrix.init_matrices([(0,0),(8,0),(8,8),(0,8)], math_coords=False)
-
-    # TODO: set up for 2x2 display
+def GPIO_setup():
     GPIO.setmode(GPIO.BCM)
     for button in [A, UP, DOWN, LEFT, RIGHT, B, START, SELECT]:
         GPIO.setup(button, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-        GPIO.add_event_detect(button, GPIO.FALLING, callback=button_handler, bouncetime=300)
+        GPIO.add_event_detect(button, GPIO.FALLING, callback=button_handler, bouncetime=150)
         
-def cleanup():
-    led_matrix.cleanup()
+def GPIO_cleanup():
     for button in [A, UP, DOWN, LEFT, RIGHT, B, START, SELECT]:
         GPIO.remove_event_detect(button)
     GPIO.cleanup()
     
     
 # set up led matrix
-setup()    
+led_matrix.init_matrices([(0,0),(8,0),(8,8),(0,8)], math_coords=False)
+GPIO_setup()    
     
 # set up menu
 menu_items = [
-    ["Aspirin", "aspirin.py"],
-    ["Clock", "clock.py"],
-    ["Dice", "dice.py"],
-    ["Protector", "protector.py"],
-    ["Breakout", "breakout.py"],
-    ["Tetris", "tetris.py"],
-    ["Stack-em", "stackem.py"],
-    ["Space Invaders", "space_invaders.py"],
-    ["FlappyBird", "flappybird.py"],
-    ["Game of Life", "game_of_life.py"],
-    ["Snake", "snake.py"]
+    ["ASPIRIN", "aspirin.py"],
+    ["CLOCK", "clock.py"],
+    ["DICE", "dice.py"],
+    ["PROTECTOR", "protector.py"],
+    ["BREAKOUT", "breakout.py"],
+    ["TETRIS", "tetris.py"],
+    ["STACK-EM", "stackem.py"],
+    ["SPACE INVADERS", "space_invaders.py"],
+    ["FLAPPYBIRD", "flappybird.py"],
+    ["GAME OF LIFE", "game_of_life.py"],
+    ["SNAKE", "snake.py"]
 ]
 menu_items.sort() # put in alphabetical order by titles
 menu = Menu(menu_items, show_loading=True)
@@ -188,11 +235,11 @@ while True:
         curr_state = IN_MENU
     elif curr_state == KONAMI:
         from random import shuffle, randint
-        words = ["Brian", "Jason", "Jon", "Joe", "Steph"]
+        words = ["Brian", "Jason", "Jon", "Joe", "Steph", "Jed", "Tess"]
         shuffle(words)
         raspberrySTEM = "RaspberrySTEM"
         for name in words:
-            sprite = led_matrix.LEDText(name)
+            sprite = led_matrix.LEDText(name, font_name="large")
             y_pos = randint(0,led_matrix.height()-sprite.height)
             x_pos = led_matrix.width()
             while x_pos >= -sprite.width:

@@ -18,9 +18,18 @@
 
 import sys
 from rstem import led_matrix
+
+# notify of progress
+print("P25")
+sys.stdout.flush()
+
 import RPi.GPIO as GPIO
 import random
 import time
+
+# notify of progress
+print("P50")
+sys.stdout.flush()
 
 class Direction(object):
     LEFT, RIGHT, UP, DOWN = range(4)
@@ -116,6 +125,9 @@ score = 0
 #led_matrix.init_grid(2,2)
 led_matrix.init_matrices([(0,8),(8,8),(8,0),(0,0)])
 
+# notify of progress
+print("P80")
+sys.stdout.flush()
 
 # setup buttons
 UP = 25
@@ -130,7 +142,7 @@ B = 17
 # what to do during a button press
 def button_handler(button):
     global curr_state
-    if button == START:
+    if button in [START, SELECT]:
         curr_state = State.EXIT
     elif curr_state == State.PLAYING:
         if button == UP and (snake.length() == 1 or snake.direction != Direction.DOWN):
@@ -148,7 +160,15 @@ def button_handler(button):
 GPIO.setmode(GPIO.BCM)
 for button in [UP, DOWN, LEFT, RIGHT, START, SELECT, A]:
     GPIO.setup(button, GPIO.IN, pull_up_down = GPIO.PUD_UP)
-    GPIO.add_event_detect(button, GPIO.FALLING, callback=button_handler, bouncetime=300)
+    GPIO.add_event_detect(button, GPIO.FALLING, callback=button_handler, bouncetime=100)
+
+# notify of progress
+print("P100")
+sys.stdout.flush()
+
+# notify menu we are ready for the led matrix
+print("READY")
+sys.stdout.flush()
     
 while True:
     if curr_state == State.PLAYING:
