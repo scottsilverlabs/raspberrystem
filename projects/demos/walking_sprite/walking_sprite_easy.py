@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+
+
 from rstem import led_matrix
 import time
 import os

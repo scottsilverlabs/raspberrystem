@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 
 
+#!/usr/bin/env python
+
+
 import subprocess
 
 # open up the accel test program in a new window 

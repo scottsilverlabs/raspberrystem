@@ -1,8 +1,10 @@
+#!/usr/bin/env python
+
 from rstem import led_matrix, button
 import time
 import os
 
-led_matrix.init_grid()  # This sets up the led matrix. It must be run before displaying anything.
+led_matrix.init_grid(2,2)  # This sets up the led matrix. It must be run before displaying anything.
 led_matrix.erase()      # This clears the led matrix display incase anything is currently being displayed.
 
 # Create sprite variables of the frames appended to the list
@@ -43,7 +45,7 @@ while True:
             x = x - 1  # decrease the x if we are moving left
         
         # if the sprite has hit the right side of the display and we are moving right, the sprite should switch to moving left
-        if moving_right and x > (led_matrix.width() - sprite.width):
+        if moving_right and x > (led_matrix.width() - current_sprite.width):
             moving_right = False  # switch to moving left
         # else if the sprite has hit the left side of the display and is moving left, the sprite should switch to moving right
         elif not moving_right and x == 0:

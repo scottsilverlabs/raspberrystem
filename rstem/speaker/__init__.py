@@ -74,17 +74,15 @@ def set_voice_engine(engine="espeak"):
     else:
         raise ValueError("Voice Engine is not supported.")
 
-    
-def say(text, wait=False):    
-   """Plays a voice speaking the given text.
-    
+
+def say(text, wait=False):
+    """
+    Plays a voice speaking the given text.
     @param text: text to play
     @type text: string
-    
     @raise Exception: espeak errors out (most likely due to not being installed)
     @note: Must have espeak installed
     """
-    # check if espeak is installed
     proc = subprocess.Popen('dpkg-query -s espeak', shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     output, error = proc.communicate()
     if output.find("install ok installed") == -1:
@@ -218,7 +216,7 @@ class Sound(object):
         """
         if self.background and currently_playing_filename != self.filename:
             return False
-        self.sound.get_busy()
+        return pygame.mixer.get_busy()
         
     def queue(self):
         """Queues sound to play after other queued sounds have finished playing.
@@ -254,25 +252,24 @@ class Speech(Sound):
                 raise IOError(error)
             self.sound = pygame.mixer.Sound(self.filename)
             
-        elif voice_engine == "google":
-            text = urllib.quote(text)
-            url = 'http://translate.google.com/translate_tts?tl=en&q=' + text
-            print url
-            req = urllib2.Request(url)
-            print "Made request"
-            req.add_header('User-Agent', 'Konqueror')
-            print "Added header"
-            print self.filename
-            fp = open(self.filename, 'wb')
-            try:
-                response = urllib2.urlopen(req)
-                print "opened url"
-                fp.write(response.read())
-                print "read it"
-                time.sleep(.5)
-            except urllib2.URLError as e:
-                print ('%s' % e)
-            fp.close()
+        # elif voice_engine == "google":
+        #     text = urllib.quote(text)
+        #     url = 'http://translate.google.com/translate_tts?tl=en&q=' + text
+        #     req = urllib2.Request(url)
+        #     print "Made request"
+        #     req.add_header('User-Agent', 'Konqueror')
+        #     print "Added header"
+        #     print self.filename
+        #     fp = open(self.filename, 'wb')
+        #     try:
+        #         response = urllib2.urlopen(req)
+        #         print "opened url"
+        #         fp.write(response.read())
+        #         print "read it"
+        #         time.sleep(.5)
+        #     except urllib2.URLError as e:
+        #         print ('%s' % e)
+        #     fp.close()
             
             self.sound = pygame.mixer.Sound(self.filename)
 

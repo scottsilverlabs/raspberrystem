@@ -23,9 +23,11 @@ from . import led_driver     # c extension that controls led matrices and contai
 import copy
 import subprocess
 
+# TEMPORARY SETUP!
 import RPi.GPIO as GPIO
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(14, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setwarnings(False)
 
 # global variables for use
 BITS_PER_PIXEL = 4     # 4 bits to represent color
@@ -168,6 +170,7 @@ def init_grid(num_rows=None, num_cols=None, angle=0, math_coords=True, spi_speed
     """
     # check if pin 14 has been grounded (CREATOR lid), if not, we are using GAMER lid and need
     # to set up matrices manually
+    # print("GAMER LID?" + str(GPIO.input(14)))
     if GPIO.input(14):
         global container_math_coords
         init_matrices([(0,0),(8,0),(8,8),(0,8)], math_coords=False, spi_speed=spi_speed, spi_port=spi_port)

@@ -1,7 +1,10 @@
+#!/usr/bin/env python
+
+
 from rstem import led_matrix
 import time
 
-led_matrix.init_grid()  # This sets up the led matrix. It must be run before displaying anything.
+led_matrix.init_grid(2,2)  # This sets up the led matrix. It must be run before displaying anything.
 led_matrix.erase()      # This clears the led matrix display incase anything is currently being displayed.
 
 
@@ -28,7 +31,7 @@ while True:  # by making the conditional True, the while loop will never break b
         led_matrix.erase()
         
         # Draw the text at this current x position
-        led_matrix.sprite(text, (x, 0))
+        led_matrix.sprite(my_text_sprite, (x, 0))
         
         # Show the text on the screen
         led_matrix.show()

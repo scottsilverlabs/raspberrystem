@@ -1,7 +1,9 @@
+#!/usr/bin/env python
+
 from rstem import led_matrix
 import time
 
-led_matrix.init_grid()  # This sets up the led matrix. It must be run before displaying anything.
+led_matrix.init_grid(2,2)  # This sets up the led matrix. It must be run before displaying anything.
 led_matrix.erase()      # This clears the led matrix display incase anything is currently being displayed.
 
 

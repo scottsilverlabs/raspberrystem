@@ -48,7 +48,7 @@ def main(stdscr):
 
 		stdscr.addstr(curses.LINES-1, 0, "Press 'Q' to quit   |   Left: {0} Right: {1}".format(not GPIO.input(23), not GPIO.input(18)))
 
-		if not GPIO.input(23) and ball_x < 1:
+		if not GPIO.input(23) and ball_x > 1:
 			ball_x -= 1
 		if not GPIO.input(18) and ball_x < box_COLS-2:
 			ball_x += 1
