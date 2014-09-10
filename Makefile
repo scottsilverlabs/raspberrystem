@@ -200,7 +200,7 @@ pi-dist: $(DIST_EGG) $(DIST_DEB) $(DIST_DSC) $(DIST_TAR) $(DIST_ZIP)
 
 # clean all files from raspberry pi
 clean-pi:
-	ssh $(SSHFLAGS) -t -v $(PI) "sudo rm -rf ~/rsinstall; sudo rm -rf ~/rstem"
+	ssh $(SSHFLAGS) -t $(PI) "sudo rm -rf ~/rsinstall; sudo rm -rf ~/rstem"
 
 # clean all files locally
 clean: setup.py MANIFEST.in
