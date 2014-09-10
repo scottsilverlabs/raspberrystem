@@ -194,7 +194,7 @@ def init_grid(num_rows=None, num_cols=None, angle=0, math_coords=True, spi_speed
                     num_cols = cols
                     break
         else:
-            num_cols = num_matrices/num_rows
+            num_cols = int(num_matrices/num_rows)
             
         if num_cols*num_rows != num_matrices:  # safety check
           raise ValueError("Invalid number of rows and columns")
