@@ -3,7 +3,7 @@ SHELL = /bin/bash
 ifdef ON_PI
   PYTHON=python  # default python
 else
-  PYTHON=python  # default python
+  PYTHON=python3  # default python
 endif
 PYFLAGS=
 DESTDIR=/
