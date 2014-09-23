@@ -25,14 +25,6 @@ PRESSED = GPIO.FALLING
 RELEASED = GPIO.RISING
 BOTH = GPIO.BOTH
 
-A = 4
-B = 17
-UP = 25
-DOWN = 24
-LEFT = 23
-RIGHT = 18
-START = 27
-SELECT = 22
 
 def cleanup():
     """Cleans up the GPIO port"""
@@ -77,3 +69,45 @@ class Button(object):
         """
         _verify_change_value(change)
         GPIO.wait_for_edge(self.port, change)
+
+A_port = 4
+B_port = 17
+UP_port = 25
+DOWN_port = 24
+LEFT_port = 23
+RIGHT_port = 18
+START_port = 27
+SELECT_port = 22
+
+
+class A(Button):
+    def __init__(self):
+        super(A, self).__init__(A_port)
+
+class B(Button):
+    def __init__(self):
+        super(B, self).__init__(B_port)
+
+class UP(Button):
+    def __init__(self):
+        super(UP, self).__init__(UP_port)
+
+class DOWN(Button):
+    def __init__(self):
+        super(DOWN, self).__init__(DOWN_port)
+
+class LEFT(Button):
+    def __init__(self):
+        super(LEFT, self).__init__(LEFT_port)
+
+class RIGHT(Button):
+    def __init__(self):
+        super(RIGHT, self).__init__(RIGHT_port)
+
+class START(Button):
+    def __init__(self):
+        super(START, self).__init__(START_port)
+
+class SELECT(Button):
+    def __init__(self):
+        super(SELECT, self).__init__(SELECT_port)
