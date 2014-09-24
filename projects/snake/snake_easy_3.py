@@ -32,6 +32,28 @@ RIGHT_button = button.RIGHT()
 # Create a variable that defines the location of the snake
 position = (0, 0)   # start the snake at the bottom left corner
 
-led_matrix.erase()  # erase what was previously on the LED matrix
-led_matrix.point(position)   # draw the snake at position
-led_matrix.show()   # show the snake on the LED matrix
+# Create a variable that defines the position the snake is moving
+direction = "RIGHT"
+
+# Create a while loop that is continuously displaying the snake
+while True:
+    led_matrix.erase()  # erase what was previously on the LED matrix
+
+    # change the position based off of direction
+    pos_x, pos_y = position
+    if direction == "UP":
+        position = (pos_x, pos_y + 1)
+    elif direction == "DOWN":
+        position = (pos_x, pos_y - 1)
+    elif direction == "LEFT":
+        position = (pos_x - 1, pos_y)
+    elif direction == "RIGHT":
+        position = (pos_x + 1, pos_y)
+    else:
+        raise ValueError("Bad Direction!!")  # show an error message if direction is not UP, DOWN, LEFT, or RIGHT
+
+    led_matrix.point(position)   # draw the snake at position
+    led_matrix.show()   # show the snake on the LED matrix
+
+    # delay the time for 0.5 seconds
+    time.sleep(0.5)

@@ -1,0 +1,63 @@
+Snake Easy
+
+Description
+    - In this project we will start to create the beginning steps in creating a snake game.
+    - Note: At the end of the project we will have created a moving dot (small snake) that can be controlled with
+    the direction buttons. To further develop our snake game you should proceed to <Link>Snake Medium</Link>.
+
+What you will need
+    - GAMER lid
+    OR
+    - 1 or more LED matrices
+    - 4 buttons
+
+Step 0. - Hardware
+    - GAMER lid
+        - Plug the GAMER lid onto the base.
+    - CREATOR lid
+        - [insert hardware instructions]
+        // TODO: teach how to setup LED matrices and connect 4 buttons for standard UP, DOWN, LEFT, RIGHT
+
+Step 1. - Setup
+    - The first thing to do is import the cells we will be using and the time module for this project using:
+        from rstem import led_matrix, button
+        import time
+    - Then we set up the led matrix with: led_matrix.init_grid().
+    // TODO: should we tell the users to do init_grid() or something like init_grid(2,2)
+    - Finally, we set up the buttons we will be using. To do this we need to define <link>variables</link> that define
+        the buttons we will be using.
+
+Step 2. - Displaying the Snake
+    - To display the snake we first need to keep track of where the snake is located on the LED matrix.
+    - To do this, we create a variable called "position" that keeps track of the (x,y) coordinates of the snake
+    - Then to display the snake we need to:
+        first: erase what is previously displayed on the led matrix by calling led_matrix.erase()
+        second: draw the snake on the LED matrix by calling "led_matrix.point()" with the position variable we made earlier
+        third: display what we have drawn by calling "led_matrix.show()"
+
+Step 3. - Moving the Snake
+    - To move the snake, we first need to know which direction the snake is moving.
+    - To do this, we first create a variable "direction" to keep track of the direction the snake is moving.
+    - Then we need to use a <link>while</link> loop to continuously redraw the snake at different positions to
+        simulate the look of the snake moving.
+    - In this while loop, we want to change the position variable based off of the direction variable.
+        - For example, if direction is "UP" then on each run through the while loop, we want to change the y of position
+            to increase by 1 each time.
+        - Do do this, we want to use <link>if</link> statements to check the value of the direction variable and change
+            the position accordingly.
+    - We then add a delay of 0.5 seconds at the end of the while loop so the loop doesn't go too fast,
+        so snake doesn't move too fast.
+
+Step 4. - Adding Button Controls to the Snake
+    - We now want to use the buttons we setup up on the first step to control the snake's direction.
+        // TODO: don't set up the buttons until this step?
+    - Right now, the snake is only moving in the original direction we set, "RIGHT". Which is quite boring.
+    - To change the direction when a button is pressed we want to use if statements to check if each button is pressed.
+        - For example, to check if UP is pressed we check if UP_button.is_pressed() == True.
+
+Step 5. - Finishing touches
+    - If you haven't noticed, when the snake moves off of the LED matrix, the snake disappears.
+        - This is because, we are still changing the position of the snake even if the snake is about to jump off the screen.
+        - To fix this, we will use if statements that first checks if the position is about to fall off the LED matrix
+            before changing the position.
+        - We check if the x and y directions don't go less than 0 or greater than the LED matrix's width or height
