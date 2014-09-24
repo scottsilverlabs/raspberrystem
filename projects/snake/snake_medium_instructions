@@ -1,0 +1,38 @@
+Snake Medium
+
+Description
+    - In this project we will continue to create a snake game that we have started to create from <Link>Snake Easy</Link>.
+    - We will take the code made by that project and expand on it by providing a randomly generated apple to make the snake
+        grow when the snake gets the apple.
+    - Note: It is not necessary to walk through the steps of <Link>Snake Easy</Link> if you understand the starting code
+        that is given to you. This code moves the snake in the direction pressed by the UP, DOWN, LEFT, and RIGHT buttons.
+
+What you will need
+    - GAMER lid
+    OR
+    - 1 or more LED matrices
+    - 4 buttons
+
+Step 0. - Hardware
+    - GAMER lid
+        - Plug the GAMER lid onto the base.
+    - CREATOR lid
+        - [insert hardware instructions]
+        // TODO: teach how to setup LED matrices and connect 4 buttons for standard UP, DOWN, LEFT, RIGHT
+    - [insert review of starting code]
+
+Step 1. - Drawing the First Apple
+    - To draw our first apple, we need to first figure out where to place it.
+        - Just like the snake, we are going to create a variable to remember the position of the apple.
+            We will call this variable "apple_position"
+            - However, now that we have a variable called "apple_position", it may seem confusing to an outside person
+                reading your code to know what the "position" variable is. Therefore, lets rename it to "snake_position".
+        - To make this game more fun, it would be better to place the apple at a random location each time you play the game.
+            - Therefore, we are going to take advantage of the function <link>randint()</link> from the <link>random</link> module.
+                - To get this function, we need to import this function similar to how to imported the cells:
+                    from random import randint()
+            - Next we will use the randint() function to give us a random number between the smallest and largest x and y values
+                we could have.
+    - Finally, we then draw the snake on the LED matrix by calling led_matrix.point() just like the snake.
+
+Step 2. - 
