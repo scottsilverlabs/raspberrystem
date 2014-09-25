@@ -35,4 +35,69 @@ Step 1. - Drawing the First Apple
                 we could have.
     - Finally, we then draw the snake on the LED matrix by calling led_matrix.point() just like the snake.
 
-Step 2. - 
+Step 2. - Detecting Collision of the Snake with the Apple
+    - In the snake game, when the snake gets the apple, the snake will grow in size and a new apple will be generated on the
+        screen.
+        - To detect that the snake and apple have collided we must simply check if the apple_position and snake_position are
+            the same.
+        - If so, we then will create a new position for the apple (we will grow the snake in the next step).
+    - You may have noticed a <link>bug</link> in our code.
+        - While unlikely, there is a chance that the apple's newly generated position will end up being at the same
+            position as the snake, providing the player with a free extra point. We will fix this bug at a later step.
+
+Step 3. - Re-implementing the Snake!
+    // TODO: this may be a complicated step.... lots of changes at once
+    - In programing, a lot of times we find that our current implementation for something just won't work out, and will
+        have to re-implement something.
+    - In this case, defining our snake with a single position will cause a problem when we try to grow the snake.
+    - We need a way to define all the points of the snakes body!
+    - One way to do this is to define the snake as a <link>list</link> of points rather than just one.
+        - This allows us to define the snake with any number of points.
+        - Our snake (changed from snake_position), will be a list of points with the beginning of the list (snake[0])
+            being the head and the end of the list (snake[-1]) being the tail.
+            // TODO: should I do snake[len(snake)-1] instead of snake[-1]
+    - Because we have changed the way we implemented the snake, we also much change the way we move the snake.
+        - Instead of just changing the position we now must create a new point for the list at the same time as removing the tail.
+            // TODO: better explanation
+        - We can do this with the following command:
+            snake = [new_point] + snake[0:-1]
+            - This says we want our snake list to now be the combination of the new_point at the front and the snake before
+                without the end.
+                // TODO: to complicated?
+    - Finally we need to change the way we draw the snake.
+    - Using a <link>for</link> loop we can go through all the points of out snake list and call led_matrix.point() for each one.
+
+Step 4. - Grow the Snake
+    - Finally, we can grow the snake when we the snake has collided with the apple.
+    - To do this we simply need to decide whether to remove the tail or not when moving in the if statement that determines
+        if the snake has collided with the apple.
+        - To remove the tail, we move the snake's position like this:
+            snake = [new_point] + snake[0:-1]
+        - Too not remove the tail (and thus grow), we move the snake's position like this:
+            snake = [new_point] + snake
+
+Step 5. - Detect if We Lose
+    - For this snake game to be a game, we need to have a way to lose.
+    - In snake, we lose when the snake has run into itself.
+    - This happens when the snake's head is a point that is also in the rest of the snakes body.
+    - Therefore, by checking this, we know when the player has lost.
+    - For our game, when the player loses, we will print the user's score (which is the length of the snake)
+        and then exit the program by breaking out of our infinite loop by using <link>break</link>
+            // TODO: use sys.exit(1) instead of break?
+
+Step 6. - Fixing the Apple Bug
+    - Finally it's time to fix that bug I mentioned in step 2.
+    - Fixing this bug is important because when the snake gets bigger and bigger there will be more of a chance that
+        the random apple location will end up being a point that is part of the snake.
+    - If this happens the user will not be able to see the location of the new apple location because it is covered by the snake.
+    - To do this, we will be using a <link>sets</link>, which is like a list, but contains no order. Like a bag of ... stuff.
+    - First, before the infinite loop, we create a set which contains all the points on the LED matrix.
+        - To do this, we use <link>nested for loops</link> with <link>range()</link> that will loop through all
+            combinations of x and y values and add it to the all_points set.
+    - Then, in both places where we pick a random place for the apple we are going to use the choice function that we import
+        from random.
+        // TODO: Should we do random.choice() and random.randint() instead?
+        - This function will allow use to randomly select a element from a set, just like randomly selecting a marble out of
+            a bag.
+        - By setting our apple_position to be choice(all_points - set(snake)), we are randomly selecting from all_points
+            except for the points that make up the snake.
