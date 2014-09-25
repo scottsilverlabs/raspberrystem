@@ -85,6 +85,16 @@ snake = Snake()  # create our snake for the game
 apple = Apple(choice(all_points) - set(snake.body))  # create an apple at a random location
 
 while True:
+    # change the direction when the usr presses a button
+    if UP_button.is_pressed():
+        snake.direction = "UP"
+    if DOWN_button.is_pressed():
+        snake.direction = "DOWN"
+    if LEFT_button.is_pressed():
+        snake.direction = "LEFT"
+    if RIGHT_button.is_pressed():
+        snake.direction = "RIGHT"
+
     led_matrix.erase()
     snake.draw()
     apple.draw()

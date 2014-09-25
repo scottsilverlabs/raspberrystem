@@ -62,7 +62,9 @@ Step 5. - Moving the Snake
     - In this method we will use the self.direction variable to determine what new point to add to the head of the snake.
     - This method will take a parameter (other than the "self") called "growing" which we will pass in either True or False
         to determine whether the method should remove the last element of the snake.
-    - Finally, we then will use this method on our snake to move without growing on each iteration of the while loop.
+    - We then will use this method on our snake to move without growing on each iteration of the while loop.
+    - Finally, we then will then detect if the user has pressed one of the direction buttons and change the snakes direction.
+    // TODO: Should the buttons part be a separate step?
 
 Step 6. - Detecting Collision of the Snake with the Apple
     - In snake, when the snake collides with the apple, the snake grows by 1 and a new apple is randomly formed.
