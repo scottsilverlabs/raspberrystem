@@ -1,0 +1,96 @@
+Snake Medium
+
+Description
+    - In this project we will be implementing the snake game similar to <link>Snake Medium</link> but with
+        <link>object-oriented programming</link> instead of <link>structured programing</link>.
+    - Note: With this approach, our code will be a lot cleaner than <link>Snake Medium</link> but require understanding
+        of new object-oriented concepts.
+        - Due to this approach, unlike the previous projects, the game will not be runnable after each step and require
+            multiple steps to be completed before the game is originally runnable.
+
+What you will need
+    - GAMER lid
+    OR
+    - 1 or more LED matrices
+    - 4 buttons
+
+Step 0. - Hardware
+    - GAMER lid
+        - Plug the GAMER lid onto the base.
+    - CREATOR lid
+        - [insert hardware instructions]
+        // TODO: teach how to setup LED matrices and connect 4 buttons for standard UP, DOWN, LEFT, RIGHT
+    - [insert review of starting code]
+
+Step 1. - Setup
+    - First, we are going import our cells and initialize our LED matrix and buttons just like we do in the beginning
+        of <link>Snake Easy</link>
+
+Step 2. - Creating the Snake Class
+    - First we are going to create a new <link>class</link> called "Snake". This class will provide all the information about
+        the snake like the snake's body (as a list) and the direction the snake is moving.
+    - To define our class by calling :
+        class Snake():
+    - Then, we create our first <link>method</link> for our class that all classes usually include. It is called "__init__()", which is
+        the <link>constructor</link>.
+        - The __init__() method must include "self" as its first <link>parameter</link>, but then can include any other
+            parameters that you wish.
+        - In this init method we can define what type of variables that are part of a "Snake" object by defining these
+            variables with the prefix "self.".
+            - For example, to set the Snake's body we can set self.body = [(0, 0)].
+                - [(0, 0)] will becoming the initial value for the snake's body when a Snake object is created.
+    - Finally, we can now create our Snake object using the new class by calling:
+        snake = Snake()
+// TODO: I don't think this is the best explanation of a class.
+
+Step 3. - Creating the Apple Class
+    - Similar to how we created the Snake class, we are now going to create the Apple class.
+    - However, this time our __init__() method is going to have a second parameter called position.
+        - This Apple class will hold only a single variable called the position.
+    - Like before we can create our Apple object with a random position.
+
+Step 4. - Draw Methods for our Classes
+    - Now that we have these classes set up, we can now create a method for these classes that we will use to know how to draw these objects.
+    - In both classes, we create a method calling "draw()" that will draw that particular object.
+        - For Snake, we will use a for loop to call led_matrix.point() for each point that makes up the snake's body.
+        - For Apple, we will use the led_matrix.point() for the position of the apple.
+    - Now that we have these draw commands, we can now display our snake and apple object on our screen by simply calling .draw()
+        - As you can see, our while loop looks simpler than before. This is the magic of object-oriented programming!
+
+Step 5. - Moving the Snake
+    - To move our snake, we need to provide a new method in the Snake class called "move()"
+    - In this method we will use the self.direction variable to determine what new point to add to the head of the snake.
+    - This method will take a parameter (other than the "self") called "growing" which we will pass in either True or False
+        to determine whether the method should remove the last element of the snake.
+    - Finally, we then will use this method on our snake to move without growing on each iteration of the while loop.
+
+Step 6. - Detecting Collision of the Snake with the Apple
+    - In snake, when the snake collides with the apple, the snake grows by 1 and a new apple is randomly formed.
+    - To determine when to grow the snake, we need to detect when the snake has collided with the apple.
+        - First, we can create a simple method called "head()" which will <link>return</link> the point that the snake's
+            head is currently at.
+        - We can use this method to determine a collision if apple.position == snake.head()
+            - Note: Notice how apple.position has no parenthesis like snake.head(). This is because apple.position
+                is not a method like snake.head() it is a // TODO: member variable?
+
+Step 7. - Creating a New Apple
+    - When the snake has collided with the apple, we also need to make a new position for the apple.
+    - To do this, we will be using a <link>sets</link>, which is like a list, but contains no order. Like a bag of ... stuff.
+    - First, before the infinite loop, we create a set which contains all the points on the LED matrix.
+        - To do this, we use <link>nested for loops</link> with <link>range()</link> that will loop through all
+            combinations of x and y values and add it to the all_points set.
+    - Finally, in the if statement where we have detected a collision we can change the apple to a new Apple object
+        by setting it with Apple().
+
+Step 8. - Losing the Game
+    - We now need to determine when the player has lose the game. This happens when the snake has ran into itself.
+        // TODO: or the edges??
+    - To do this, we need to create two more methods for the Snake class called "has_collided_with_self()" and "length()"
+        - has_collided_with_self() will return True if the snake has ran into itself and False otherwise.
+        - length() will return the length of the snake, which will be used for the score.
+    - In the while loop, we will create another if statement that checks if the snake has collided with itslef and
+        if it does, it will print the users score (the length of the snake) and then exit by breaking out of the loop.
+
+
+
+// TODO: I have been getting sloppy at the end...

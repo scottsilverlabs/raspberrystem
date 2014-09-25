@@ -55,8 +55,7 @@ while True:
 
     # change the snake_position based off of direction
     # if the snake_position is falls off of the led_matrix, we don't change the snake_position
-    pos_x, pos_y = position
-    if direction == "UP":
+    pos_x, pos_y = snake_position
     if direction == "UP":
         if pos_y + 1 < led_matrix.height() - 1:
             snake_position = (pos_x, pos_y + 1)

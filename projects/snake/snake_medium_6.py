@@ -37,7 +37,7 @@ snake = [(0, 0)]   # start the snake at the bottom left corner
 all_points = set()  # first make an empty set with no elements
 for x in range(0, led_matrix.width()):   # loop through all x values 0 -> led_matrix.width() - 1
     for y in range(0, led_matrix.height()):
-        all_points.add(x,y)
+        all_points.add(x, y)
 
 # Create a position variable for the apple
 apple_position = choice(all_points - set(snake))
@@ -60,7 +60,7 @@ while True:
         direction = "RIGHT"
 
     # figure out the new point that will be added to the snake list
-    pos_x, pos_y = position
+    pos_x, pos_y = snake[0]  # get snakes head
     if direction == "UP":
         if pos_y + 1 < led_matrix.height() - 1:
             new_point = (pos_x, pos_y + 1)

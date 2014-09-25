@@ -54,7 +54,7 @@ while True:
         direction = "RIGHT"
 
     # figure out the new point that will be added to the snake list
-    pos_x, pos_y = position
+    pos_x, pos_y = snake[0]
     if direction == "UP":
         if pos_y + 1 < led_matrix.height() - 1:
             new_point = (pos_x, pos_y + 1)
