@@ -19,7 +19,6 @@ import os
 import sys
 from setuptools import setup, find_packages, Extension
 from distutils.command.install import install as _install
-# import numpy
 
 # check python version is good
 if sys.version_info[0] == 2:
@@ -52,6 +51,13 @@ class install(_install):
 led_driver =  Extension('rstem.led_matrix.led_driver', sources = ['rstem/led_matrix/led_driver.c'])
 accel = Extension('rstem.accel', sources = ['rstem/accel.c'])
 
+# Attempt to add numpy, if not install require it in the setup_requires.
+build_requires = []
+try:
+    import numpy
+except:
+    build_requires = ['numpy>=1.5.1']
+
 setup(
     name = "raspberrystem",
     version = "0.0.7",
@@ -76,7 +82,8 @@ setup(
     ],
     install_requires=['numpy'],  # insert python packages as needed
     cmdclass={'install': install},  # overload install command
-    # include_dirs = [numpy.get_include()],  # Get numpy/arrayobject.h
+    include_dirs = [numpy.get_include()],  # Get numpy/arrayobject.h
+    setup_requires = build_requires,
     test_suite = 'tests',
     ext_modules = [led_driver, accel]  # c extensions defined above
 )

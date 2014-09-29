@@ -20,6 +20,7 @@ NAME:=$(shell $(PYTHON) $(PYFLAGS) ./pkg/setup.py --name)
 VER:=$(shell $(PYTHON) $(PYFLAGS) ./pkg/setup.py --version)
 
 PYVER:=$(shell $(PYTHON) $(PYFLAGS) -c "import sys; print('py%d.%d' % sys.version_info[:2])")
+# all files to be included in rstem package (all python files plus files included in MANIFEST.in)
 PY_SOURCES:=$(shell \
 	$(PYTHON) $(PYFLAGS) setup.py egg_info >/dev/null 2>&1 && \
 	grep -v "\.egg-info" $(NAME).egg-info/SOURCES.txt)
@@ -201,7 +202,10 @@ clean-pi:
 clean: setup.py MANIFEST.in
 	sudo $(PYTHON) $(PYFLAGS) setup.py clean
 	$(MAKE) -f $(CURDIR)/pkg/debian/rules clean
-	sudo rm -rf build dist/ $(NAME).egg-info $(NAME)-$(VER)
+	sudo rm -rf build dist/
+	sudo rm -rf $(NAME).egg-info
+	rm -f $(NAME).egg-info
+	rm -rf $(NAME)-$(VER).tar.gz
 	rm -rf pkg/debian/python3-$(NAME) pkg/debian/python-$(NAME)
 	rm -f pkg/debian/python*
 	rm -f ../$(NAME)_$(VER).orig.tar.gz ../$(NAME)_$(VER)_armhf.build ../$(NAME)_$(VER)_armhf.changes ../$(NAME)_$(VER)_source.build
