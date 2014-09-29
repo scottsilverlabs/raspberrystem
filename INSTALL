@@ -1,0 +1,42 @@
+CREATING A NEW RASPBERRYSTEM RELEASE:
+    - Update Release version in ./pkg/setup.py
+    - make clean
+    - Install require install dependences on the RaspberryPi (if you haven't already(
+        - On the RaspberryPi, run the following:
+            sudo apt-get update
+            // TODO: see if all we need is python-all-dev, pips and libi2c-dev
+            sudo apt-get install python-pip python-dev python-all-dev python3-pip python3-dev python libi2c-dev
+            sudo pip install stdeb
+            sudo pip3 install stdeb
+    - Create a new branch with the name rel/<version> where <version> is the version number as defined in /pkg/setup.py
+    - Checkout that branch
+    - Triple check this all code is correct and you are ready to upload!
+    - Register yourself to PyPi:
+        make setup.py
+        python setup.py register
+        - Create a new account, then let someone like Me add you as a maintainer to the rasperrystem package on PyPi
+    - Run the following commands:
+        # make release  # TODO
+        make upload-cheeseshop
+    - Create a Deb package:
+        make deb
+    - Upload ppa:
+        make upload-ppa   # TODO: broken, don't do this yet!
+
+USER INSTALLATION:
+    The following instructions are for a user installing the RaspberrySTEM environment.
+    NEED: RaspberryPi, SD card, Linux/Mac/Windows
+
+    - Install Raspbian onto the SD card by either writing the image to the SD card or using NOOBS (easier):
+        http://www.raspberrypi.org/documentation/installation/installing-images/
+        NOOBS install: http://www.raspberrypi.org/help/noobs-setup/
+    - Start up your RaspberryPi and follow the setup procedures on screen.
+    - Set up the internet using either Ethernet (not available on model A) or Wifi.
+        - To set up Wifi: https://learn.adafruit.com/adafruits-raspberry-pi-lesson-3-network-setup/setting-up-wifi-with-raspbian
+    - Using the terminal, we will now install some required programs and then raspberrystem.
+        - run the following commands
+            sudo apt-get update
+            sudo apt-get install pip....... TODO
+            sudo apt-get install raspberrystemide
+            pip install raspberrystem
+            pip3 install raspberrystem

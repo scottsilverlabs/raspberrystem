@@ -19,6 +19,7 @@ import os
 import sys
 from setuptools import setup, find_packages, Extension
 from distutils.command.install import install as _install
+# import numpy
 
 # check python version is good
 if sys.version_info[0] == 2:
@@ -53,14 +54,14 @@ accel = Extension('rstem.accel', sources = ['rstem/accel.c'])
 
 setup(
     name = "raspberrystem",
-    version = "0.0.1",
+    version = "0.0.7",
     author = "Brian Silverman",
     author_email = "bri@raspberrystem.com",
     description = ("RaspberrySTEM Educational and Hobbyist Development Kit "
                     "based on the Raspberry Pi."),
     license = "BSD",
     keywords = ["raspberrypi", "stem"],
-    url = "https://github.com/scottsilverlabs/raspberrystem",
+    url = "https://raspberrystem.com",
     packages = find_packages(),
     include_package_data = True,
     long_description = read('README.md'),
@@ -73,9 +74,9 @@ setup(
         "Programming Language :: Python :: 3.2",
         "Programming Language :: Python :: 3.3",
     ],
-    install_requires=[ 'RPi'  # insert python packages as needed
-    ],
+    install_requires=['numpy'],  # insert python packages as needed
     cmdclass={'install': install},  # overload install command
+    # include_dirs = [numpy.get_include()],  # Get numpy/arrayobject.h
     test_suite = 'tests',
     ext_modules = [led_driver, accel]  # c extensions defined above
 )

@@ -3,7 +3,7 @@ SHELL = /bin/bash
 ifdef ON_PI
   PYTHON=python3  # default python
 else
-  PYTHON=python3  # default python
+  PYTHON=python  # default python
 endif
 PYFLAGS=
 DESTDIR=/
@@ -15,48 +15,47 @@ PI=pi@raspberrypi
 
 PYDIR:=$(shell $(PYTHON) $(PYFLAGS) -c "import site; print('site.getsitepackages()[0]')")
 
-ifdef ON_PI
-  # Calculate the base names of the distribution, the location of all source,
-  NAME:=$(shell $(PYTHON) $(PYFLAGS) ./pkg/setup.py --name)
-  VER:=$(shell $(PYTHON) $(PYFLAGS) ./pkg/setup.py --version)
-  
-  PYVER:=$(shell $(PYTHON) $(PYFLAGS) -c "import sys; print('py%d.%d' % sys.version_info[:2])")
-  PY_SOURCES:=$(shell \
-  	$(PYTHON) $(PYFLAGS) setup.py egg_info >/dev/null 2>&1 && \
-  	grep -v "\.egg-info" $(NAME).egg-info/SOURCES.txt)
-  DEB_SOURCES:=debian/changelog \
-  	debian/control \
-  	debian/copyright \
-  	debian/rules \
-  #	debian/docs \
-  	$(wildcard debian/*.init) \
-  	$(wildcard debian/*.default) \
-  	$(wildcard debian/*.manpages) \
-  	$(wildcard debian/*.docs) \
-  	$(wildcard debian/*.doc-base) \
-  	$(wildcard debian/*.desktop)
-  DOC_SOURCES:=docs/conf.py \
-  	$(wildcard docs/*.png) \
-  	$(wildcard docs/*.svg) \
-  	$(wildcard docs/*.rst) \
-  	$(wildcard docs/*.pdf)
-  
-  # Types of dist files all located in dist folder
-  DIST_EGG=dist/$(NAME)-$(VER)-$(PYVER).egg
-  DIST_TAR=dist/$(NAME)-$(VER).tar.gz
-  DIST_ZIP=dist/$(NAME)-$(VER).zip
-  DIST_DEB=dist/python-$(NAME)_$(VER)_armhf.deb \
-  	dist/python3-$(NAME)_$(VER)_armhf.deb
-  #	dist/python-$(NAME)-docs_$(VER)-1$(DEB_SUFFIX)_all.deb
-  DIST_DSC=dist/$(NAME)_$(VER).tar.gz \
-  	dist/$(NAME)_$(VER).dsc \
-  	dist/$(NAME)_$(VER)_source.changes
-endif
+# Calculate the base names of the distribution, the location of all source,
+NAME:=$(shell $(PYTHON) $(PYFLAGS) ./pkg/setup.py --name)
+VER:=$(shell $(PYTHON) $(PYFLAGS) ./pkg/setup.py --version)
+
+PYVER:=$(shell $(PYTHON) $(PYFLAGS) -c "import sys; print('py%d.%d' % sys.version_info[:2])")
+PY_SOURCES:=$(shell \
+	$(PYTHON) $(PYFLAGS) setup.py egg_info >/dev/null 2>&1 && \
+	grep -v "\.egg-info" $(NAME).egg-info/SOURCES.txt)
+DEB_SOURCES:=debian/changelog \
+	debian/control \
+	debian/copyright \
+	debian/rules \
+	#	debian/docs \
+	$(wildcard debian/*.init) \
+	$(wildcard debian/*.default) \
+	$(wildcard debian/*.manpages) \
+	$(wildcard debian/*.docs) \
+	$(wildcard debian/*.doc-base) \
+	$(wildcard debian/*.desktop)
+DOC_SOURCES:=docs/conf.py \
+	$(wildcard docs/*.png) \
+	$(wildcard docs/*.svg) \
+	$(wildcard docs/*.rst) \
+	$(wildcard docs/*.pdf)
+
+# Types of dist files all located in dist folder
+DIST_EGG=dist/$(NAME)-$(VER)-$(PYVER).egg
+DIST_TAR=dist/$(NAME)-$(VER).tar.gz
+DIST_ZIP=dist/$(NAME)-$(VER).zip
+DIST_DEB=dist/python-$(NAME)_$(VER)_armhf.deb \
+	dist/python3-$(NAME)_$(VER)_armhf.deb
+#	dist/python-$(NAME)-docs_$(VER)-1$(DEB_SUFFIX)_all.deb
+DIST_DSC=dist/$(NAME)_$(VER).tar.gz \
+	dist/$(NAME)_$(VER).dsc \
+	dist/$(NAME)_$(VER)_source.changes
+
 
 COMMANDS=install test source egg zip tar deb dist install-projects install-cells \
     upload-all upload-ppa upload-cheeseshop
 
-.PHONY: all local-install upload-check help clean push pull doc  \
+.PHONY: all local-install upload-check help clean push pull doc release  \
     $(COMMANDS) $(addprefix pi-, $(COMMANDS))
 
 help:
@@ -105,16 +104,12 @@ push:
 # send changed files on pi back to user
 pull:
 	rsync -azP $(PI):~/rsinstall/* ./
-	rm ./setup.py
-	rm ./MANIFEST.in
-	rm -rf debian
+	$(MAKE) cleanup
 
 
 # for each command push new files to raspberry pi then run command on the pi
 $(COMMANDS)::
 	$(MAKE) push
-	# Run make on target - note: don't use $(MAKE), as host and target "make"s
-	# may differ.
 	ssh $(SSHFLAGS) -t $(PI) "cd rsinstall; make pi-$@ PI=$(PI) ON_PI=1"
 
 
@@ -171,12 +166,11 @@ pi-upload-ppa: $(DIST_DSC) setup.py MANIFEST.in
 
 pi-upload-cheeseshop: $(PY_SOURCES) setup.py MANIFEST.in
 	# update the package's registration on PyPI (in case any metadata's changed)
-	$(MAKE) setup-pkg
-	$(MAKE) upload-check
-	$(PYTHON) $(PYFLAGS) setup.py register
+	# f$(MAKE) upload-check
+	$(PYTHON) $(PYFLAGS) setup.py sdist upload
 	$(MAKE) cleanup
 
-pi-release: $(PY_SOURCES) $(DOC_SOURCES)
+release: $(PY_SOURCES) $(DOC_SOURCES)
 	$(MAKE) upload-check
 	# update the debian changelog with new release information
 	dch --newversion $(VER) --controlmaint
@@ -193,8 +187,9 @@ pi-zip: $(DIST_ZIP)
 pi-tar: $(DIST_TAR)
 
 #pi-deb: $(DIST_DSC) $(DIST_DEB) // uncomment when debian is finished
-pi-deb:
-	@echo "make deb not currently supported"
+pi-deb: setup.py MANIFEST.in
+	@echo "make deb is currently BETA!!!"
+	$(PYTHON) setup.py --command-packages=stdeb.command bdist_deb
 
 pi-dist: $(DIST_EGG) $(DIST_DEB) $(DIST_DSC) $(DIST_TAR) $(DIST_ZIP)
 
@@ -204,7 +199,7 @@ clean-pi:
 
 # clean all files locally
 clean: setup.py MANIFEST.in
-	$(PYTHON) $(PYFLAGS) setup.py clean
+	sudo $(PYTHON) $(PYFLAGS) setup.py clean
 	$(MAKE) -f $(CURDIR)/pkg/debian/rules clean
 	sudo rm -rf build dist/ $(NAME).egg-info $(NAME)-$(VER)
 	rm -rf pkg/debian/python3-$(NAME) pkg/debian/python-$(NAME)
@@ -215,6 +210,8 @@ clean: setup.py MANIFEST.in
 	find $(CURDIR) -name '*.pyc' -delete
 	rm -f pkg/debian/files
 	touch pkg/debian/files
+	rm -rf doc
+	rm -rf deb_dist
 	$(MAKE) cleanup
 
 $(DIST_TAR): $(PY_SOURCES) setup.py MANIFEST.in
