@@ -54,7 +54,7 @@ DIST_DSC=dist/$(NAME)_$(VER).tar.gz \
 
 
 COMMANDS=install test source egg zip tar deb dist install-projects install-cells \
-    upload-all upload-ppa upload-cheeseshop
+    upload-all upload-ppa upload-cheeseshop register
 
 .PHONY: all local-install upload-check help clean push pull doc release  \
     $(COMMANDS) $(addprefix pi-, $(COMMANDS))
@@ -80,6 +80,7 @@ help:
 	@echo "make release - Create and tag a new release"
 	@echo "make upload-all - Upload the new release to all repositories"
 	@echo "make upload-ppa - Upload the new release to ppa"
+	@echo "make register - Register raspberry pi to PyPi repository"
 	@echo "make upload-cheeseshop - Upload the new release to cheeseshop"
 
 setup.py:
@@ -170,6 +171,9 @@ pi-upload-cheeseshop: $(PY_SOURCES) setup.py MANIFEST.in
 	# f$(MAKE) upload-check
 	$(PYTHON) $(PYFLAGS) setup.py sdist upload
 	$(MAKE) cleanup
+
+pi-register: setup.py MANIFEST.in
+	$(PYTHON) $(PYFLAGS) setup.py register
 
 release: $(PY_SOURCES) $(DOC_SOURCES)
 	$(MAKE) upload-check

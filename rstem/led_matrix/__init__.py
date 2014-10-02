@@ -168,6 +168,7 @@ def init_grid(num_rows=None, num_cols=None, angle=0, math_coords=True, spi_speed
     """
     # check if pin 14 has been grounded (CREATOR lid), if not, we are using GAMER lid and need
     # to set up matrices manually
+    # TODO: remove this hack
     if GPIO.input(14):
         global container_math_coords
         init_matrices([(0,0),(8,0),(8,8),(0,8)], math_coords=False, spi_speed=spi_speed, spi_port=spi_port)

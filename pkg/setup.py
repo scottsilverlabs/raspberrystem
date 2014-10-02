@@ -60,7 +60,7 @@ except:
 
 setup(
     name = "raspberrystem",
-    version = "0.0.7",
+    version = "0.0.1",
     author = "Brian Silverman",
     author_email = "bri@raspberrystem.com",
     description = ("RaspberrySTEM Educational and Hobbyist Development Kit "
@@ -80,7 +80,7 @@ setup(
         "Programming Language :: Python :: 3.2",
         "Programming Language :: Python :: 3.3",
     ],
-    install_requires=['numpy'],  # insert python packages as needed
+    install_requires=['numpy', 'pygame'],  # insert python packages as needed
     cmdclass={'install': install},  # overload install command
     include_dirs = [numpy.get_include()],  # Get numpy/arrayobject.h
     setup_requires = build_requires,
