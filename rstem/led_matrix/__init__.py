@@ -60,6 +60,7 @@ def _valid_color(color):
         return True
     return False
 
+
 def _convert_color(color):
     """Converts the given color to an int.
     @param color: A color to be converted

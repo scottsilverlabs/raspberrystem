@@ -60,7 +60,7 @@ setup(
                     "based on the Raspberry Pi."),
     license = "BSD",
     keywords = ["raspberrypi", "stem"],
-    url = "https://github.com/scottsilverlabs/raspberrystem",
+    url = "https://raspberrystem.com",
     packages = find_packages(),
     include_package_data = True,
     long_description = read('README.md'),
@@ -73,8 +73,7 @@ setup(
         "Programming Language :: Python :: 3.2",
         "Programming Language :: Python :: 3.3",
     ],
-    install_requires=[ 'RPi'  # insert python packages as needed
-    ],
+    install_requires=[],  # insert python packages as needed
     cmdclass={'install': install},  # overload install command
     test_suite = 'tests',
     ext_modules = [led_driver, accel]  # c extensions defined above
