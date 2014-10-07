@@ -1,5 +1,7 @@
-include rstem/accel/accel_server.c
-include rstem/gpio/pullup.*
+include rstem/accel.c
 include rstem/led_matrix/led_server.c
 recursive-include rstem/led_matrix/font *
 include README.md
+include LICENSE
+include pkg/postinstall
+include pkg/install_include.txt

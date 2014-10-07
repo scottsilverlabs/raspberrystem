@@ -20,6 +20,8 @@ NAME:=$(shell $(PYTHON) $(PYFLAGS) ./pkg/setup.py --name)
 VER:=$(shell $(PYTHON) $(PYFLAGS) ./pkg/setup.py --version)
 
 PYVER:=$(shell $(PYTHON) $(PYFLAGS) -c "import sys; print('py%d.%d' % sys.version_info[:2])")
+
+# all files to be included in rstem package (all python files plus files included in MANIFEST.in)
 PY_SOURCES:=$(shell \
 	$(PYTHON) $(PYFLAGS) setup.py egg_info >/dev/null 2>&1 && \
 	grep -v "\.egg-info" $(NAME).egg-info/SOURCES.txt)
@@ -53,7 +55,7 @@ DIST_DSC=dist/$(NAME)_$(VER).tar.gz \
 
 
 COMMANDS=install test source egg zip tar deb dist install-projects install-cells \
-    upload-all upload-ppa upload-cheeseshop
+    upload-all upload-ppa upload-cheeseshop register
 
 .PHONY: all local-install upload-check help clean push pull doc release  \
     $(COMMANDS) $(addprefix pi-, $(COMMANDS))
@@ -79,6 +81,7 @@ help:
 	@echo "make release - Create and tag a new release"
 	@echo "make upload-all - Upload the new release to all repositories"
 	@echo "make upload-ppa - Upload the new release to ppa"
+	@echo "make register - Register raspberry pi to PyPi repository"
 	@echo "make upload-cheeseshop - Upload the new release to cheeseshop"
 
 setup.py:
@@ -166,9 +169,12 @@ pi-upload-ppa: $(DIST_DSC) setup.py MANIFEST.in
 
 pi-upload-cheeseshop: $(PY_SOURCES) setup.py MANIFEST.in
 	# update the package's registration on PyPI (in case any metadata's changed)
-	$(MAKE) upload-check
-	$(PYTHON) $(PYFLAGS) setup.py register
+	# f$(MAKE) upload-check
+	$(PYTHON) $(PYFLAGS) setup.py sdist upload
 	$(MAKE) cleanup
+
+pi-register: setup.py MANIFEST.in
+	$(PYTHON) $(PYFLAGS) setup.py register
 
 release: $(PY_SOURCES) $(DOC_SOURCES)
 	$(MAKE) upload-check
@@ -187,8 +193,9 @@ pi-zip: $(DIST_ZIP)
 pi-tar: $(DIST_TAR)
 
 #pi-deb: $(DIST_DSC) $(DIST_DEB) // uncomment when debian is finished
-pi-deb:
-	@echo "make deb not currently supported"
+pi-deb: setup.py MANIFEST.in
+	@echo "make deb is currently BETA!!!"
+	$(PYTHON) setup.py --command-packages=stdeb.command bdist_deb
 
 pi-dist: $(DIST_EGG) $(DIST_DEB) $(DIST_DSC) $(DIST_TAR) $(DIST_ZIP)
 
@@ -200,7 +207,10 @@ clean-pi:
 clean: setup.py MANIFEST.in
 	sudo $(PYTHON) $(PYFLAGS) setup.py clean
 	$(MAKE) -f $(CURDIR)/pkg/debian/rules clean
-	sudo rm -rf build dist/ $(NAME).egg-info $(NAME)-$(VER)
+	sudo rm -rf build dist/
+	sudo rm -rf $(NAME).egg-info
+	rm -f $(NAME).egg-info
+	rm -rf $(NAME)-$(VER).tar.gz
 	rm -rf pkg/debian/python3-$(NAME) pkg/debian/python-$(NAME)
 	rm -f pkg/debian/python*
 	rm -f ../$(NAME)_$(VER).orig.tar.gz ../$(NAME)_$(VER)_armhf.build ../$(NAME)_$(VER)_armhf.changes ../$(NAME)_$(VER)_source.build
