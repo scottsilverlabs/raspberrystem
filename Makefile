@@ -87,6 +87,9 @@ setup.py:
 	
 MANIFEST.in:
 	cp pkg/MANIFEST.in ./
+
+./rstem/gpio/pullup.sbin: ./rstem/gpio/pullup.sbin.c
+	gcc ./rstem/gpio/pullup.sbin.c -o ./rstem/gpio/pullup.sbin
 	
 debian:
 	cp -r pkg/debian debian
@@ -126,12 +129,12 @@ doc:
 	rm -rf doc
 	cd; epydoc --html rstem -o $(PREVDIR)/doc; cd $(PREVDIR)
 
-local-install: setup.py MANIFEST.in
+local-install: setup.py MANIFEST.in ./rstem/gpio/pullup.sbin
 	# Pretend we are on the pi and install
 	sudo $(PYTHON) $(PYFLAGS) ./setup.py install
 	$(MAKE) cleanup
 
-pi-install: setup.py MANIFEST.in
+pi-install: setup.py MANIFEST.in ./rstem/gpio/pullup.sbin
 	sudo $(PYTHON) $(PYFLAGS) ./setup.py install
 	$(MAKE) pi-install-projects
 	$(MAKE) pi-install-cells

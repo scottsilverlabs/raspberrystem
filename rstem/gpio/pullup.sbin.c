@@ -23,6 +23,12 @@
 
 int main(int argc, char *argv[])
 {
+
+    if (argc != 3){
+        perror("argument error");
+        exit(1);
+    }
+
     int fd;
     unsigned long * map_base;
     unsigned long pin;
