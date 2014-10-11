@@ -1,0 +1,1 @@
+SUBSYSTEM=="subsystem", KERNEL=="gpio", ACTION=="add", PROGRAM="/bin/sh -c 'chown -R pi:pi /sys%p'"

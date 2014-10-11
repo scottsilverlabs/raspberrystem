@@ -3,3 +3,5 @@ include rstem/gpio/pullup.sbin.c
 include rstem/gpio/pullup.sbin
 include rstem/led_matrix/led_server.c
 recursive-include rstem/led_matrix/font *
+include pkg/postinstall
+include pkg/90-raspberrystem.rules
