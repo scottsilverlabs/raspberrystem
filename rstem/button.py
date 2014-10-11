@@ -47,14 +47,17 @@ class Button(object):
         @type port: int
         """
         self.port = port
-        self.gpio = gpio(port)
+        self.gpio = gpio.Port(port)
         self.gpio.configure(gpio.INPUT)
         # GPIO.setup(port, GPIO.IN, pull_up_down=GPIO.PUD_UP)
         
     def is_pressed(self):
         """@returns: True if button is pressed"""
-        return self.gpio.was_clicked()
+        return not bool(self.gpio.get_level())
         # return not bool(GPIO.input(self.port))
+
+    def was_clicked(self):
+        return self.gpio.was_clicked()
 
     # def _verify_change_value(change):
     #     if change not in [PRESSED, RELEASED, BOTH]:

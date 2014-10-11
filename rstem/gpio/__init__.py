@@ -2,7 +2,6 @@ import os
 import sys
 import time
 from threading import Thread, Lock
-from collections import namedtuple
 import types
 
 PINS = [2, 3, 4, 14, 15, 17, 18, 22, 23, 24, 25, 27]
@@ -15,7 +14,7 @@ ARG_PULL_DOWN = 1
 ARG_PULL_UP = 2
 
 
-class Gpio:
+class Port:
     def __init__(self, pin):
         self.gpio_dir = "/sys/class/gpio/gpio%d" % pin
         self.pin = pin
@@ -44,6 +43,10 @@ class Gpio:
         self.__pullup(pin, ARG_PULL_DISABLE)
 
     def configure(self, direction):
+        """Configure the GPIO port to either be an input, output or disabled.
+        @param direction: Either gpio.INPUT, gpio.OUTPUT, or gpio.DISABLED
+        @param direction: int
+        """
         if direction == OUTPUT:
             raise NotImplementedError()
         elif direction == INPUT:
@@ -69,24 +72,35 @@ class Gpio:
                     self.fvalue.close()
 
     def was_clicked(self):
+        """Detects whether the GPIO has been clicked or on since the port has been initialized or
+        since the last time was_clicked() has been called.
+        @returns: boolean
+        """
         level = self.get_level()
         clicked = level == 1 and self.last == 0
         self.last = level
         return clicked
 
     def get_level(self):
+        """Returns the current level of the GPIO port.
+        @returns: int (1 for HIGH, 0 for LOW)
+        @note: The GPIO ports are active low.
+        """
         with self.mutex:
             self.fvalue.seek(0)
             return int(self.fvalue.read())
 
     def set_level(self, level):
+        """Currently not implemented.
+        @throws: NotImplementedError
+        """
         with self.mutex:
             raise NotImplementedError()
 
 
-class Gpios:
+class Ports:
     def __init__(self):
-        self.gpios = [Gpio(i) for i in range(max(PINS) + 1)]
+        self.gpios = [Port(i) for i in range(max(PINS) + 1)]
 
     def __validate_gpio(self, pin, direction):
         class UninitializedError(Exception):
@@ -115,19 +129,19 @@ class Gpios:
         self.gpios[pin].set_level(level)
 
 # Export functions in this module
-g = Gpios()
+g = Ports()
 for name in ['configure', 'get_level', 'set_level', 'was_clicked']:
     globals()[name] = getattr(g, name)
 
 
-def _main():
-    configure(2, INPUT)
-    while True:
-        c = was_clicked()
-        if c:
-            print(c)
-        time.sleep(0.030)
-
-
-if __name__ == "__main__":
-    _main()
+# def _main():
+#     configure(2, INPUT)
+#     while True:
+#         c = was_clicked()
+#         if c:
+#             print(c)
+#         time.sleep(0.030)
+#
+#
+# if __name__ == "__main__":
+#     _main()

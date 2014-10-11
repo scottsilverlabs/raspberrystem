@@ -89,7 +89,11 @@ MANIFEST.in:
 	cp pkg/MANIFEST.in ./
 
 ./rstem/gpio/pullup.sbin: ./rstem/gpio/pullup.sbin.c
+	# compile pullup.sbin
 	gcc ./rstem/gpio/pullup.sbin.c -o ./rstem/gpio/pullup.sbin
+	# set pullup.sbin as a root program
+	sudo chown 0:0 ./rstem/gpio/pullup.sbin
+	sudo chmod u+s ./rstem/gpio/pullup.sbin
 	
 debian:
 	cp -r pkg/debian debian
@@ -218,6 +222,7 @@ clean: setup.py MANIFEST.in
 	find $(CURDIR) -name '*.pyc' -delete
 	rm -f pkg/debian/files
 	touch pkg/debian/files
+	sudo rm -f ./rstem/gpio/pullup.sbin
 	$(MAKE) cleanup
 
 $(DIST_TAR): $(PY_SOURCES) setup.py MANIFEST.in
