@@ -5,9 +5,17 @@ from threading import Thread, Lock
 import types
 
 PINS = [2, 3, 4, 14, 15, 17, 18, 22, 23, 24, 25, 27]
+
+# Directions
 OUTPUT = 1
 INPUT = 2
 DISABLED = 3
+
+# Edge Detection
+NONE = "none"
+RISING = "rising"
+FALLING = "falling"
+BOTH = "both"
 
 ARG_PULL_DISABLE = 0
 ARG_PULL_DOWN = 1
@@ -19,8 +27,10 @@ class Port:
         self.gpio_dir = "/sys/class/gpio/gpio%d" % pin
         self.pin = pin
         self.direction = DISABLED
+        self.edge = NONE
         self.last = 1
         self.mutex = Lock()
+        self.poll_thread = None
         if pin in PINS:
             if not os.path.exists(self.gpio_dir):
                 with open("/sys/class/gpio/export", "w") as f:
@@ -42,10 +52,46 @@ class Port:
     def __disable_pulldown(self, pin):
         self.__pullup(pin, ARG_PULL_DISABLE)
 
+    def __poll_thread_run(self):
+        """Run function used in poll_thread"""
+        pass
+        # TODO
+
+    def remove_edge_detect(self):
+        """Removes edge detect interrupt"""
+        self.edge_detect(NONE)
+
+    def wait_for_edge(self, edge):
+        raise NotImplementedError()
+        # TODO
+
+    def edge_detect(self, edge, callback=None):
+        """Sets up edge detection interrupt.
+        @param edge: either gpio.NONE, gpio.RISING, gpio.FALLING, or gpio.BOTH
+        @type edge: int
+        @param callback: Function to call when given edge has been detected.
+        @type callback: function
+        @note: First parameter of callback function will be the port number of gpio that called it.
+        """
+        if callback is None and edge != NONE:
+            raise ValueError("Callback function must be given if edge is not NONE")
+        if edge not in [NONE, RISING, FALLING, BOTH]:
+            raise ValueError("Edge must be NONE, RISING, FALLING, or BOTH")
+
+        with self.mutex:
+            with open(self.gpio_dir + "/edge", "w") as fedge:
+                self.edge = edge
+                fedge.write(edge)
+
+        if edge != NONE:
+            self.poll_thread = Thread(target=self.__poll_thread_run, args=(self))
+            self.poll_thread.start()
+            self.poll_thread.run()
+
     def configure(self, direction):
         """Configure the GPIO port to either be an input, output or disabled.
         @param direction: Either gpio.INPUT, gpio.OUTPUT, or gpio.DISABLED
-        @param direction: int
+        @type direction: int
         """
         if direction == OUTPUT:
             raise NotImplementedError()
@@ -134,14 +180,15 @@ for name in ['configure', 'get_level', 'set_level', 'was_clicked']:
     globals()[name] = getattr(g, name)
 
 
-# def _main():
-#     configure(2, INPUT)
-#     while True:
-#         c = was_clicked()
-#         if c:
-#             print(c)
-#         time.sleep(0.030)
+def _main():
+    if sys.argv != 4:
+        raise ValueError("Usage: " + sys.argv[0] + "poll gpioPort eventFunction")
+    if sys.argv[1] != "poll":
+        raise ValueError("'poll' must be the first argument!")
+
+    port = int(sys.argv[2])
+
+
 #
-#
-# if __name__ == "__main__":
-#     _main()
+if __name__ == "__main__":
+    _main()
