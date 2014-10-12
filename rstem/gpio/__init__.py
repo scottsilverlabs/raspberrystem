@@ -1,5 +1,6 @@
 import os
 import sys
+import select
 import time
 from threading import Thread, Lock
 import types
@@ -31,6 +32,7 @@ class Port:
         self.last = 1
         self.mutex = Lock()
         self.poll_thread = None
+        self.poll_thread_running = False
         if pin in PINS:
             if not os.path.exists(self.gpio_dir):
                 with open("/sys/class/gpio/export", "w") as f:
@@ -52,10 +54,18 @@ class Port:
     def __disable_pulldown(self, pin):
         self.__pullup(pin, ARG_PULL_DISABLE)
 
-    def __poll_thread_run(self):
+    def __poll_thread_run(self, callback, bouncetime):
         """Run function used in poll_thread"""
-        pass
-        # TODO
+        f = open(self.gpio_dir + "/value", "r")
+        po = select.poll()
+        po.register(f, select.POLLPRI)
+
+        while(self.poll_thread_running):
+            print("Polling " + self.pin + ".....")
+            po.poll()   # TODO: create a kill switch?
+            print("Running callback...")
+            callback(self.pin)
+            time.sleep(bouncetime)
 
     def remove_edge_detect(self):
         """Removes edge detect interrupt"""
@@ -65,7 +75,7 @@ class Port:
         raise NotImplementedError()
         # TODO
 
-    def edge_detect(self, edge, callback=None):
+    def edge_detect(self, edge, callback=None, bouncetime=200):
         """Sets up edge detection interrupt.
         @param edge: either gpio.NONE, gpio.RISING, gpio.FALLING, or gpio.BOTH
         @type edge: int
@@ -84,9 +94,12 @@ class Port:
                 fedge.write(edge)
 
         if edge != NONE:
-            self.poll_thread = Thread(target=self.__poll_thread_run, args=(self))
+            self.poll_thread_running = True
+            self.poll_thread = Thread(target=Port.__poll_thread_run, args=(self, callback, bouncetime))
             self.poll_thread.start()
             self.poll_thread.run()
+        else:
+            self.poll_thread_running = False  # TODO: ????
 
     def configure(self, direction):
         """Configure the GPIO port to either be an input, output or disabled.
