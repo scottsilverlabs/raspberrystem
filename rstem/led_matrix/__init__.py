@@ -32,8 +32,8 @@ BITS_PER_PIXEL = 4     # 4 bits to represent color
 DIM_OF_MATRIX = 8     # 8x8 led matrix elements
 initialized = False   # flag to indicate if LED has been initialized
 spi_initialized = False  # flag to indicate if SPI bus as been initialized
-container_width = 0    # indicates the maximum width and height of the LEDContainer
-container_height = 0
+width = 0    #: The width of the LED matrix grid
+height = 0   #: The height of the LED matrix grid
 container_math_coords = True
 
 
@@ -87,21 +87,21 @@ def _convert_to_std_coords(x, y):
     @param y: y coordinate in math coordinates
     @rtype: tuple
     @return: (x,y) coordinates in standard programming coordinates"""
-    return (x, (container_height - 1 - y))
+    return (x, (height - 1 - y))
     
-def width():
-    """
-    @rtype: int
-    @return: The number of pixels wide the led matrix display is.
-    """
-    return container_width
-    
-def height():
-    """
-    @rtype: int
-    @return: The number of pixels hight the led matrix display is.
-    """
-    return container_height
+# def width():
+#     """
+#     @rtype: int
+#     @return: The number of pixels wide the led matrix display is.
+#     """
+#     return width
+#
+# def height():
+#     """
+#     @rtype: int
+#     @return: The number of pixels hight the led matrix display is.
+#     """
+#     return height
     
 def display_on_terminal():
     """Toggles on and off the terminal display of the led matrix on show()"""
@@ -120,25 +120,25 @@ def init_matrices(mat_list=[(0,0,0)], math_coords=True, spi_speed=125000, spi_po
     @type math_coords: Boolean
     """
     global initialized
-    global container_width
-    global container_height
+    global width
+    global height
     global container_math_coords
     if initialized: # free previous memory before attempting to do it again
         cleanup()
                 
-    container_width = max([matrix[0] for matrix in mat_list]) + DIM_OF_MATRIX
-    container_height = max([matrix[1] for matrix in mat_list]) + DIM_OF_MATRIX
+    width = max([matrix[0] for matrix in mat_list]) + DIM_OF_MATRIX
+    height = max([matrix[1] for matrix in mat_list]) + DIM_OF_MATRIX
     container_math_coords = math_coords
     if container_math_coords:
         for i in range(len(mat_list)):
             # convert y's to be standard programming coordinates
             # and also move origin from bottom left to top left of matrix
             if len(mat_list[i]) > 2:
-                mat_list[i] = (mat_list[i][0], (container_height-1 - mat_list[i][1]) - (DIM_OF_MATRIX-1), mat_list[i][2])
+                mat_list[i] = (mat_list[i][0], (height-1 - mat_list[i][1]) - (DIM_OF_MATRIX-1), mat_list[i][2])
             else:
-                mat_list[i] = (mat_list[i][0], (container_height-1 - mat_list[i][1]) - (DIM_OF_MATRIX-1))
+                mat_list[i] = (mat_list[i][0], (height-1 - mat_list[i][1]) - (DIM_OF_MATRIX-1))
     led_driver.init_matrices(mat_list, len(mat_list), \
-        container_width, container_height) # flatten out tuple
+        width, height) # flatten out tuple
         
     # initialize spi bus
     global spi_initialized
@@ -298,12 +298,12 @@ def point(x, y=None, color=0xF):
     _init_check()
     color = _convert_color(color)
     if color < 16:   # don't do anything if transparent
-        global container_width
-        global container_height
+        global width
+        global height
         # If y is not given, then x is a tuple of the point
         if y is None and type(x) is tuple:
             x, y = x
-        if x < 0 or x >= container_width or y < 0 or y >= container_height:
+        if x < 0 or x >= width or y < 0 or y >= height:
             return
         if container_math_coords:
             x, y = _convert_to_std_coords(x, y)
@@ -355,7 +355,7 @@ def line(point_a, point_b, color=0xF):
     err = dx - dy
     while True:
         point(x1, y1, color)
-        if ((x1 == x2 and y1 == y2) or x1 >= container_width or y1 >= container_height):
+        if ((x1 == x2 and y1 == y2) or x1 >= width or y1 >= height):
             break
         e2 = 2*err
         if (e2 > -dy):
@@ -418,8 +418,8 @@ def sprite(sprite, origin=(0,0), crop_origin=(0,0), crop_dimensions=None):
         raise ValueError("Invalid sprite")
     
     _init_check()
-    global container_width
-    global container_height
+    global width
+    global height
     
     x_pos, y_pos = origin
     x_crop, y_crop = crop_origin
@@ -440,12 +440,12 @@ def sprite(sprite, origin=(0,0), crop_origin=(0,0), crop_dimensions=None):
     x_start = x_pos + x_crop
     y_start = y_pos + y_crop 
     
-    if x_start >= container_width or y_start >= container_height:
+    if x_start >= width or y_start >= height:
         return
         
     # set up end position
-    x_end = min(x_pos + x_crop + x_crop_dim, container_width, x_pos + sprite.width)
-    y_end = min(y_pos + y_crop + y_crop_dim, container_height, y_pos + sprite.height)
+    x_end = min(x_pos + x_crop + x_crop_dim, width, x_pos + sprite.width)
+    y_end = min(y_pos + y_crop + y_crop_dim, height, y_pos + sprite.height)
     
     # iterate through sprite and set points to led_driver
     y = max(y_start,0)
@@ -530,8 +530,8 @@ class LEDSprite(object):
                     from PIL import Image
                     im = Image.open(filename)
                     im_width, im_height = im.size
-                    bitmap_height = min(container_height, im_height)
-                    bitmap_width = min(container_width, bitmap_height * (im_width / im_height))
+                    bitmap_height = min(height, im_height)
+                    bitmap_width = min(width, bitmap_height * (im_width / im_height))
                 else:
                     bitmap_height = height
                     bitmap_width = width
@@ -551,14 +551,16 @@ class LEDSprite(object):
             bitmap_width = width
 
         self.bitmap = bitmap
-        self.height = bitmap_height
-        self.width = bitmap_width
-        
+        # self.height = bitmap_height
+        # self.width = bitmap_width
+
+    @property
     def width(self):
-        return self.width
-        
+        return len(self.bitmap[0])
+
+    @property
     def height(self):
-        return self.height
+        return len(self.bitmap)
 
     def append(self, sprite):
         """Appends given sprite to the right of itself.
@@ -575,7 +577,7 @@ class LEDSprite(object):
             else:
                 self.bitmap[i] = sum([line, sprite.bitmap[i]], [])
         # update size
-        self.width += sprite.width
+        # self.width += sprite.width
 
     def set_pixel(self, point, color=0xF):
         """Sets given color to given x and y coordinate in sprite
@@ -646,9 +648,9 @@ class LEDSprite(object):
                 bitmap.append([row[i] for row in reversed(self.bitmap)])
             self.bitmap = bitmap
             # swap height and width
-            temp = self.width
-            self.width = self.height
-            self.height = temp
+            # temp = self.width
+            # self.width = self.height
+            # self.height = temp
             
         elif angle == 180:
             self.bitmap.reverse()
@@ -661,9 +663,9 @@ class LEDSprite(object):
                 bitmap.append([row[i] for row in self.bitmap])
             self.bitmap = bitmap
             # swap height and width
-            temp = self.width
-            self.width = self.height
-            self.height = temp
+            # temp = self.width
+            # self.width = self.height
+            # self.height = temp
         return self
         
     def rotated(self, angle=90):
@@ -828,8 +830,8 @@ class LEDText(LEDSprite):
                 init_sprite.append(sprite)
 
         self.bitmap = init_sprite.bitmap
-        self.height = init_sprite.height
-        self.width = init_sprite.width
+        # self.height = init_sprite.height
+        # self.width = init_sprite.width
         
         
 # run demo program if run by itself
