@@ -56,16 +56,20 @@ class Port:
 
     def __poll_thread_run(self, callback, bouncetime):
         """Run function used in poll_thread"""
+        print("Self " + str(self.gpio_dir))
         f = open(self.gpio_dir + "/value", "r")
         po = select.poll()
         po.register(f, select.POLLPRI)
 
+        # TODO: ignore first poll trigger
         while(self.poll_thread_running):
-            print("Polling " + self.pin + ".....")
-            po.poll()   # TODO: create a kill switch?
+            print("Thread running? " + str(self.poll_thread_running) + ".....")
+            print(po.poll())   # TODO: implement timeout
+            sys.stdout.write("test")
             print("Running callback...")
             callback(self.pin)
             time.sleep(bouncetime)
+            print("Bouncing back...")
 
     def remove_edge_detect(self):
         """Removes edge detect interrupt"""
@@ -97,7 +101,6 @@ class Port:
             self.poll_thread_running = True
             self.poll_thread = Thread(target=Port.__poll_thread_run, args=(self, callback, bouncetime))
             self.poll_thread.start()
-            self.poll_thread.run()
         else:
             self.poll_thread_running = False  # TODO: ????
 
@@ -131,6 +134,7 @@ class Port:
                     self.fvalue.close()
 
     def was_clicked(self):
+        # TODO: make work for any type of edge change and rename function
         """Detects whether the GPIO has been clicked or on since the port has been initialized or
         since the last time was_clicked() has been called.
         @returns: boolean

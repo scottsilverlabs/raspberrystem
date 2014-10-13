@@ -2,7 +2,7 @@
 
 
 # Copy udev rule to correct place
-sudo cp ./90-raspberrystem.rules /etc/udev/rules.d/90-raspberrystem.rules
+sudo cp ./pkg/90-raspberrystem.rules /etc/udev/rules.d/90-raspberrystem.rules
 
 # Set up SPI, I2C, etc...
 

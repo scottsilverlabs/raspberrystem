@@ -76,7 +76,7 @@ def set_voice_engine(engine="espeak"):
 
     
 def say(text, wait=False):    
-   """Plays a voice speaking the given text.
+    """Plays a voice speaking the given text.
     
     @param text: text to play
     @type text: string
