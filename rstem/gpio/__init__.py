@@ -59,25 +59,66 @@ class Port:
         print("Self " + str(self.gpio_dir))
         f = open(self.gpio_dir + "/value", "r")
         po = select.epoll()
-        po.register(f, select.EPOLLPRI | select.EPOLLET)
-        # TODO: ignore first poll trigger
+        po.register(f, select.POLLIN | select.EPOLLPRI | select.EPOLLET)
+        last_time = 0
+        first_time = True  # used to ignore first trigger
+
         while(self.poll_thread_running):
-            print("Thread running? " + str(self.poll_thread_running) + ".....")
-            print(po.poll())   # TODO: implement timeout
+            print(po.poll())   # TODO: implement timeout?
             f.seek(0)
             print("Running callback...")
-            callback(self.pin)
-            time.sleep(bouncetime/1000)
+            if not first_time:
+                timenow = time.time()
+                if timenow - last_time > bouncetime*1000 or last_time == 0:
+                    callback(self.pin)
+                    last_time = timenow
+            else:
+                first_time = False
+            # time.sleep(bouncetime/1000)
             print("Bouncing back...")
         f.close()
+
+    def __set_edge(self, edge):
+        with self.mutex:
+            with open(self.gpio_dir + "/edge", "w") as fedge:
+                self.edge = edge
+                fedge.write(edge)
 
     def remove_edge_detect(self):
         """Removes edge detect interrupt"""
         self.edge_detect(NONE)
+        self.poll_thread_running = False
+        self.poll_thread.join(1)
+        if self.poll_thread.isAlive():
+            raise RuntimeError("Poll thread didn't die!")
 
     def wait_for_edge(self, edge):
-        raise NotImplementedError()
-        # TODO
+        """Blocks until the given edge has happened
+        @param edge: Either gpio.FALLING, gpio.RISING, gpio.BOTH
+        @param edge: string
+        @throws: ValueError
+        """
+        if edge not in [RISING, FALLING, BOTH]:
+            raise ValueError("Invalid edge!")
+        self.__set_edge(edge)
+
+        # wait for edge
+        f = open(self.gpio_dir + "/value", "r")
+        po = select.epoll()
+        po.register(f, select.POLLIN | select.EPOLLPRI | select.EPOLLET)
+        # last_time = 0
+        first_time = True  # used to ignore first trigger
+
+        while True:
+            print(po.poll())   # TODO: implement timeout?
+            f.seek(0)
+            print("Running callback...")
+            if not first_time:
+                callback(self.pin)
+                break
+            else:
+                first_time = False
+        f.close()
 
     def edge_detect(self, edge, callback=None, bouncetime=200):
         """Sets up edge detection interrupt.
@@ -92,10 +133,7 @@ class Port:
         if edge not in [NONE, RISING, FALLING, BOTH]:
             raise ValueError("Edge must be NONE, RISING, FALLING, or BOTH")
 
-        with self.mutex:
-            with open(self.gpio_dir + "/edge", "w") as fedge:
-                self.edge = edge
-                fedge.write(edge)
+        self.__set_edge(edge)
 
         if edge != NONE:
             self.poll_thread_running = True
@@ -195,17 +233,3 @@ class Ports:
 g = Ports()
 for name in ['configure', 'get_level', 'set_level', 'was_clicked']:
     globals()[name] = getattr(g, name)
-
-
-def _main():
-    if sys.argv != 4:
-        raise ValueError("Usage: " + sys.argv[0] + "poll gpioPort eventFunction")
-    if sys.argv[1] != "poll":
-        raise ValueError("'poll' must be the first argument!")
-
-    port = int(sys.argv[2])
-
-
-#
-if __name__ == "__main__":
-    _main()
