@@ -57,15 +57,15 @@ class Port:
     def __poll_thread_run(self, callback, bouncetime):
         """Run function used in poll_thread"""
         print("Self " + str(self.gpio_dir))
-        f = open(self.gpio_dir + "/value", "r")
+        # f = open(self.gpio_dir + "/value", "r")
         po = select.epoll()
-        po.register(f, select.POLLIN | select.EPOLLPRI | select.EPOLLET)
+        po.register(self.fvalue, select.POLLIN | select.EPOLLPRI | select.EPOLLET)
         last_time = 0
         first_time = True  # used to ignore first trigger
 
         while(self.poll_thread_running):
             print(po.poll())   # TODO: implement timeout?
-            f.seek(0)
+            self.fvalue.seek(0)
             print("Running callback...")
             if not first_time:
                 timenow = time.time()
@@ -76,7 +76,7 @@ class Port:
                 first_time = False
             # time.sleep(bouncetime/1000)
             print("Bouncing back...")
-        f.close()
+        # f.close()
 
     def __set_edge(self, edge):
         with self.mutex:
@@ -98,27 +98,29 @@ class Port:
         @param edge: string
         @throws: ValueError
         """
+        if self.direction != INPUT:
+            raise ValueError("GPIO must be configured to be an input first.")
         if edge not in [RISING, FALLING, BOTH]:
             raise ValueError("Invalid edge!")
         self.__set_edge(edge)
 
         # wait for edge
-        f = open(self.gpio_dir + "/value", "r")
+        # f = open(self.gpio_dir + "/value", "r")
         po = select.epoll()
-        po.register(f, select.POLLIN | select.EPOLLPRI | select.EPOLLET)
+        po.register(self.fvalue, select.POLLIN | select.EPOLLPRI | select.EPOLLET)
         # last_time = 0
         first_time = True  # used to ignore first trigger
 
         while True:
             print(po.poll())   # TODO: implement timeout?
-            f.seek(0)
+            self.fvalue.seek(0)
             print("Running callback...")
             if not first_time:
                 callback(self.pin)
                 break
             else:
                 first_time = False
-        f.close()
+        # f.close()
 
     def edge_detect(self, edge, callback=None, bouncetime=200):
         """Sets up edge detection interrupt.
@@ -128,6 +130,8 @@ class Port:
         @type callback: function
         @note: First parameter of callback function will be the port number of gpio that called it.
         """
+        if self.direction != INPUT:
+            raise ValueError("GPIO must be configured to be an input first.")
         if callback is None and edge != NONE:
             raise ValueError("Callback function must be given if edge is not NONE")
         if edge not in [NONE, RISING, FALLING, BOTH]:
@@ -192,11 +196,17 @@ class Port:
             return int(self.fvalue.read())
 
     def set_level(self, level):
-        """Currently not implemented.
-        @throws: NotImplementedError
+        """Sets the level of the GPIO port.
+        @param level: Level to set. Must be either 1 or 0.
+        @param level: int
         """
+        if self.direction != OUTPUT:
+            raise ValueError("GPIO must be configured to be an OUTPUT!")
+        if level != 0 or level != 1:
+            raise ValueError("Level must be either 1 or 0.")
         with self.mutex:
-            raise NotImplementedError()
+            self.fvalue.seek(0)
+            self.fvalue.write(str(level))
 
 
 class Ports:
