@@ -58,18 +58,18 @@ class Port:
         """Run function used in poll_thread"""
         print("Self " + str(self.gpio_dir))
         f = open(self.gpio_dir + "/value", "r")
-        po = select.poll()
-        po.register(f, select.POLLPRI)
-
+        po = select.epoll()
+        po.register(f, select.EPOLLPRI | select.EPOLLET)
         # TODO: ignore first poll trigger
         while(self.poll_thread_running):
             print("Thread running? " + str(self.poll_thread_running) + ".....")
             print(po.poll())   # TODO: implement timeout
-            sys.stdout.write("test")
+            f.seek(0)
             print("Running callback...")
             callback(self.pin)
-            time.sleep(bouncetime)
+            time.sleep(bouncetime/1000)
             print("Bouncing back...")
+        f.close()
 
     def remove_edge_detect(self):
         """Removes edge detect interrupt"""

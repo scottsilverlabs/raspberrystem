@@ -102,6 +102,7 @@ cleanup:
 	rm -f ./setup.py
 	rm -f ./MANIFEST.in
 	rm -rf debian
+	rm -f ./rstem/gpio/pullup.sbin
 
 
 # update files on raspberry pi
