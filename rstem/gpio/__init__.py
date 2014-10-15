@@ -56,16 +56,17 @@ class Port:
 
     def __poll_thread_run(self, callback, bouncetime):
         """Run function used in poll_thread"""
-        # f = open(self.gpio_dir + "/value", "r")
         po = select.epoll()
         po.register(self.fvalue, select.POLLIN | select.EPOLLPRI | select.EPOLLET)
         last_time = 0
         first_time = True  # used to ignore first trigger
 
         while(self.poll_thread_running):
-            print(po.poll())   # TODO: implement timeout?
+            event = po.poll(60)
+            if len(event) == 0:
+                # timeout
+                continue
             self.fvalue.seek(0)
-            print("Running callback...")
             if not first_time:
                 timenow = time.time()
                 print(timenow - last_time)
@@ -74,9 +75,6 @@ class Port:
                     last_time = timenow
             else:
                 first_time = False
-            # time.sleep(bouncetime/1000)
-            print("Bouncing back...")
-        # f.close()
 
     def __set_edge(self, edge):
         with self.mutex:
@@ -105,21 +103,24 @@ class Port:
         self.__set_edge(edge)
 
         # wait for edge
-        # f = open(self.gpio_dir + "/value", "r")
         po = select.epoll()
         po.register(self.fvalue, select.POLLIN | select.EPOLLPRI | select.EPOLLET)
         # last_time = 0
         first_time = True  # used to ignore first trigger
 
         while True:
-            print(po.poll())   # TODO: implement timeout?
+            event = po.poll(60)
+            if len(event) == 0:
+                # timeout to see if edge has changed
+                if self.edge == NONE:
+                    break
+                else:
+                    continue
             self.fvalue.seek(0)
-            print("Running callback...")
             if not first_time:
                 break
             else:
                 first_time = False
-        # f.close()
 
     def edge_detect(self, edge, callback=None, bouncetime=200):
         """Sets up edge detection interrupt.
