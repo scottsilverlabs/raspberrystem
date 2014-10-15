@@ -77,7 +77,7 @@ class Button(object):
         self.gpio.edge_detect(change, event_callback, bouncetime)
         # GPIO.add_event_detect(self.port, change, callback=event_callback, bouncetime=bouncetime)
 
-    def wait_for_change(self, change):
+    def wait_for_change(self, change=PRESSED):
         """Blocks until given change event happens
 
         @param change: type of event to watch for (either button.PRESSED, button.RELEASED, or button.BOTH)

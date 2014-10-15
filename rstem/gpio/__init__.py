@@ -56,7 +56,6 @@ class Port:
 
     def __poll_thread_run(self, callback, bouncetime):
         """Run function used in poll_thread"""
-        print("Self " + str(self.gpio_dir))
         # f = open(self.gpio_dir + "/value", "r")
         po = select.epoll()
         po.register(self.fvalue, select.POLLIN | select.EPOLLPRI | select.EPOLLET)
@@ -69,7 +68,8 @@ class Port:
             print("Running callback...")
             if not first_time:
                 timenow = time.time()
-                if timenow - last_time > bouncetime*1000 or last_time == 0:
+                print(timenow - last_time)
+                if (timenow - last_time) > (bouncetime/1000) or last_time == 0:
                     callback(self.pin)
                     last_time = timenow
             else:
@@ -116,7 +116,6 @@ class Port:
             self.fvalue.seek(0)
             print("Running callback...")
             if not first_time:
-                callback(self.pin)
                 break
             else:
                 first_time = False
@@ -151,13 +150,7 @@ class Port:
         @param direction: Either gpio.INPUT, gpio.OUTPUT, or gpio.DISABLED
         @type direction: int
         """
-        if direction == OUTPUT:
-            raise NotImplementedError()
-        elif direction == INPUT:
-            pass
-        elif direction == DISABLED:
-            pass
-        else:
+        if direction not in [INPUT, OUTPUT, DISABLED]:
             raise ValueError("Direction must be INPUT, OUTPUT or DISABLED")
 
         with self.mutex:
@@ -191,6 +184,8 @@ class Port:
         @returns: int (1 for HIGH, 0 for LOW)
         @note: The GPIO ports are active low.
         """
+        if self.direction != INPUT:
+            raise ValueError("GPIO must be configured to be an INPUT!")
         with self.mutex:
             self.fvalue.seek(0)
             return int(self.fvalue.read())
