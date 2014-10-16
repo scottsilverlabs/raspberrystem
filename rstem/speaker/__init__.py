@@ -257,24 +257,19 @@ class Speech(Sound):
         elif voice_engine == "google":
             text = urllib.quote(text)
             url = 'http://translate.google.com/translate_tts?tl=en&q=' + text
-            print url
             req = urllib2.Request(url)
-            print "Made request"
             req.add_header('User-Agent', 'Konqueror')
-            print "Added header"
-            print self.filename
             fp = open(self.filename, 'wb')
             try:
                 response = urllib2.urlopen(req)
-                print "opened url"
                 fp.write(response.read())
-                print "read it"
                 time.sleep(.5)
             except urllib2.URLError as e:
                 print ('%s' % e)
             fp.close()
-            
             self.sound = pygame.mixer.Sound(self.filename)
+        else:
+            raise ValueError("%s voice engine is not supported" % voice_engine)
 
 class Note(Sound):
     """A sine wave of given frequeny"""

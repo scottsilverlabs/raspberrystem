@@ -22,8 +22,11 @@ ARG_PULL_DISABLE = 0
 ARG_PULL_DOWN = 1
 ARG_PULL_UP = 2
 
+HIGH = 1
+LOW = 0
 
-class Port:
+
+class Pin:
     def __init__(self, pin):
         self.gpio_dir = "/sys/class/gpio/gpio%d" % pin
         self.pin = pin
@@ -61,7 +64,7 @@ class Port:
         last_time = 0
         first_time = True  # used to ignore first trigger
 
-        while(self.poll_thread_running):
+        while self.poll_thread_running:
             event = po.poll(60)
             if len(event) == 0:
                 # timeout
@@ -128,7 +131,7 @@ class Port:
         @type edge: int
         @param callback: Function to call when given edge has been detected.
         @type callback: function
-        @note: First parameter of callback function will be the port number of gpio that called it.
+        @note: First parameter of callback function will be the pint number of gpio that called it.
         """
         if self.direction != INPUT:
             raise ValueError("GPIO must be configured to be an input first.")
@@ -141,13 +144,13 @@ class Port:
 
         if edge != NONE:
             self.poll_thread_running = True
-            self.poll_thread = Thread(target=Port.__poll_thread_run, args=(self, callback, bouncetime))
+            self.poll_thread = Thread(target=Pin.__poll_thread_run, args=(self, callback, bouncetime))
             self.poll_thread.start()
         else:
             self.poll_thread_running = False  # TODO: ????
 
     def configure(self, direction):
-        """Configure the GPIO port to either be an input, output or disabled.
+        """Configure the GPIO pin to either be an input, output or disabled.
         @param direction: Either gpio.INPUT, gpio.OUTPUT, or gpio.DISABLED
         @type direction: int
         """
@@ -171,7 +174,7 @@ class Port:
 
     def was_clicked(self):
         # TODO: make work for any type of edge change and rename function
-        """Detects whether the GPIO has been clicked or on since the port has been initialized or
+        """Detects whether the GPIO has been clicked or on since the pin has been initialized or
         since the last time was_clicked() has been called.
         @returns: boolean
         """
@@ -181,9 +184,9 @@ class Port:
         return clicked
 
     def get_level(self):
-        """Returns the current level of the GPIO port.
+        """Returns the current level of the GPIO pin.
         @returns: int (1 for HIGH, 0 for LOW)
-        @note: The GPIO ports are active low.
+        @note: The GPIO pins are active low.
         """
         if self.direction != INPUT:
             raise ValueError("GPIO must be configured to be an INPUT!")
@@ -193,21 +196,23 @@ class Port:
 
     def set_level(self, level):
         """Sets the level of the GPIO port.
-        @param level: Level to set. Must be either 1 or 0.
+        @param level: Level to set. Must be either HIGH or LOW.
         @param level: int
         """
         if self.direction != OUTPUT:
             raise ValueError("GPIO must be configured to be an OUTPUT!")
-        if level != 0 or level != 1:
+        if level != 0 and level != 1:
             raise ValueError("Level must be either 1 or 0.")
         with self.mutex:
-            self.fvalue.seek(0)
-            self.fvalue.write(str(level))
+            # write value wasn't working for some reason...
+            os.system("echo %s > %s/value" % (str(level), self.gpio_dir))
+            # self.fvalue.seek(0)
+            # self.fvalue.write(str(level))
 
 
-class Ports:
+class Pins:
     def __init__(self):
-        self.gpios = [Port(i) for i in range(max(PINS) + 1)]
+        self.gpios = [Pin(i) for i in range(max(PINS) + 1)]
 
     def __validate_gpio(self, pin, direction):
         class UninitializedError(Exception):
@@ -236,6 +241,6 @@ class Ports:
         self.gpios[pin].set_level(level)
 
 # Export functions in this module
-g = Ports()
+g = Pins()
 for name in ['configure', 'get_level', 'set_level', 'was_clicked']:
     globals()[name] = getattr(g, name)
