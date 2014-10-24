@@ -40,16 +40,16 @@ SELECT = 22
 
 class Button(object):
     """ A button from a GPIO port"""
+
     def __init__(self, port):
         """
         @param port: GPIO number (BCM mode) that button is plugged into
         @type port: int
         """
         self.port = port
-        self.gpio = gpio.Port(port)
+        self.gpio = gpio.Pin(port)
         self.gpio.configure(gpio.INPUT)
-        # GPIO.setup(port, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-        
+
     def is_pressed(self):
         """@returns: True if button is pressed"""
         return not bool(self.gpio.get_level())
@@ -75,7 +75,12 @@ class Button(object):
         """
         Button._verify_change_value(change)
         self.gpio.edge_detect(change, event_callback, bouncetime)
-        # GPIO.add_event_detect(self.port, change, callback=event_callback, bouncetime=bouncetime)
+
+    def remove_call_on_change(self):
+        """Removes the callback function set for this button.
+        Does nothing if no callback function is set
+        """
+        self.gpio.remove_edge_detect()
 
     def wait_for_change(self, change=PRESSED):
         """Blocks until given change event happens

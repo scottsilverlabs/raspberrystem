@@ -2,7 +2,7 @@ import os
 import sys
 import select
 import time
-from threading import Thread, Lock
+from threading import Thread, Lock, Event
 import types
 
 PINS = [2, 3, 4, 14, 15, 17, 18, 22, 23, 24, 25, 27]
@@ -35,7 +35,7 @@ class Pin:
         self.last = 1
         self.mutex = Lock()
         self.poll_thread = None
-        self.poll_thread_running = False
+        self.poll_thread_stop = None
         if pin in PINS:
             if not os.path.exists(self.gpio_dir):
                 with open("/sys/class/gpio/export", "w") as f:
@@ -59,20 +59,21 @@ class Pin:
 
     def __poll_thread_run(self, callback, bouncetime):
         """Run function used in poll_thread"""
+        # NOTE: self will not change once this is called
         po = select.epoll()
         po.register(self.fvalue, select.POLLIN | select.EPOLLPRI | select.EPOLLET)
         last_time = 0
         first_time = True  # used to ignore first trigger
+        # TODO: ignore second trigger too if edge = rising/falling?
 
-        while self.poll_thread_running:
-            event = po.poll(60)
+        while not self.poll_thread_stop.is_set():
+            event = po.poll(1)
             if len(event) == 0:
                 # timeout
                 continue
             self.fvalue.seek(0)
             if not first_time:
                 timenow = time.time()
-                print(timenow - last_time)
                 if (timenow - last_time) > (bouncetime/1000) or last_time == 0:
                     callback(self.pin)
                     last_time = timenow
@@ -88,10 +89,13 @@ class Pin:
     def remove_edge_detect(self):
         """Removes edge detect interrupt"""
         self.edge_detect(NONE)
-        self.poll_thread_running = False
-        self.poll_thread.join(1)
-        if self.poll_thread.isAlive():
-            raise RuntimeError("Poll thread didn't die!")
+        if self.poll_thread and self.poll_thread.isAlive():
+            # self.poll_thread_running = False
+            self.poll_thread_stop.set()
+
+            while self.poll_thread.isAlive():
+                self.poll_thread.join(1)
+
 
     def wait_for_edge(self, edge):
         """Blocks until the given edge has happened
@@ -143,11 +147,10 @@ class Pin:
         self.__set_edge(edge)
 
         if edge != NONE:
-            self.poll_thread_running = True
+            self.poll_thread_stop = Event()
             self.poll_thread = Thread(target=Pin.__poll_thread_run, args=(self, callback, bouncetime))
             self.poll_thread.start()
-        else:
-            self.poll_thread_running = False  # TODO: ????
+
 
     def configure(self, direction):
         """Configure the GPIO pin to either be an input, output or disabled.
