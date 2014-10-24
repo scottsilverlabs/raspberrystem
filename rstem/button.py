@@ -46,7 +46,6 @@ class Button(object):
     def is_pressed(self):
         """@returns: True if button is pressed"""
         return not bool(self.gpio.get_level())
-        # return not bool(GPIO.input(self.port))
 
     def was_clicked(self):
         return self.gpio.was_clicked()
@@ -82,4 +81,3 @@ class Button(object):
         """
         Button._verify_change_value(change)
         self.gpio.wait_for_edge(change)
-        # GPIO.wait_for_edge(self.port, change)

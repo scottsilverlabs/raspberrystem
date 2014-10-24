@@ -67,8 +67,8 @@ def _convert_color(color):
     @rtype: int
     """
     if not _valid_color(color):
-        raise ValueError("Invalid Color: must be a string between 0-f or '-'" +  \
-            " or a number 0-16 with 16 being transparent")
+        raise ValueError("Invalid Color: must be a string between 0-f or '-'" +
+                         " or a number 0-16 with 16 being transparent")
     if type(color) == int:
         return color
     elif type(color) == str:
@@ -76,21 +76,23 @@ def _convert_color(color):
             return 0x10
         return int(color, 16)
     raise RuntimeError("Invalid color")
-    
+
+
 def _convert_to_std_coords(x, y):
     """Converts given math coordinates to standard programming coordinates
     @param x: x coordinate in math coordinates
     @param y: y coordinate in math coordinates
     @rtype: tuple
     @return: (x,y) coordinates in standard programming coordinates"""
-    return (x, (height - 1 - y))
+    return x, (height - 1 - y)
 
     
 def display_on_terminal():
     """Toggles on and off the terminal display of the led matrix on show()"""
     led_driver.display_on_terminal()
 
-def init_matrices(mat_list=[(0,0,0)], math_coords=True, spi_speed=125000, spi_port=0):
+
+def init_matrices(mat_list=[(0, 0, 0)], math_coords=True, spi_speed=125000, spi_port=0):
     """Creates a chain of led matrices set at particular offsets into the frame buffer
     The order of the led matrices in the list indicate the order they are
     physically hooked up with the first one connected to Pi.
@@ -120,8 +122,7 @@ def init_matrices(mat_list=[(0,0,0)], math_coords=True, spi_speed=125000, spi_po
                 mat_list[i] = (mat_list[i][0], (height-1 - mat_list[i][1]) - (DIM_OF_MATRIX-1), mat_list[i][2])
             else:
                 mat_list[i] = (mat_list[i][0], (height-1 - mat_list[i][1]) - (DIM_OF_MATRIX-1))
-    led_driver.init_matrices(mat_list, len(mat_list), \
-        width, height) # flatten out tuple
+    led_driver.init_matrices(mat_list, len(mat_list), width, height) # flatten out tuple
         
     # initialize spi bus
     global spi_initialized
@@ -331,13 +332,13 @@ def line(point_a, point_b, color=0xF):
     err = dx - dy
     while True:
         point(x1, y1, color)
-        if ((x1 == x2 and y1 == y2) or x1 >= width or y1 >= height):
+        if (x1 == x2 and y1 == y2) or x1 >= width or y1 >= height:
             break
         e2 = 2*err
-        if (e2 > -dy):
+        if e2 > -dy:
             err -= dy
             x1 += sx
-        if (e2 < dx):
+        if e2 < dx:
             err += dx
             y1 += sy
             
@@ -349,7 +350,7 @@ def _line_fast(point_a, point_b, color=0xF):
     led_driver.line(point_a[0], point_a[1], point_b[0], point_b[1], _convert_color(color))
 
 
-def text(text, origin=(0,0), crop_origin=(0,0), crop_dimensions=None, font_name="small", font_path=None):
+def text(text, origin=(0, 0), crop_origin=(0, 0), crop_dimensions=None, font_name="small", font_path=None):
     """Sets given string to be displayed on the led matrix
         
     Example:
@@ -784,30 +785,25 @@ class LEDText(LEDSprite):
         message = message.strip()
         if len(message) == 0:
             super(LEDSprite, self).__init__()
-            return None
+            return
+
         # start with first character as intial sprite object
         init_sprite = _char_to_sprite(message[0], font_path)
-        bitmap = init_sprite.bitmap
         # get general height and width of characters
-        height = init_sprite.height
-        width = init_sprite.width
 
         if len(message) > 1:
             # append other characters to initial sprite
             for char in message[1:]:
                 # add character spacing
-                init_sprite.append(
-                        LEDSprite(height=height, width=char_spacing, color=0x10))
+                init_sprite.append(LEDSprite(height=init_sprite.height, width=char_spacing, color=0x10))
                 # now add next character
                 sprite = _char_to_sprite(char, font_path)
-                if sprite.height != height:
+                if sprite.height != init_sprite.height:
                     raise ValueError("Height of character sprites must all be the same.")
                 # append
                 init_sprite.append(sprite)
 
         self.bitmap = init_sprite.bitmap
-        # self.height = init_sprite.height
-        # self.width = init_sprite.width
         
         
 # run demo program if run by itself
