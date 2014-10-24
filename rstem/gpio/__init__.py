@@ -86,9 +86,7 @@ class Pin:
                 self.edge = edge
                 fedge.write(edge)
 
-    def remove_edge_detect(self):
-        """Removes edge detect interrupt"""
-        self.edge_detect(NONE)
+    def __end_thread(self):
         if self.poll_thread and self.poll_thread.isAlive():
             # self.poll_thread_running = False
             self.poll_thread_stop.set()
@@ -96,6 +94,10 @@ class Pin:
             while self.poll_thread.isAlive():
                 self.poll_thread.join(1)
 
+    def remove_edge_detect(self):
+        """Removes edge detect interrupt"""
+        self.__set_edge(NONE)
+        self.__end_thread()
 
     def wait_for_edge(self, edge):
         """Blocks until the given edge has happened
@@ -147,6 +149,7 @@ class Pin:
         self.__set_edge(edge)
 
         if edge != NONE:
+            self.__end_thread()  # end any previous callback functions
             self.poll_thread_stop = Event()
             self.poll_thread = Thread(target=Pin.__poll_thread_run, args=(self, callback, bouncetime))
             self.poll_thread.start()
