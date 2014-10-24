@@ -1,9 +1,7 @@
 import os
-import sys
 import select
 import time
 from threading import Thread, Lock, Event
-import types
 
 PINS = [2, 3, 4, 14, 15, 17, 18, 22, 23, 24, 25, 27]
 

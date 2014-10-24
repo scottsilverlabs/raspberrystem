@@ -39,7 +39,6 @@ def read(fname):
 
 def _post_install(dir):
     from subprocess import call
-    # TODO: create catch to not run postinstall if not installing on a raspberrypi
     call("./pkg/postinstall")
 
 # Post installation task to setup raspberry pi

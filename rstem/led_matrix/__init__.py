@@ -23,10 +23,6 @@ from . import led_driver     # c extension that controls led matrices and contai
 import copy
 import subprocess
 
-# import RPi.GPIO as GPIO
-# GPIO.setmode(GPIO.BCM)
-# GPIO.setup(14, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-
 # global variables for use
 BITS_PER_PIXEL = 4     # 4 bits to represent color
 DIM_OF_MATRIX = 8     # 8x8 led matrix elements
@@ -88,20 +84,7 @@ def _convert_to_std_coords(x, y):
     @rtype: tuple
     @return: (x,y) coordinates in standard programming coordinates"""
     return (x, (height - 1 - y))
-    
-# def width():
-#     """
-#     @rtype: int
-#     @return: The number of pixels wide the led matrix display is.
-#     """
-#     return width
-#
-# def height():
-#     """
-#     @rtype: int
-#     @return: The number of pixels hight the led matrix display is.
-#     """
-#     return height
+
     
 def display_on_terminal():
     """Toggles on and off the terminal display of the led matrix on show()"""
@@ -166,13 +149,6 @@ def init_grid(num_rows=None, num_cols=None, angle=0, math_coords=True, spi_speed
     @raise ValueError: num_rows*num_cols != number of matrices
     @raise ValueError: angle is not a multiple of 90
     """
-    # check if pin 14 has been grounded (CREATOR lid), if not, we are using GAMER lid and need
-    # to set up matrices manually
-    # if GPIO.input(14):
-    #     global container_math_coords
-    #     init_matrices([(0,0),(8,0),(8,8),(0,8)], math_coords=False, spi_speed=spi_speed, spi_port=spi_port)
-    #     container_math_coords = math_coords
-    #     return
 
     # initialize spi bus right away because we need it for led_driver.detect()
     global spi_initialized

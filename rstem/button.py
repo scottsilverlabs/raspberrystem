@@ -14,12 +14,8 @@
 # limitations under the License.
 #
 
-import os
-# import RPi.GPIO as GPIO
 from rstem import gpio
 
-# GPIO.setmode(GPIO.BCM)
-# GPIO.setwarnings(False)
 
 PRESSED = gpio.FALLING
 RELEASED = gpio.RISING
@@ -34,9 +30,6 @@ RIGHT = 18
 START = 27
 SELECT = 22
 
-# def cleanup():
-#     """Cleans up the GPIO port"""
-#     GPIO.cleanup()
 
 class Button(object):
     """ A button from a GPIO port"""
