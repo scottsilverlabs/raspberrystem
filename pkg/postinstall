@@ -1,5 +1,9 @@
 #!/bin/bash
 
+
+# Copy udev rule to correct place
+sudo cp ./pkg/90-raspberrystem.rules /etc/udev/rules.d/90-raspberrystem.rules
+
 # Set up SPI, I2C, etc...
 
 # lines to be in /etc/modules:
