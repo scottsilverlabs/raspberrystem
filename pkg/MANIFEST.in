@@ -9,3 +9,4 @@ include pkg/postinstall
 include pkg/install_include.txt
 include pkg/postinstall
 include pkg/90-raspberrystem.rules
+recursive-include doc *

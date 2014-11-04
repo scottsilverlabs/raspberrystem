@@ -100,7 +100,7 @@ class Pin:
     def wait_for_edge(self, edge):
         """Blocks until the given edge has happened
         @param edge: Either gpio.FALLING, gpio.RISING, gpio.BOTH
-        @param edge: string
+        @type edge: string
         @throws: ValueError
         """
         if self.direction != INPUT:
@@ -135,7 +135,9 @@ class Pin:
         @type edge: int
         @param callback: Function to call when given edge has been detected.
         @type callback: function
-        @note: First parameter of callback function will be the pint number of gpio that called it.
+        @param bouncetime: Debounce time in milliseconds.
+        @type bouncetime: int
+        @note: First parameter of callback function will be the pin number of gpio that called it.
         """
         if self.direction != INPUT:
             raise ValueError("GPIO must be configured to be an input first.")

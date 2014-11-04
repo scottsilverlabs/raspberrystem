@@ -7,7 +7,7 @@ CREATING A NEW RASPBERRYSTEM RELEASE:
         - On the RaspberryPi, run the following:
             sudo apt-get update
             // TODO: see if all we need is python-all-dev, pips and libi2c-dev
-            sudo apt-get install python3-pip python-epydoc
+            sudo apt-get install python3-pip python-pip python-epydoc
             (if we want to make a deb file):
                 sudo pip3 install stdeb
     - Create a new branch with the name rel/<version> where <version> is the version number as defined in /pkg/setup.py

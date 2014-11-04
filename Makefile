@@ -50,7 +50,7 @@ DIST_DSC=dist/$(NAME)_$(VER).tar.gz \
 
 # Commands that have a pi-* conterpart
 COMMANDS=install test source egg zip tar deb dist install-projects install-cells \
-    upload-all upload-ppa upload-cheeseshop register doc
+    upload-all upload-ppa upload-cheeseshop register doc uninstall
 
 .PHONY: all local-install upload-check help clean push pull release  \
     $(COMMANDS) $(addprefix pi-, $(COMMANDS))
@@ -59,6 +59,7 @@ help:
 #	@echo "make - Compile sources locally"
 	@echo "make push - Push changes on local computer onto pi"
 	@echo "make pull - Pull changes on pi onto local computer (BE CAREFULL!!!)"
+	@echo "make uninstall - Uninstalls rstem package on remote Raspberry Pi"
 	@echo "make install - Install onto remote Raspberry Pi"
 	@echo "make local-install - Install onto local machine"
 	@echo "make install-projects - Install projects to home folder"
@@ -132,6 +133,10 @@ local-install: setup.py MANIFEST.in ./rstem/gpio/pullup.sbin
 	# Pretend we are on the pi and install
 	sudo $(PYTHON) $(PYFLAGS) ./setup.py install
 	$(MAKE) cleanup
+
+pi-uninstall:
+	-sudo pip-2.7 uninstall $(NAME)
+	-sudo pip-3.2 uninstall $(NAME)
 
 pi-install: setup.py MANIFEST.in ./rstem/gpio/pullup.sbin
 	sudo $(PYTHON) $(PYFLAGS) ./setup.py install
@@ -212,14 +217,14 @@ clean: setup.py MANIFEST.in
 	sudo $(PYTHON) $(PYFLAGS) setup.py clean
 	$(MAKE) -f $(CURDIR)/pkg/debian/rules clean
 	sudo rm -rf build dist/
-	sudo rm -rf $(NAME).egg-info
-	rm -f $(NAME).egg-info
+	rm -rf $(NAME).egg-info
 	rm -rf $(NAME)-$(VER).tar.gz
 	rm -rf pkg/debian/python3-$(NAME) pkg/debian/python-$(NAME)
 	rm -f pkg/debian/python*
 	rm -f ../$(NAME)_$(VER).orig.tar.gz ../$(NAME)_$(VER)_armhf.build ../$(NAME)_$(VER)_armhf.changes ../$(NAME)_$(VER)_source.build
 	rm -f ../python-$(NAME)_$(VER)_armhf.deb ../python3-$(NAME)_$(VER)_armhf.deb
 	rm -f ../$(NAME)_$(VER).dsc ../$(NAME)_$(VER).tar.gz ../$(NAME)_$(VER)_source.changes
+	rm -rf ENV
 	find $(CURDIR) -name '*.pyc' -delete
 	rm -f pkg/debian/files
 	touch pkg/debian/files
