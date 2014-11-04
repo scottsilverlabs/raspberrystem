@@ -2,11 +2,12 @@ CREATING A NEW RASPBERRYSTEM RELEASE:
     - Update Release version in ./pkg/setup.py
     - Run:
         make clean
+        make clean-pi
     - Install require install dependences on the RaspberryPi you will be building from (if you haven't already)
         - On the RaspberryPi, run the following:
             sudo apt-get update
             // TODO: see if all we need is python-all-dev, pips and libi2c-dev
-            sudo apt-get install python3-pip
+            sudo apt-get install python3-pip python-epydoc
             (if we want to make a deb file):
                 sudo pip3 install stdeb
     - Create a new branch with the name rel/<version> where <version> is the version number as defined in /pkg/setup.py
@@ -18,7 +19,8 @@ CREATING A NEW RASPBERRYSTEM RELEASE:
         // TODO: make this a makefile target
     - Run the following commands:
         # make release  # TODO
-        make upload-cheeseshop  (if on the pi run: make pi-upload-cheeseshop)
+        make upload-cheeseshop  (if run directly on the pi run: make pi-upload-cheeseshop)
+    (optional)
     - Create a Deb package:
         make deb (on the pi run: make pi-deb)
     - Upload ppa:

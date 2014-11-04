@@ -18,7 +18,6 @@
 import os
 import re
 import time
-from itertools import islice
 from . import led_driver     # c extension that controls led matrices and contains framebuffer
 import copy
 import subprocess

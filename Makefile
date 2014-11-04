@@ -1,10 +1,7 @@
 SHELL = /bin/bash
 
-ifdef ON_PI
-  PYTHON=python3  # default python
-else
-  PYTHON=python3  # default python
-endif
+PYTHON=python3
+
 PYFLAGS=
 DESTDIR=/
 # install directories
@@ -36,11 +33,9 @@ DEB_SOURCES:=debian/changelog \
 	$(wildcard debian/*.docs) \
 	$(wildcard debian/*.doc-base) \
 	$(wildcard debian/*.desktop)
-DOC_SOURCES:=docs/conf.py \
-	$(wildcard docs/*.png) \
-	$(wildcard docs/*.svg) \
-	$(wildcard docs/*.rst) \
-	$(wildcard docs/*.pdf)
+DOC_SOURCES:=doc/epydoc.js \
+	$(wildcard doc/*.png) \
+	$(wildcard doc/*.html)
 
 # Types of dist files all located in dist folder
 DIST_EGG=dist/$(NAME)-$(VER)-$(PYVER).egg
@@ -53,11 +48,11 @@ DIST_DSC=dist/$(NAME)_$(VER).tar.gz \
 	dist/$(NAME)_$(VER).dsc \
 	dist/$(NAME)_$(VER)_source.changes
 
-
+# Commands that have a pi-* conterpart
 COMMANDS=install test source egg zip tar deb dist install-projects install-cells \
-    upload-all upload-ppa upload-cheeseshop register
+    upload-all upload-ppa upload-cheeseshop register doc
 
-.PHONY: all local-install upload-check help clean push pull doc release  \
+.PHONY: all local-install upload-check help clean push pull release  \
     $(COMMANDS) $(addprefix pi-, $(COMMANDS))
 
 help:
@@ -121,15 +116,16 @@ pull:
 # for each command push new files to raspberry pi then run command on the pi
 $(COMMANDS)::
 	$(MAKE) push
-	ssh $(SSHFLAGS) -t $(PI) "cd rsinstall; make pi-$@ PI=$(PI) ON_PI=1"
+	ssh $(SSHFLAGS) -t $(PI) "cd rsinstall; make pi-$@ PI=$(PI) PYTHON=$(PYTHON)"
 
 
 # on pi commands start with "pi-"
 
 PREVDIR = $(CURDIR)
 
-doc:
+pi-doc:
 	rm -rf doc
+	$(MAKE) pi-install PYTHON=python
 	cd; epydoc --html rstem -o $(PREVDIR)/doc; cd $(PREVDIR)
 
 local-install: setup.py MANIFEST.in ./rstem/gpio/pullup.sbin
