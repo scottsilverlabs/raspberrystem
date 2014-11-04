@@ -52,7 +52,7 @@ DIST_DSC=dist/$(NAME)_$(VER).tar.gz \
 COMMANDS=install test source egg zip tar deb dist install-projects install-cells \
     upload-all upload-ppa upload-cheeseshop register doc uninstall
 
-.PHONY: all local-install upload-check help clean push pull release  \
+.PHONY: all local-install upload-check help clean push pull release pull-doc  \
     $(COMMANDS) $(addprefix pi-, $(COMMANDS))
 
 help:
@@ -66,6 +66,7 @@ help:
 	@echo "make install-cells - Install cells to home folder"
 	@echo "make test - Run tests"
 	@echo "make doc - Generate HTML documentation (packages must be installed locally first)"
+	@echo "make pull-doc - Pulls the doc.zip file from the Raspberry Pi
 	@echo "make source - Create source package"
 	@echo "make egg - Generate a PyPI egg package"
 	@echo "make zip - Generate a source zip package"
@@ -126,8 +127,16 @@ PREVDIR = $(CURDIR)
 
 pi-doc:
 	rm -rf doc
+	# installing rstem packages...
 	$(MAKE) pi-install PYTHON=python
+	# generating doc...
 	cd; epydoc --html rstem -o $(PREVDIR)/doc; cd $(PREVDIR)
+	# generate doc.zip
+	rm -f doc.zip
+	cd doc; zip ../doc.zip *; cd ../
+
+pull-doc:
+	rsync -azP $(PI):~/rsinstall/doc.zip ./
 
 local-install: setup.py MANIFEST.in ./rstem/gpio/pullup.sbin
 	# Pretend we are on the pi and install

@@ -1,26 +1,34 @@
 CREATING A NEW RASPBERRYSTEM RELEASE:
     - Update Release version in ./pkg/setup.py
+    - Setup up "raspberrypi" in /etc/hosts to point to the ip address of your raspberry pi
     - Run:
         make clean
         make clean-pi
     - Install require install dependences on the RaspberryPi you will be building from (if you haven't already)
         - On the RaspberryPi, run the following:
             sudo apt-get update
-            // TODO: see if all we need is python-all-dev, pips and libi2c-dev
-            sudo apt-get install python3-pip python-pip python-epydoc
+            sudo apt-get install python3-pip python-pip python-epydoc zip
             (if we want to make a deb file):
                 sudo pip3 install stdeb
     - Create a new branch with the name rel/<version> where <version> is the version number as defined in /pkg/setup.py
     - Checkout that branch
     - Triple check this all code is correct and you are ready to upload!
-    - Register yourself to PyPi:
+    - Register your Raspberry Pi to PyPi:
         make register  ( if on the pi run: make pi-register)
         - Create a new account, then let someone like Me add you as a maintainer to the rasperrystem package on PyPi
-        // TODO: make this a makefile target
-    - Run the following commands:
-        # make release  # TODO
+            - (or login to an existing one)
+    - Generate new documentation:
+        - generate documentation on remote raspberrypi by calling this on your computer:
+            make doc
+        - pull the doc file back to your computer:
+            make pull-doc
+        - Upload the doc.zip file onto PyPi using web interface. (there is no easy terminal command for this)
+
+    - Upload the source code to PyPi:
+        # make release  # TODO?
         make upload-cheeseshop  (if run directly on the pi run: make pi-upload-cheeseshop)
-    (optional)
+
+    (optional and NOT fully tested!)
     - Create a Deb package:
         make deb (on the pi run: make pi-deb)
     - Upload ppa:
@@ -41,10 +49,12 @@ USER INSTALLATION:
                 Internationalisation Options -> Change Keyboard Layout -> Generic 101-Key PC -> Other -> English (US) -> <OK>
             - Enable the camera
     - Set up the internet using either Ethernet (not available on model A) or Wifi.
-        - To set up Wifi: https://learn.adafruit.com/adafruits-raspberry-pi-lesson-3-network-setup/setting-up-wifi-with-raspbian
-    - Using the terminal, we will now install some required programs and then raspberrystem.
-        - run the following commands
+        - To set up Wifi:
+            https://learn.adafruit.com/adafruits-raspberry-pi-lesson-3-network-setup/setting-up-wifi-with-raspbian
+    - Using the terminal, we will now install some required programs and then rstem python package.
+        - run the following commands on your raspberry pi:
             sudo apt-get update
             sudo apt-get install python-pip libi2c-dev
             sudo easy_install raspberrystem
-            sudo apt-get install raspberrystemide
+            // TODO: insert user install instructions for raspberrystem-ide
+            // sudo apt-get install raspberrystemide
