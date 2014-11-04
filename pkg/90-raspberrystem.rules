@@ -1,0 +1,2 @@
+SUBSYSTEM=="subsystem", KERNEL=="gpio", ACTION=="add", PROGRAM="/bin/sh -c 'chown -R pi:pi /sys%p'"
+KERNEL=="i2c-[0-9]*", GROUP="pi", MODE="0666"
