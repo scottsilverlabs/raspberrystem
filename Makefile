@@ -11,14 +11,18 @@ CELLSDIR=$$HOME/rstem
 PI=pi@raspberrypi
 
 ifdef ON_PI
+	$(warning 1)
 	PYDIR:=$(shell $(PYTHON) $(PYFLAGS) -c "import site; print('site.getsitepackages()[0]')")
 
+	$(warning 2)
 	# Calculate the base names of the distribution, the location of all source,
 	NAME:=$(shell cp README.md pkg/README.md; $(PYTHON) $(PYFLAGS) ./pkg/setup.py --name; rm pkg/README.md)
 	VER:=$(shell cp README.md pkg/README.md; $(PYTHON) $(PYFLAGS) ./pkg/setup.py --version; rm pkg/README.md)
 
+	$(warning 3)
 	PYVER:=$(shell $(PYTHON) $(PYFLAGS) -c "import sys; print('py%d.%d' % sys.version_info[:2])")
 
+	$(warning 4)
 	# all files to be included in rstem package (all python files plus files included in MANIFEST.in)
 	PY_SOURCES:=$(shell \
 		$(PYTHON) $(PYFLAGS) setup.py egg_info >/dev/null 2>&1 && \
@@ -54,6 +58,7 @@ endif
 COMMANDS=install test source egg zip tar deb dist install-projects install-cells \
     upload-all upload-ppa upload-cheeseshop register doc uninstall clean
 
+$(warning 5)
 .PHONY: all local-install upload-check help purge-pi push pull release pull-doc  \
     $(COMMANDS) $(addprefix pi-, $(COMMANDS))
 
@@ -152,16 +157,13 @@ pi-uninstall:
 pi-install: setup.py MANIFEST.in ./rstem/gpio/pullup.sbin
 	sudo $(PYTHON) $(PYFLAGS) ./setup.py install
 	$(MAKE) pi-install-projects
-	$(MAKE) pi-install-cells
 	$(MAKE) cleanup
-
-pi-install-cells:
-	mkdir -p $(CELLSDIR)
-	cp -r ./cells $(CELLSDIR)
 
 pi-install-projects:
 	mkdir -p $(PROJECTSDIR)
 	cp -r ./projects $(PROJECTSDIR)
+	mkdir -p $(CELLSDIR)
+	cp -r ./cells $(CELLSDIR)
 
 pi-test:
 	@echo "There are no test files at this time."
