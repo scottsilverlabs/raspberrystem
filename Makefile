@@ -10,12 +10,15 @@ CELLSDIR=$$HOME/rstem
 #BUILDIR=$(CURDIR)/debian/raspberrystem
 PI=pi@raspberrypi
 
+$(warning 1)
 PYDIR:=$(shell $(PYTHON) $(PYFLAGS) -c "import site; print('site.getsitepackages()[0]')")
 
+$(warning 2)
 # Calculate the base names of the distribution, the location of all source,
 NAME:=$(shell $(PYTHON) $(PYFLAGS) ./pkg/setup.py --name)
 VER:=$(shell $(PYTHON) $(PYFLAGS) ./pkg/setup.py --version)
 
+$(warning 3)
 PYVER:=$(shell $(PYTHON) $(PYFLAGS) -c "import sys; print('py%d.%d' % sys.version_info[:2])")
 
 # all files to be included in rstem package (all python files plus files included in MANIFEST.in)
@@ -37,6 +40,7 @@ DOC_SOURCES:=doc/epydoc.js \
 	$(wildcard doc/*.png) \
 	$(wildcard doc/*.html)
 
+$(warning 4)
 # Types of dist files all located in dist folder
 DIST_EGG=dist/$(NAME)-$(VER)-$(PYVER).egg
 DIST_TAR=dist/$(NAME)-$(VER).tar.gz
@@ -49,38 +53,44 @@ DIST_DSC=dist/$(NAME)_$(VER).tar.gz \
 	dist/$(NAME)_$(VER)_source.changes
 
 # Commands that have a pi-* conterpart
-COMMANDS=install test source egg zip tar deb dist install-projects install-cells \
-    upload-all upload-ppa upload-cheeseshop register doc uninstall
+COMMANDS=install test source egg zip tar deb dist install-projects \
+    upload-all upload-ppa upload-cheeseshop register doc uninstall clean
 
-.PHONY: all local-install upload-check help clean push pull release pull-doc  \
+$(warning 5)
+.PHONY: all local-install upload-check help local-clean push pull release pull-doc  \
     $(COMMANDS) $(addprefix pi-, $(COMMANDS))
 
 help:
-#	@echo "make - Compile sources locally"
-	@echo "make push - Push changes on local computer onto pi"
-	@echo "make pull - Pull changes on pi onto local computer (BE CAREFULL!!!)"
-	@echo "make uninstall - Uninstalls rstem package on remote Raspberry Pi"
-	@echo "make install - Install onto remote Raspberry Pi"
-	@echo "make local-install - Install onto local machine"
-	@echo "make install-projects - Install projects to home folder"
-	@echo "make install-cells - Install cells to home folder"
-	@echo "make test - Run tests"
-	@echo "make doc - Generate HTML documentation (packages must be installed locally first)"
-	@echo "make pull-doc - Pulls the doc.zip file from the Raspberry Pi
-	@echo "make source - Create source package"
-	@echo "make egg - Generate a PyPI egg package"
-	@echo "make zip - Generate a source zip package"
-	@echo "make tar - Generate a source tar package"
-	@echo "make deb - Generate Debian packages (NOT COMPLETED)"
-	@echo "make dist - Generate all packages"
-	@echo "make clean-pi - Clean all files on the pi"
-	@echo "make clean - Get rid of all files locally"
-	@echo "make release - Create and tag a new release"
-	@echo "make upload-all - Upload the new release to all repositories"
-	@echo "make upload-ppa - Upload the new release to ppa"
-	@echo "make register - Register raspberry pi to PyPi repository"
-	@echo "make upload-cheeseshop - Upload the new release to cheeseshop"
+	@echo "REMOTE COMMANDS (these are re-run on pi as 'make pi-<cmd>')"
+	@echo "	make install - Install onto remote Raspberry Pi"
+	@echo "	make install-projects - Install projects to home folder"
+	@echo "	make uninstall - Uninstalls rstem package on remote Raspberry Pi"
+	@echo "	make clean - Clean all files on the pi"
+	@echo "	make test - Run tests"
+	@echo "	make doc - Generate HTML documentation (packages must be installed locally first)"
+	@echo "LOCAL COMMANDS FOR GENERATING A RELEASE"
+	@echo "	make release - Create and tag a new release"
+	@echo "REMOTE COMMANDS FOR UPLOADING PACKAGES"
+	@echo "	make register - Register raspberry pi to PyPi repository"
+	@echo "	make upload-all - Upload the new release to all repositories"
+	@echo "	make upload-cheeseshop - Upload the new release to cheeseshop"
+	@echo "	make upload-ppa - Upload the new release to ppa"
+	@echo "REMOTE COMMANDS FOR GENERATING SOURCE PACKAGES"
+	@echo "	make source - Create source package"
+	@echo "	make egg - Generate a PyPI egg package"
+	@echo "	make zip - Generate a source zip package"
+	@echo "	make tar - Generate a source tar package"
+	@echo "	make deb - Generate Debian packages (NOT COMPLETED)"
+	@echo "	make dist - Generate all packages"
+	@echo "LOCAL COMMANDS (used less often)"
+	@echo "	make - Show this command help"
+	@echo "	make push - Push changes on local computer onto pi"
+	@echo "	make pull - Pull changes on pi onto local computer (BE CAREFULL!!!)"
+	@echo "	make pull-doc - Pulls the doc.zip file from the Raspberry Pi"
+	@echo "	make local-install - Install onto local machine"
+	@echo "	make local-clean - Get rid of all files locally"
 
+$(warning 6)
 setup.py:
 	cp pkg/setup.py ./
 	
@@ -150,16 +160,13 @@ pi-uninstall:
 pi-install: setup.py MANIFEST.in ./rstem/gpio/pullup.sbin
 	sudo $(PYTHON) $(PYFLAGS) ./setup.py install
 	$(MAKE) pi-install-projects
-	$(MAKE) pi-install-cells
 	$(MAKE) cleanup
-
-pi-install-cells:
-	mkdir -p $(CELLSDIR)
-	cp -r ./cells $(CELLSDIR)
 
 pi-install-projects:
 	mkdir -p $(PROJECTSDIR)
 	cp -r ./projects $(PROJECTSDIR)
+	mkdir -p $(CELLSDIR)
+	cp -r ./cells $(CELLSDIR)
 
 pi-test:
 	@echo "There are no test files at this time."
@@ -218,11 +225,12 @@ pi-deb: setup.py MANIFEST.in
 pi-dist: $(DIST_EGG) $(DIST_DEB) $(DIST_DSC) $(DIST_TAR) $(DIST_ZIP)
 
 # clean all files from raspberry pi
-clean-pi:
-	ssh $(SSHFLAGS) -t $(PI) "sudo rm -rf ~/rsinstall; sudo rm -rf ~/rstem"
+pi-clean:
+	sudo rm -rf ~/rsinstall
+	sudo rm -rf ~/rstem
 
 # clean all files locally
-clean: setup.py MANIFEST.in
+local-clean: setup.py MANIFEST.in
 	sudo $(PYTHON) $(PYFLAGS) setup.py clean
 	$(MAKE) -f $(CURDIR)/pkg/debian/rules clean
 	sudo rm -rf build dist/
