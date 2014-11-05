@@ -55,6 +55,7 @@ USER INSTALLATION:
         - run the following commands on your raspberry pi:
             sudo apt-get update
             sudo apt-get install python-pip libi2c-dev
-            sudo easy_install raspberrystem
+            sudo pip install --upgrade setuptools
+            sudo pip install raspberrystem OR sudo easy_install raspberrystem
             // TODO: insert user install instructions for raspberrystem-ide
             // sudo apt-get install raspberrystemide

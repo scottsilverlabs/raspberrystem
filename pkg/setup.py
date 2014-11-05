@@ -63,7 +63,7 @@ except:
 
 setup(
     name = "raspberrystem",
-    version = "0.0.1",
+    version = "0.0.2",
     author = "Brian Silverman",
     author_email = "bri@raspberrystem.com",
     description = ("RaspberrySTEM Educational and Hobbyist Development Kit "

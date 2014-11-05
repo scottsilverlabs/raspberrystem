@@ -178,14 +178,14 @@ pi-upload-all:
 	$(MAKE) pi-upload-ppa
 	$(MAKE) pi-upload-cheeseshop
 
-pi-upload-ppa: $(DIST_DSC) setup.py MANIFEST.in
+pi-upload-ppa: $(DIST_DSC) setup.py MANIFEST.in ./rstem/gpio/pullup.sbin
 	# TODO: change this from raspberrystem-test ppa to an official one
 	# (to add this repo on raspberrypi type: sudo add-apt-repository ppa:r-jon-s/ppa)
 	$(MAKE) upload-check
 	dput ppa:r-jon-s/ppa dist/$(NAME)_$(VER)_source.changes
 	$(MAKE) cleanup
 
-pi-upload-cheeseshop: $(PY_SOURCES) setup.py MANIFEST.in
+pi-upload-cheeseshop: $(PY_SOURCES) setup.py MANIFEST.in ./rstem/gpio/pullup.sbin
 	# update the package's registration on PyPI (in case any metadata's changed)
 	# f$(MAKE) upload-check
 	$(PYTHON) $(PYFLAGS) setup.py sdist upload
