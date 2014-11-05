@@ -25,19 +25,38 @@ LOW = 0
 
 
 class Pin:
-    def __init__(self, pin):
+    def __init__(self, pin, direction=DISABLED):
+        """Creates GPIO at given pin number.
+        @param pin: The GPIO pin number to initialize.
+        @type pin: int
+        @param direction: The direction (INPUT or OUTPUT) for the GPIO.
+        @type direction: int
+        @throws ValueError: Pin number is invalid. (Not in [2, 3, 4, 14, 15, 17, 18, 22, 23, 24, 25, 27])
+        """
+        Pin.__validate(pin, direction)
+
         self.gpio_dir = "/sys/class/gpio/gpio%d" % pin
         self.pin = pin
-        self.direction = DISABLED
+        self.direction = direction
         self.edge = NONE
         self.last = 1
         self.mutex = Lock()
         self.poll_thread = None
         self.poll_thread_stop = None
-        if pin in PINS:
-            if not os.path.exists(self.gpio_dir):
-                with open("/sys/class/gpio/export", "w") as f:
-                    f.write("%d\n" % pin)
+        # export gpio port
+        if not os.path.exists(self.gpio_dir):
+            with open("/sys/class/gpio/export", "w") as f:
+                f.write("%d\n" % pin)
+        # setup direction
+        if direction != DISABLED:
+            self.configure(direction)
+
+    @staticmethod
+    def __validate(pin, direction):
+        if pin not in PINS:
+            raise ValueError("Invalid GPIO pin number.")
+        if direction not in [INPUT, OUTPUT, DISABLED]:
+            raise ValueError("Invalid GPIO direction.")
 
     def __pullup(self, pin, enable):
         here = os.path.dirname(os.path.realpath(__file__))
@@ -86,9 +105,7 @@ class Pin:
 
     def __end_thread(self):
         if self.poll_thread and self.poll_thread.isAlive():
-            # self.poll_thread_running = False
             self.poll_thread_stop.set()
-
             while self.poll_thread.isAlive():
                 self.poll_thread.join(1)
 
@@ -208,43 +225,4 @@ class Pin:
         if level != 0 and level != 1:
             raise ValueError("Level must be either 1 or 0.")
         with self.mutex:
-            # write value wasn't working for some reason...
             os.system("echo %s > %s/value" % (str(level), self.gpio_dir))
-            # self.fvalue.seek(0)
-            # self.fvalue.write(str(level))
-
-
-class Pins:
-    def __init__(self):
-        self.gpios = [Pin(i) for i in range(max(PINS) + 1)]
-
-    def __validate_gpio(self, pin, direction):
-        class UninitializedError(Exception):
-            pass
-
-        if not pin in PINS:
-            raise ValueError("Invalid GPIO")
-        if self.gpios[pin].direction != direction:
-            raise UninitializedError()
-
-    def configure(self, pin, direction):
-        if not pin in PINS:
-            raise ValueError("Invalid GPIO")
-        self.gpios[pin].configure(direction)
-
-    def was_clicked(self):
-        inputs = [g for g in self.gpios if g.direction == INPUT]
-        return [g.pin for g in inputs if g.was_clicked()]
-
-    def get_level(self, pin):
-        self.__validate_gpio(pin, INPUT)
-        return self.gpios[pin].get_level()
-
-    def set_level(self, pin, level):
-        self.__validate_gpio(pin, OUTPUT)
-        self.gpios[pin].set_level(level)
-
-# Export functions in this module
-g = Pins()
-for name in ['configure', 'get_level', 'set_level', 'was_clicked']:
-    globals()[name] = getattr(g, name)
