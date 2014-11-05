@@ -10,49 +10,51 @@ CELLSDIR=$$HOME/rstem
 #BUILDIR=$(CURDIR)/debian/raspberrystem
 PI=pi@raspberrypi
 
-PYDIR:=$(shell $(PYTHON) $(PYFLAGS) -c "import site; print('site.getsitepackages()[0]')")
+ifdef ON_PI
+	PYDIR:=$(shell $(PYTHON) $(PYFLAGS) -c "import site; print('site.getsitepackages()[0]')")
 
-# Calculate the base names of the distribution, the location of all source,
-NAME:=$(shell $(PYTHON) $(PYFLAGS) ./pkg/setup.py --name)
-VER:=$(shell $(PYTHON) $(PYFLAGS) ./pkg/setup.py --version)
+	# Calculate the base names of the distribution, the location of all source,
+	NAME:=$(shell cp README.md pkg/README.md; $(PYTHON) $(PYFLAGS) ./pkg/setup.py --name; rm pkg/README.md)
+	VER:=$(shell cp README.md pkg/README.md; $(PYTHON) $(PYFLAGS) ./pkg/setup.py --version; rm pkg/README.md)
 
-PYVER:=$(shell $(PYTHON) $(PYFLAGS) -c "import sys; print('py%d.%d' % sys.version_info[:2])")
+	PYVER:=$(shell $(PYTHON) $(PYFLAGS) -c "import sys; print('py%d.%d' % sys.version_info[:2])")
 
-# all files to be included in rstem package (all python files plus files included in MANIFEST.in)
-PY_SOURCES:=$(shell \
-	$(PYTHON) $(PYFLAGS) setup.py egg_info >/dev/null 2>&1 && \
-	grep -v "\.egg-info" $(NAME).egg-info/SOURCES.txt)
-DEB_SOURCES:=debian/changelog \
-	debian/control \
-	debian/copyright \
-	debian/rules \
-	#	debian/docs \
-	$(wildcard debian/*.init) \
-	$(wildcard debian/*.default) \
-	$(wildcard debian/*.manpages) \
-	$(wildcard debian/*.docs) \
-	$(wildcard debian/*.doc-base) \
-	$(wildcard debian/*.desktop)
-DOC_SOURCES:=doc/epydoc.js \
-	$(wildcard doc/*.png) \
-	$(wildcard doc/*.html)
+	# all files to be included in rstem package (all python files plus files included in MANIFEST.in)
+	PY_SOURCES:=$(shell \
+		$(PYTHON) $(PYFLAGS) setup.py egg_info >/dev/null 2>&1 && \
+		grep -v "\.egg-info" $(NAME).egg-info/SOURCES.txt)
+	DEB_SOURCES:=debian/changelog \
+		debian/control \
+		debian/copyright \
+		debian/rules \
+		#	debian/docs \
+		$(wildcard debian/*.init) \
+		$(wildcard debian/*.default) \
+		$(wildcard debian/*.manpages) \
+		$(wildcard debian/*.docs) \
+		$(wildcard debian/*.doc-base) \
+		$(wildcard debian/*.desktop)
+	DOC_SOURCES:=doc/epydoc.js \
+		$(wildcard doc/*.png) \
+		$(wildcard doc/*.html)
 
-# Types of dist files all located in dist folder
-DIST_EGG=dist/$(NAME)-$(VER)-$(PYVER).egg
-DIST_TAR=dist/$(NAME)-$(VER).tar.gz
-DIST_ZIP=dist/$(NAME)-$(VER).zip
-DIST_DEB=dist/python-$(NAME)_$(VER)_armhf.deb \
-	dist/python3-$(NAME)_$(VER)_armhf.deb
-#	dist/python-$(NAME)-docs_$(VER)-1$(DEB_SUFFIX)_all.deb
-DIST_DSC=dist/$(NAME)_$(VER).tar.gz \
-	dist/$(NAME)_$(VER).dsc \
-	dist/$(NAME)_$(VER)_source.changes
+	# Types of dist files all located in dist folder
+	DIST_EGG=dist/$(NAME)-$(VER)-$(PYVER).egg
+	DIST_TAR=dist/$(NAME)-$(VER).tar.gz
+	DIST_ZIP=dist/$(NAME)-$(VER).zip
+	DIST_DEB=dist/python-$(NAME)_$(VER)_armhf.deb \
+		dist/python3-$(NAME)_$(VER)_armhf.deb
+	#	dist/python-$(NAME)-docs_$(VER)-1$(DEB_SUFFIX)_all.deb
+	DIST_DSC=dist/$(NAME)_$(VER).tar.gz \
+		dist/$(NAME)_$(VER).dsc \
+		dist/$(NAME)_$(VER)_source.changes
+endif
 
 # Commands that have a pi-* conterpart
 COMMANDS=install test source egg zip tar deb dist install-projects install-cells \
-    upload-all upload-ppa upload-cheeseshop register doc uninstall
+    upload-all upload-ppa upload-cheeseshop register doc uninstall clean
 
-.PHONY: all local-install upload-check help clean push pull release pull-doc  \
+.PHONY: all local-install upload-check help purge-pi push pull release pull-doc  \
     $(COMMANDS) $(addprefix pi-, $(COMMANDS))
 
 help:
@@ -73,8 +75,8 @@ help:
 	@echo "make tar - Generate a source tar package"
 	@echo "make deb - Generate Debian packages (NOT COMPLETED)"
 	@echo "make dist - Generate all packages"
-	@echo "make clean-pi - Clean all files on the pi"
-	@echo "make clean - Get rid of all files locally"
+	@echo "make purge-pi - Remove the rsinstall folder from the Raspberry Pi"
+	@echo "make clean - Get rid of all build files on the Raspberry Pi"
 	@echo "make release - Create and tag a new release"
 	@echo "make upload-all - Upload the new release to all repositories"
 	@echo "make upload-ppa - Upload the new release to ppa"
@@ -118,7 +120,7 @@ pull:
 # for each command push new files to raspberry pi then run command on the pi
 $(COMMANDS)::
 	$(MAKE) push
-	ssh $(SSHFLAGS) -t $(PI) "cd rsinstall; make pi-$@ PI=$(PI) PYTHON=$(PYTHON)"
+	ssh $(SSHFLAGS) -t $(PI) "cd rsinstall; make pi-$@ PI=$(PI) PYTHON=$(PYTHON) ON_PI=1"
 
 
 # on pi commands start with "pi-"
@@ -218,11 +220,11 @@ pi-deb: setup.py MANIFEST.in
 pi-dist: $(DIST_EGG) $(DIST_DEB) $(DIST_DSC) $(DIST_TAR) $(DIST_ZIP)
 
 # clean all files from raspberry pi
-clean-pi:
+purge-pi:
 	ssh $(SSHFLAGS) -t $(PI) "sudo rm -rf ~/rsinstall; sudo rm -rf ~/rstem"
 
 # clean all files locally
-clean: setup.py MANIFEST.in
+pi-clean: setup.py MANIFEST.in
 	sudo $(PYTHON) $(PYFLAGS) setup.py clean
 	$(MAKE) -f $(CURDIR)/pkg/debian/rules clean
 	sudo rm -rf build dist/

@@ -54,7 +54,7 @@ class install(_install):
 led_driver =  Extension('rstem.led_matrix.led_driver', sources = ['rstem/led_matrix/led_driver.c'])
 accel = Extension('rstem.accel', sources = ['rstem/accel.c'])
 
-# Attempt to add numpy, if not install require it in the setup_requires.
+# Attempt to add numpy, if not installed require it in the setup_requires.
 build_requires = []
 try:
     import numpy

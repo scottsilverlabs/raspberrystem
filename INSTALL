@@ -1,9 +1,9 @@
 CREATING A NEW RASPBERRYSTEM RELEASE:
     - Update Release version in ./pkg/setup.py
     - Setup up "raspberrypi" in /etc/hosts to point to the ip address of your raspberry pi
-    - Run:
-        make clean
-        make clean-pi
+    - Clean up the raspberry pi:
+        make purge-pi
+        make uninstall
     - Install require install dependences on the RaspberryPi you will be building from (if you haven't already)
         - On the RaspberryPi, run the following:
             sudo apt-get update
