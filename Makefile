@@ -55,7 +55,7 @@ ifdef ON_PI
 endif
 
 # Commands that have a pi-* conterpart
-COMMANDS=install test source egg zip tar deb dist install-projects install-cells \
+COMMANDS=install test source egg zip tar deb dist install-projects \
     upload-all upload-ppa upload-cheeseshop register doc uninstall clean
 
 $(warning 5)
@@ -70,7 +70,6 @@ help:
 	@echo "make install - Install onto remote Raspberry Pi"
 	@echo "make local-install - Install onto local machine"
 	@echo "make install-projects - Install projects to home folder"
-	@echo "make install-cells - Install cells to home folder"
 	@echo "make test - Run tests"
 	@echo "make doc - Generate HTML documentation (packages must be installed locally first)"
 	@echo "make pull-doc - Pulls the doc.zip file from the Raspberry Pi
