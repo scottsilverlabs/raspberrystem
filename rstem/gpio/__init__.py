@@ -74,7 +74,7 @@ class Pin:
     def __disable_pulldown(self, pin):
         self.__pullup(pin, ARG_PULL_DISABLE)
 
-    def __poll_thread_run(self, callback, bouncetime):
+    def __poll_thread_run(self, callback, args, bouncetime):
         """Run function used in poll_thread"""
         # NOTE: self will not change once this is called
         po = select.epoll()
@@ -92,7 +92,10 @@ class Pin:
             if not first_time:
                 timenow = time.time()
                 if (timenow - last_time) > (bouncetime/1000) or last_time == 0:
-                    callback(self.pin)
+                    if args is not None:
+                        callback(*args)
+                    else:
+                        callback()
                     last_time = timenow
             else:
                 first_time = False
@@ -146,13 +149,16 @@ class Pin:
             else:
                 first_time = False
 
-    def edge_detect(self, edge, callback=None, bouncetime=200):
+    def edge_detect(self, edge, callback=None, args=None, bouncetime=200):
         """Sets up edge detection interrupt.
         @param edge: either gpio.NONE, gpio.RISING, gpio.FALLING, or gpio.BOTH
         @type edge: int
         @param callback: Function to call when given edge has been detected.
         @type callback: function
-        @note: First parameter of callback function will be the pint number of gpio that called it.
+        @param args: A tuple of arguments to give to the callback function.
+        @type args: tuple
+        @param bouncetime: The time in milliseconds to buffer to prevent debouncing
+        @type bouncetime: int
         """
         if self.direction != INPUT:
             raise ValueError("GPIO must be configured to be an input first.")
@@ -166,7 +172,7 @@ class Pin:
         if edge != NONE:
             self.__end_thread()  # end any previous callback functions
             self.poll_thread_stop = Event()
-            self.poll_thread = Thread(target=Pin.__poll_thread_run, args=(self, callback, bouncetime))
+            self.poll_thread = Thread(target=Pin.__poll_thread_run, args=(self, callback, args, bouncetime))
             self.poll_thread.start()
 
 

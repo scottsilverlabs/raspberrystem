@@ -57,22 +57,20 @@ class Button(object):
     def call_on_change(self, event_callback, change=PRESSED, bouncetime=300):
         """Calls given event_callback function when button changes state (example pressed).
 
-        @param event_callback: function to call when button changes state
+        @param event_callback: function to call when button changes state or None to remove call_on_change detection
         @type event_callback: function
         @param change: type of event to watch for (either button.PRESSED, button.RELEASED, or button.BOTH)
         @param bouncetime: msec to debounce button
-        @type bouncetime: int8
+        @type bouncetime: int
 
-        @warning: Function must have the first argument be the port number
+        @warning: Function must have 2 arguments, the button and the change variable.
+            For example: my_callback(button, change)
         """
-        Button._verify_change_value(change)
-        self.gpio.edge_detect(change, event_callback, bouncetime)
-
-    def remove_call_on_change(self):
-        """Removes the callback function set for this button.
-        Does nothing if no callback function is set
-        """
-        self.gpio.remove_edge_detect()
+        if event_callback is None:
+            self.gpio.remove_edge_detect()
+        else:
+            Button._verify_change_value(change)
+            self.gpio.edge_detect(change, event_callback, (self, change), bouncetime)
 
     def wait_for_change(self, change=PRESSED):
         """Blocks until given change event happens
