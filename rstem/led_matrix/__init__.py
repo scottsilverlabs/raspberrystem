@@ -652,22 +652,20 @@ class LEDSprite(object):
                 if pixel < 16:
                     self.bitmap[y][x] = 15 - pixel
         
-    def flip_horizontal(self):
-        """Flips the sprite horizontally.
+    def flip(self, vertical=False):
+        """Flips the sprite vertically or horizontally.
+        @param vertical: True to flip vertically, False to flip horizontally
+        @type vertical: boolean
         @returns: self
         @rtype: L{LEDSprite}
         """
-        self.bitmap.reverse()
-        return self
-        
-    def flip_vertical(self):
-        """Flips the sprite vertically.
-        @returns: self
-        @rtype: L{LEDSprite}
-        """
-        for line in self.bitmap:
-            line.reverse()
-        return self
+        if vertical:
+            for line in self.bitmap:
+                line.reverse()
+            return self
+        else:
+            self.bitmap.reverse()
+            return self
 
 
 def _char_to_sprite(char, font_path):
