@@ -556,7 +556,7 @@ class LEDSprite(object):
         # update size
         # self.width += sprite.width
 
-    def set_pixel(self, point, color=0xF):
+    def __setitem__(self, point, color=0xF):
         """Sets given color to given x and y coordinate in sprite
 
         @param point: point relative to sprite to set point
@@ -571,11 +571,12 @@ class LEDSprite(object):
             return None
         self.bitmap[y][x] = _convert_color(color)
 
-    def get_pixel(self, x, y):
+    def __getitem__(self, point):
         """
         @rtype: int
         @returns: int of color at given origin or None
         """
+        x, y = point
         if x >= self.width or y >= self.height or x < 0 or y < 0:
             return None
         return self.bitmap[y][x]
