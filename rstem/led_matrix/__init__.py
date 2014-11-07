@@ -768,7 +768,7 @@ class LEDText(LEDSprite):
             color = _convert_color(color)
             for i, line in enumerate(bitmap):
                 for j, pixel in enumerate(line):
-                    bitmap[i][j] = color if pixel != "-" else pixel
+                    bitmap[i][j] = color if pixel != 16 else pixel
 
         self.bitmap = init_sprite.bitmap
         
