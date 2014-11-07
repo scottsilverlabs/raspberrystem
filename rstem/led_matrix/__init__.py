@@ -51,7 +51,7 @@ def _valid_color(color):
             return False
         return True
     elif type(color) == str:
-        if not re.match(r'^[A-Za-z0-9-]$', color):
+        if not re.match(r'^[A-Fa-f0-9-]$', color):
             return False
         return True
     return False
@@ -480,7 +480,7 @@ class LEDSprite(object):
                 output = output.decode() 
             if errors is not None or (output.find("ERROR") != -1):
                 # determine if a string is given
-                if not re.match(r'^([A-Fa-f0-9-](\s+|(\s*\n)))*(\s[A-Fa-f0-9-]\s*)$', filename):
+                if not re.match(r'^(\s*[A-Fa-f0-9-](\s+|(\s*\n)))*(\s[A-Fa-f0-9-]\s*)$', filename):
                     raise ValueError("String parameter does not match sprite formatting.")
                 else:
                     # convert string to bitmap
