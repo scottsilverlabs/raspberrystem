@@ -579,6 +579,9 @@ class LEDSprite(object):
 
     def __repr__(self):
         return "\n".join([" ".join([hex(pixel)[2] if pixel < 16 else "-" for pixel in line]) for line in self.bitmap])
+
+    def __str__(self):
+        return repr(self)
     
     def save_to_file(self, filename):
         """Saves sprite bitmap to given .spr file. 
