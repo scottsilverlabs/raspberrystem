@@ -712,7 +712,7 @@ def _char_to_sprite(char, font_path):
 
 class LEDText(LEDSprite):
     """A L{LEDSprite} object of a piece of text."""
-    def __init__(self, message, char_spacing=1, font_name="small", font_path=None):
+    def __init__(self, message, char_spacing=1, color=None, font_name="small", font_path=None):
         """Creates a text sprite of the given string
         This object can be used the same way a sprite is useds
         
@@ -735,12 +735,13 @@ class LEDText(LEDSprite):
         # attach font_name to font_path
         font_path = os.path.join(font_path, font_name)
         
-        # if font subdirectory doesn exist, attempt to open a .font file
+        # if font subdirectory doesn't exist, attempt to open a .font file
         if not os.path.isdir(font_path):
             f = open(os.path.join(orig_font_path, font_name + ".font"), 'r')
             font_path = os.path.join(orig_font_path, f.read().strip())
             f.close()
 
+        # create empty sprite
         message = message.strip()
         if len(message) == 0:
             super(LEDSprite, self).__init__()
@@ -761,6 +762,13 @@ class LEDText(LEDSprite):
                     raise ValueError("Height of character sprites must all be the same.")
                 # append
                 init_sprite.append(sprite)
+
+        # change text color
+        if color and _valid_color(color):
+            color = _convert_color(color)
+            for i, line in enumerate(bitmap):
+                for j, pixel in enumerate(line):
+                    bitmap[i][j] = color if pixel != "-" else pixel
 
         self.bitmap = init_sprite.bitmap
         
