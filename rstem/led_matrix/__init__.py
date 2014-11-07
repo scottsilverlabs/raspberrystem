@@ -524,16 +524,12 @@ class LEDSprite(object):
         else:
             # create an empty sprite of given height and width
             bitmap = [[color for i in range(width)] for j in range(height)]
-            bitmap_height = height
-            bitmap_width = width
 
         self.bitmap = bitmap
-        # self.height = bitmap_height
-        # self.width = bitmap_width
 
     @property
     def width(self):
-        return len(self.bitmap[0])
+        return len(self.bitmap[0]) if self.bitmap[0] else 0
 
     @property
     def height(self):
@@ -581,6 +577,8 @@ class LEDSprite(object):
             return None
         return self.bitmap[y][x]
 
+    def __repr__(self):
+        return "\n".join([" ".join([hex(pixel)[2] if pixel < 16 else "-" for pixel in line]) for line in self.bitmap])
     
     def save_to_file(self, filename):
         """Saves sprite bitmap to given .spr file. 
