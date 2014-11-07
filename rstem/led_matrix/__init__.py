@@ -472,65 +472,70 @@ class LEDSprite(object):
         bitmap_height = 0
         if filename is not None:
             filename = filename.strip()
-            self.filename = filename    
-            # get filetype
-            proc = subprocess.Popen("file " + str(filename), shell=True, stdout=subprocess.PIPE)
-            output, errors = proc.communicate()
-            if type(output) == bytes:  # convert from byte to a string (happens if using python3)
-                output = output.decode() 
-            if errors is not None or (output.find("ERROR") != -1):
+            # if filename doesn't exist, convert string
+            if not os.path.isfile(filename):
                 # determine if a string is given
-                if not re.match(r'^(\s*[A-Fa-f0-9-](\s+|(\s*\n)))*(\s[A-Fa-f0-9-]\s*)$', filename):
+                if not re.match(r'^(\s*[A-Fa-f0-9-](\s+|(\s*\n)))*([A-Fa-f0-9-]\s*)$', filename):
+                    if filename[-4:] == ".spr":
+                        raise ValueError("File does not exist.")
                     raise ValueError("String parameter does not match sprite formatting.")
-                else:
-                    # convert string to bitmap
-                    filename = filename.replace("-", "10")  # replace transparent pixels
-                    # remove extra whitespace
-                    result = [re.sub(r'\s+', " ", line).strip() for line in filename.split("\n")]
-                    # split into 2d
-                    result = [line.split(" ") for line in result]
-                    bitmap = [[int(pixel, 16) for pixel in line] for line in result]
+                # convert string to bitmap
+                filename = filename.replace("-", "10")  # replace transparent pixels
+                # remove extra whitespace
+                result = [re.sub(r'\s+', " ", line).strip() for line in filename.split("\n")]
+                # split into 2d
+                result = [line.split(" ") for line in result]
+                bitmap = [[int(pixel, 16) for pixel in line] for line in result]
 
-            elif output.find("text") != -1 or output.find("FORTRAN") != -1:  # file is a text file
-                if filename[-4:] != ".spr":
-                    raise ValueError("Filename must have '.spr' extension.")
-                f = open(filename, 'r')
-                for line in f:
-                    leds = [_convert_color(char) for char in line.split()]
-                    # Determine if widths are consistent
-                    if bitmap_width != 0:
-                        if len(leds) != bitmap_width:
-                            raise ValueError("Sprite has different widths")
-                    else:
-                        bitmap_width = len(leds)
-                    bitmap.append(leds)
-                    bitmap_height += 1
-                f.close()
-                
-            elif output.find("image") != -1:  # file is an image file
-                import scipy.misc, numpy, sys
-                if sys.version_info[0] > 2:
-                    raise ValueError("As of now, only python 2 supports images to sprites.")
-                # if no height or width given try to fill as much of the display
-                # with the image without stretching it
-                if height <= 0 or width <= 0:
-                    from PIL import Image
-                    im = Image.open(filename)
-                    im_width, im_height = im.size
-                    bitmap_height = min(height, im_height)
-                    bitmap_width = min(width, bitmap_height * (im_width / im_height))
-                else:
-                    bitmap_height = height
-                    bitmap_width = width
-                # pixelize and resize image with scipy
-                image = scipy.misc.imread(filename, flatten=True)
-                con_image = scipy.misc.imresize(image, (bitmap_width, bitmap_height), interp='cubic')
-                con_image = numpy.transpose(con_image)  # convert from column-wise to row-wise
-                con_image = numpy.fliplr(con_image)  # re-orient the image
-                con_image = numpy.rot90(con_image, k=1)
-                bitmap = [[int(pixel*16/255) for pixel in line] for line in con_image]  # convert to bitmap
             else:
-                raise IOError("Unsupported filetype")
+                self.filename = filename
+                # get filetype
+                proc = subprocess.Popen("file " + str(filename), shell=True, stdout=subprocess.PIPE)
+                output, errors = proc.communicate()
+                if type(output) == bytes:  # convert from byte to a string (happens if using python3)
+                    output = output.decode()
+                if errors is not None or (output.find("ERROR") != -1):
+                    raise IOError("Invalid file.")
+                if output.find("text") != -1 or output.find("FORTRAN") != -1:  # file is a text file
+                    if filename[-4:] != ".spr":
+                        raise ValueError("Filename must have '.spr' extension.")
+                    f = open(filename, 'r')
+                    for line in f:
+                        leds = [_convert_color(char) for char in line.split()]
+                        # Determine if widths are consistent
+                        if bitmap_width != 0:
+                            if len(leds) != bitmap_width:
+                                raise ValueError("Sprite has different widths")
+                        else:
+                            bitmap_width = len(leds)
+                        bitmap.append(leds)
+                        bitmap_height += 1
+                    f.close()
+
+                elif output.find("image") != -1:  # file is an image file
+                    import scipy.misc, numpy, sys
+                    if sys.version_info[0] > 2:
+                        raise ValueError("As of now, only python 2 supports images to sprites.")
+                    # if no height or width given try to fill as much of the display
+                    # with the image without stretching it
+                    if height <= 0 or width <= 0:
+                        from PIL import Image
+                        im = Image.open(filename)
+                        im_width, im_height = im.size
+                        bitmap_height = min(height, im_height)
+                        bitmap_width = min(width, bitmap_height * (im_width / im_height))
+                    else:
+                        bitmap_height = height
+                        bitmap_width = width
+                    # pixelize and resize image with scipy
+                    image = scipy.misc.imread(filename, flatten=True)
+                    con_image = scipy.misc.imresize(image, (bitmap_width, bitmap_height), interp='cubic')
+                    con_image = numpy.transpose(con_image)  # convert from column-wise to row-wise
+                    con_image = numpy.fliplr(con_image)  # re-orient the image
+                    con_image = numpy.rot90(con_image, k=1)
+                    bitmap = [[int(pixel*16/255) for pixel in line] for line in con_image]  # convert to bitmap
+                else:
+                    raise IOError("Unsupported filetype")
         else:
             # create an empty sprite of given height and width
             bitmap = [[color for i in range(width)] for j in range(height)]
@@ -771,6 +776,7 @@ class LEDText(LEDSprite):
                     bitmap[i][j] = color if pixel != 16 else pixel
 
         self.bitmap = init_sprite.bitmap
+        self.text = message
         
         
 # run demo program if run by itself
