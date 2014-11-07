@@ -479,9 +479,19 @@ class LEDSprite(object):
             if type(output) == bytes:  # convert from byte to a string (happens if using python3)
                 output = output.decode() 
             if errors is not None or (output.find("ERROR") != -1):
-                raise IOError(output)
-                
-            if output.find("text") != -1 or output.find("FORTRAN") != -1:  # file is a text file
+                # determine if a string is given
+                if not re.match(r'^([A-Fa-f0-9-](\s+|(\s*\n)))*(\s[A-Fa-f0-9-]\s*)$', filename):
+                    raise ValueError("String parameter does not match sprite formatting.")
+                else:
+                    # convert string to bitmap
+                    filename = filename.replace("-", "10")  # replace transparent pixels
+                    # remove extra whitespace
+                    result = [re.sub(r'\s+', " ", line).strip() for line in filename.split("\n")]
+                    # split into 2d
+                    result = [line.split(" ") for line in result]
+                    bitmap = [[int(pixel, 16) for pixel in line] for line in result]
+
+            elif output.find("text") != -1 or output.find("FORTRAN") != -1:  # file is a text file
                 if filename[-4:] != ".spr":
                     raise ValueError("Filename must have '.spr' extension.")
                 f = open(filename, 'r')
