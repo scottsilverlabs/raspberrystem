@@ -11,18 +11,18 @@ CELLSDIR=$$HOME/rstem
 PI=pi@raspberrypi
 
 ifdef ON_PI
-	$(warning 1)
+	#$(warning 1)
 	PYDIR:=$(shell $(PYTHON) $(PYFLAGS) -c "import site; print('site.getsitepackages()[0]')")
 
-	$(warning 2)
+	#$(warning 2)
 	# Calculate the base names of the distribution, the location of all source,
 	NAME:=$(shell cp README.md pkg/README.md; $(PYTHON) $(PYFLAGS) ./pkg/setup.py --name; rm pkg/README.md)
 	VER:=$(shell cp README.md pkg/README.md; $(PYTHON) $(PYFLAGS) ./pkg/setup.py --version; rm pkg/README.md)
 
-	$(warning 3)
+	#$(warning 3)
 	PYVER:=$(shell $(PYTHON) $(PYFLAGS) -c "import sys; print('py%d.%d' % sys.version_info[:2])")
 
-	$(warning 4)
+	#$(warning 4)
 	# all files to be included in rstem package (all python files plus files included in MANIFEST.in)
 	PY_SOURCES:=$(shell \
 		$(PYTHON) $(PYFLAGS) setup.py egg_info >/dev/null 2>&1 && \
@@ -72,7 +72,7 @@ help:
 	@echo "make install-projects - Install projects to home folder"
 	@echo "make test - Run tests"
 	@echo "make doc - Generate HTML documentation (packages must be installed locally first)"
-	@echo "make pull-doc - Pulls the doc.zip file from the Raspberry Pi
+	@echo "make pull-doc - Pulls the doc.zip file from the Raspberry Pi"
 	@echo "make source - Create source package"
 	@echo "make egg - Generate a PyPI egg package"
 	@echo "make zip - Generate a source zip package"

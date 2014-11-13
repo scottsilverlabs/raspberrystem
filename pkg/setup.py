@@ -18,7 +18,7 @@
 import os
 import sys
 from setuptools import setup, find_packages, Extension
-from distutils.command.install import install as _install
+from setuptools.command.install import install as _install
 
 # check python version is good
 if sys.version_info[0] == 2:
@@ -63,7 +63,7 @@ except:
 
 setup(
     name = "raspberrystem",
-    version = "0.0.2",
+    version = "0.0.01",
     author = "Brian Silverman",
     author_email = "bri@raspberrystem.com",
     description = ("RaspberrySTEM Educational and Hobbyist Development Kit "

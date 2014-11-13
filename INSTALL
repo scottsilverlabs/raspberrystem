@@ -13,10 +13,11 @@ CREATING A NEW RASPBERRYSTEM RELEASE:
     - Create a new branch with the name rel/<version> where <version> is the version number as defined in /pkg/setup.py
     - Checkout that branch
     - Triple check this all code is correct and you are ready to upload!
-    - Register your Raspberry Pi to PyPi:
+    - Register your Raspberry Pi to PyPi (only needs to be done once):
         make register  ( if on the pi run: make pi-register)
         - Create a new account, then let someone like Me add you as a maintainer to the rasperrystem package on PyPi
             - (or login to an existing one)
+        - Select "yes" to save your username and password.
     - Generate new documentation:
         - generate documentation on remote raspberrypi by calling this on your computer:
             make doc
@@ -54,7 +55,12 @@ USER INSTALLATION:
     - Using the terminal, we will now install some required programs and then rstem python package.
         - run the following commands on your raspberry pi:
             sudo apt-get update
-            sudo apt-get install python-pip libi2c-dev
+            sudo apt-get install python-pip python-numpy libi2c-dev espeak
+            - pip version:
+                sudo pip install raspberrystem
+            - easy_install version:
+                sudo easy_install raspberrystem
+                (Note: easy_install does not run the post install script!)
             sudo pip install --upgrade setuptools
             sudo pip install raspberrystem OR sudo easy_install raspberrystem
             // TODO: insert user install instructions for raspberrystem-ide
