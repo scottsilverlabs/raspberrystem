@@ -1,3 +1,20 @@
+#!/usr/bin/env python3
+#
+# Copyright (c) 2014, Scott Silver Labs, LLC.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#       http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 import os
 import select
 import time
@@ -100,7 +117,7 @@ class Pin:
     def wait_for_edge(self, edge):
         """Blocks until the given edge has happened
         @param edge: Either gpio.FALLING, gpio.RISING, gpio.BOTH
-        @param edge: string
+        @type edge: string
         @throws: ValueError
         """
         if self.direction != INPUT:
@@ -135,7 +152,9 @@ class Pin:
         @type edge: int
         @param callback: Function to call when given edge has been detected.
         @type callback: function
-        @note: First parameter of callback function will be the pint number of gpio that called it.
+        @param bouncetime: Debounce time in milliseconds.
+        @type bouncetime: int
+        @note: First parameter of callback function will be the pin number of gpio that called it.
         """
         if self.direction != INPUT:
             raise ValueError("GPIO must be configured to be an input first.")

@@ -18,7 +18,6 @@
 import os
 import re
 import time
-from itertools import islice
 from . import led_driver     # c extension that controls led matrices and contains framebuffer
 import copy
 import subprocess
@@ -55,6 +54,7 @@ def _valid_color(color):
             return False
         return True
     return False
+
 
 def _convert_color(color):
     """Converts the given color to an int.
@@ -150,6 +150,7 @@ def init_grid(num_rows=None, num_cols=None, angle=0, math_coords=True, spi_speed
     @raise ValueError: num_rows*num_cols != number of matrices
     @raise ValueError: angle is not a multiple of 90
     """
+
 
     # initialize spi bus right away because we need it for led_driver.detect()
     global spi_initialized

@@ -599,6 +599,8 @@ PyInit_led_driver(void)
 void initled_driver(void)
 #endif
 {
+    struct module_state *st;
+
 #if PY_MAJOR_VERSION >= 3
     PyObject *module = PyModule_Create(&moduledef);
 #else
@@ -607,7 +609,8 @@ void initled_driver(void)
 
     if (module == NULL)
         INITERROR;
-    struct module_state *st = GETSTATE(module);
+
+    st = GETSTATE(module);
 
     st->error = PyErr_NewException("led_driver.Error", NULL, NULL);
     if (st->error == NULL) {

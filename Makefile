@@ -1,10 +1,7 @@
 SHELL = /bin/bash
 
-ifdef ON_PI
-  PYTHON=python3  # default python
-else
-  PYTHON=python3  # default python
-endif
+PYTHON=python3
+
 PYFLAGS=
 DESTDIR=/
 # install directories
@@ -13,73 +10,81 @@ CELLSDIR=$$HOME/rstem
 #BUILDIR=$(CURDIR)/debian/raspberrystem
 PI=pi@raspberrypi
 
-PYDIR:=$(shell $(PYTHON) $(PYFLAGS) -c "import site; print('site.getsitepackages()[0]')")
-
 ifdef ON_PI
-  # Calculate the base names of the distribution, the location of all source,
-  NAME:=$(shell $(PYTHON) $(PYFLAGS) ./pkg/setup.py --name)
-  VER:=$(shell $(PYTHON) $(PYFLAGS) ./pkg/setup.py --version)
-  
-  PYVER:=$(shell $(PYTHON) $(PYFLAGS) -c "import sys; print('py%d.%d' % sys.version_info[:2])")
-  PY_SOURCES:=$(shell \
-  	$(PYTHON) $(PYFLAGS) setup.py egg_info >/dev/null 2>&1 && \
-  	grep -v "\.egg-info" $(NAME).egg-info/SOURCES.txt)
-  DEB_SOURCES:=debian/changelog \
-  	debian/control \
-  	debian/copyright \
-  	debian/rules \
-  #	debian/docs \
-  	$(wildcard debian/*.init) \
-  	$(wildcard debian/*.default) \
-  	$(wildcard debian/*.manpages) \
-  	$(wildcard debian/*.docs) \
-  	$(wildcard debian/*.doc-base) \
-  	$(wildcard debian/*.desktop)
-  DOC_SOURCES:=docs/conf.py \
-  	$(wildcard docs/*.png) \
-  	$(wildcard docs/*.svg) \
-  	$(wildcard docs/*.rst) \
-  	$(wildcard docs/*.pdf)
-  
-  # Types of dist files all located in dist folder
-  DIST_EGG=dist/$(NAME)-$(VER)-$(PYVER).egg
-  DIST_TAR=dist/$(NAME)-$(VER).tar.gz
-  DIST_ZIP=dist/$(NAME)-$(VER).zip
-  DIST_DEB=dist/python-$(NAME)_$(VER)_armhf.deb \
-  	dist/python3-$(NAME)_$(VER)_armhf.deb
-  #	dist/python-$(NAME)-docs_$(VER)-1$(DEB_SUFFIX)_all.deb
-  DIST_DSC=dist/$(NAME)_$(VER).tar.gz \
-  	dist/$(NAME)_$(VER).dsc \
-  	dist/$(NAME)_$(VER)_source.changes
+	#$(warning 1)
+	PYDIR:=$(shell $(PYTHON) $(PYFLAGS) -c "import site; print('site.getsitepackages()[0]')")
+
+	#$(warning 2)
+	# Calculate the base names of the distribution, the location of all source,
+	NAME:=$(shell cp README.md pkg/README.md; $(PYTHON) $(PYFLAGS) ./pkg/setup.py --name; rm pkg/README.md)
+	VER:=$(shell cp README.md pkg/README.md; $(PYTHON) $(PYFLAGS) ./pkg/setup.py --version; rm pkg/README.md)
+
+	#$(warning 3)
+	PYVER:=$(shell $(PYTHON) $(PYFLAGS) -c "import sys; print('py%d.%d' % sys.version_info[:2])")
+
+	#$(warning 4)
+	# all files to be included in rstem package (all python files plus files included in MANIFEST.in)
+	PY_SOURCES:=$(shell \
+		$(PYTHON) $(PYFLAGS) setup.py egg_info >/dev/null 2>&1 && \
+		grep -v "\.egg-info" $(NAME).egg-info/SOURCES.txt)
+	DEB_SOURCES:=debian/changelog \
+		debian/control \
+		debian/copyright \
+		debian/rules \
+		#	debian/docs \
+		$(wildcard debian/*.init) \
+		$(wildcard debian/*.default) \
+		$(wildcard debian/*.manpages) \
+		$(wildcard debian/*.docs) \
+		$(wildcard debian/*.doc-base) \
+		$(wildcard debian/*.desktop)
+	DOC_SOURCES:=doc/epydoc.js \
+		$(wildcard doc/*.png) \
+		$(wildcard doc/*.html)
+
+	# Types of dist files all located in dist folder
+	DIST_EGG=dist/$(NAME)-$(VER)-$(PYVER).egg
+	DIST_TAR=dist/$(NAME)-$(VER).tar.gz
+	DIST_ZIP=dist/$(NAME)-$(VER).zip
+	DIST_DEB=dist/python-$(NAME)_$(VER)_armhf.deb \
+		dist/python3-$(NAME)_$(VER)_armhf.deb
+	#	dist/python-$(NAME)-docs_$(VER)-1$(DEB_SUFFIX)_all.deb
+	DIST_DSC=dist/$(NAME)_$(VER).tar.gz \
+		dist/$(NAME)_$(VER).dsc \
+		dist/$(NAME)_$(VER)_source.changes
 endif
 
-COMMANDS=install test source egg zip tar deb dist install-projects install-cells \
-    upload-all upload-ppa upload-cheeseshop
+# Commands that have a pi-* conterpart
+COMMANDS=install test source egg zip tar deb dist install-projects \
+    upload-all upload-ppa upload-cheeseshop register doc uninstall clean
 
-.PHONY: all local-install upload-check help clean push pull doc  \
+$(warning 5)
+.PHONY: all local-install upload-check help purge-pi push pull release pull-doc  \
     $(COMMANDS) $(addprefix pi-, $(COMMANDS))
 
 help:
 #	@echo "make - Compile sources locally"
 	@echo "make push - Push changes on local computer onto pi"
 	@echo "make pull - Pull changes on pi onto local computer (BE CAREFULL!!!)"
+	@echo "make uninstall - Uninstalls rstem package on remote Raspberry Pi"
 	@echo "make install - Install onto remote Raspberry Pi"
 	@echo "make local-install - Install onto local machine"
 	@echo "make install-projects - Install projects to home folder"
-	@echo "make install-cells - Install cells to home folder"
 	@echo "make test - Run tests"
 	@echo "make doc - Generate HTML documentation (packages must be installed locally first)"
+	@echo "make pull-doc - Pulls the doc.zip file from the Raspberry Pi"
 	@echo "make source - Create source package"
 	@echo "make egg - Generate a PyPI egg package"
 	@echo "make zip - Generate a source zip package"
 	@echo "make tar - Generate a source tar package"
 	@echo "make deb - Generate Debian packages (NOT COMPLETED)"
 	@echo "make dist - Generate all packages"
-	@echo "make clean-pi - Clean all files on the pi"
-	@echo "make clean - Get rid of all files locally"
+	@echo "make purge-pi - Remove the rsinstall folder from the Raspberry Pi"
+	@echo "make clean - Get rid of all build files on the Raspberry Pi"
 	@echo "make release - Create and tag a new release"
 	@echo "make upload-all - Upload the new release to all repositories"
 	@echo "make upload-ppa - Upload the new release to ppa"
+	@echo "make register - Register raspberry pi to PyPi repository"
 	@echo "make upload-cheeseshop - Upload the new release to cheeseshop"
 
 setup.py:
@@ -113,45 +118,51 @@ push:
 # send changed files on pi back to user
 pull:
 	rsync -azP $(PI):~/rsinstall/* ./
-	rm ./setup.py
-	rm ./MANIFEST.in
-	rm -rf debian
+	$(MAKE) cleanup
 
 
 # for each command push new files to raspberry pi then run command on the pi
 $(COMMANDS)::
 	$(MAKE) push
-	# Run make on target - note: don't use $(MAKE), as host and target "make"s
-	# may differ.
-	ssh $(SSHFLAGS) -t $(PI) "cd rsinstall; make pi-$@ PI=$(PI) ON_PI=1"
+	ssh $(SSHFLAGS) -t $(PI) "cd rsinstall; make pi-$@ PI=$(PI) PYTHON=$(PYTHON) ON_PI=1"
 
 
 # on pi commands start with "pi-"
 
 PREVDIR = $(CURDIR)
 
-doc:
+pi-doc:
 	rm -rf doc
+	# installing rstem packages...
+	$(MAKE) pi-install PYTHON=python
+	# generating doc...
 	cd; epydoc --html rstem -o $(PREVDIR)/doc; cd $(PREVDIR)
+	# generate doc.zip
+	rm -f doc.zip
+	cd doc; zip ../doc.zip *; cd ../
+
+pull-doc:
+	rsync -azP $(PI):~/rsinstall/doc.zip ./
 
 local-install: setup.py MANIFEST.in ./rstem/gpio/pullup.sbin
 	# Pretend we are on the pi and install
 	sudo $(PYTHON) $(PYFLAGS) ./setup.py install
 	$(MAKE) cleanup
 
+pi-uninstall:
+	-sudo pip-2.7 uninstall $(NAME)
+	-sudo pip-3.2 uninstall $(NAME)
+
 pi-install: setup.py MANIFEST.in ./rstem/gpio/pullup.sbin
 	sudo $(PYTHON) $(PYFLAGS) ./setup.py install
 	$(MAKE) pi-install-projects
-	$(MAKE) pi-install-cells
 	$(MAKE) cleanup
-
-pi-install-cells:
-	mkdir -p $(CELLSDIR)
-	cp -r ./cells $(CELLSDIR)
 
 pi-install-projects:
 	mkdir -p $(PROJECTSDIR)
 	cp -r ./projects $(PROJECTSDIR)
+	mkdir -p $(CELLSDIR)
+	cp -r ./cells $(CELLSDIR)
 
 pi-test:
 	@echo "There are no test files at this time."
@@ -170,21 +181,23 @@ pi-upload-all:
 	$(MAKE) pi-upload-ppa
 	$(MAKE) pi-upload-cheeseshop
 
-pi-upload-ppa: $(DIST_DSC) setup.py MANIFEST.in
+pi-upload-ppa: $(DIST_DSC) setup.py MANIFEST.in ./rstem/gpio/pullup.sbin
 	# TODO: change this from raspberrystem-test ppa to an official one
 	# (to add this repo on raspberrypi type: sudo add-apt-repository ppa:r-jon-s/ppa)
 	$(MAKE) upload-check
 	dput ppa:r-jon-s/ppa dist/$(NAME)_$(VER)_source.changes
 	$(MAKE) cleanup
 
-pi-upload-cheeseshop: $(PY_SOURCES) setup.py MANIFEST.in
+pi-upload-cheeseshop: $(PY_SOURCES) setup.py MANIFEST.in ./rstem/gpio/pullup.sbin
 	# update the package's registration on PyPI (in case any metadata's changed)
-	$(MAKE) setup-pkg
-	$(MAKE) upload-check
-	$(PYTHON) $(PYFLAGS) setup.py register
+	# f$(MAKE) upload-check
+	$(PYTHON) $(PYFLAGS) setup.py sdist upload
 	$(MAKE) cleanup
 
-pi-release: $(PY_SOURCES) $(DOC_SOURCES)
+pi-register: setup.py MANIFEST.in
+	$(PYTHON) $(PYFLAGS) setup.py register
+
+release: $(PY_SOURCES) $(DOC_SOURCES)
 	$(MAKE) upload-check
 	# update the debian changelog with new release information
 	dch --newversion $(VER) --controlmaint
@@ -201,28 +214,34 @@ pi-zip: $(DIST_ZIP)
 pi-tar: $(DIST_TAR)
 
 #pi-deb: $(DIST_DSC) $(DIST_DEB) // uncomment when debian is finished
-pi-deb:
-	@echo "make deb not currently supported"
+pi-deb: setup.py MANIFEST.in
+	@echo "make deb is currently BETA!!!"
+	$(PYTHON) setup.py --command-packages=stdeb.command bdist_deb
 
 pi-dist: $(DIST_EGG) $(DIST_DEB) $(DIST_DSC) $(DIST_TAR) $(DIST_ZIP)
 
 # clean all files from raspberry pi
-clean-pi:
+purge-pi:
 	ssh $(SSHFLAGS) -t $(PI) "sudo rm -rf ~/rsinstall; sudo rm -rf ~/rstem"
 
 # clean all files locally
-clean: setup.py MANIFEST.in
-	$(PYTHON) $(PYFLAGS) setup.py clean
+pi-clean: setup.py MANIFEST.in
+	sudo $(PYTHON) $(PYFLAGS) setup.py clean
 	$(MAKE) -f $(CURDIR)/pkg/debian/rules clean
-	sudo rm -rf build dist/ $(NAME).egg-info $(NAME)-$(VER)
+	sudo rm -rf build dist/
+	rm -rf $(NAME).egg-info
+	rm -rf $(NAME)-$(VER).tar.gz
 	rm -rf pkg/debian/python3-$(NAME) pkg/debian/python-$(NAME)
 	rm -f pkg/debian/python*
 	rm -f ../$(NAME)_$(VER).orig.tar.gz ../$(NAME)_$(VER)_armhf.build ../$(NAME)_$(VER)_armhf.changes ../$(NAME)_$(VER)_source.build
 	rm -f ../python-$(NAME)_$(VER)_armhf.deb ../python3-$(NAME)_$(VER)_armhf.deb
 	rm -f ../$(NAME)_$(VER).dsc ../$(NAME)_$(VER).tar.gz ../$(NAME)_$(VER)_source.changes
+	rm -rf ENV
 	find $(CURDIR) -name '*.pyc' -delete
 	rm -f pkg/debian/files
 	touch pkg/debian/files
+	rm -rf doc
+	rm -rf deb_dist
 	sudo rm -f ./rstem/gpio/pullup.sbin
 	$(MAKE) cleanup
 

@@ -18,7 +18,7 @@
 import os
 import sys
 from setuptools import setup, find_packages, Extension
-from distutils.command.install import install as _install
+from setuptools.command.install import install as _install
 
 # check python version is good
 if sys.version_info[0] == 2:
@@ -39,7 +39,10 @@ def read(fname):
 
 def _post_install(dir):
     from subprocess import call
-    call("./pkg/postinstall")
+    if os.system("grep 'BCM2708' /proc/cpuinfo > /dev/null") == 0:
+        call("./pkg/postinstall")
+    else:
+        print("WARNING: GPIO, I2C, and SPI are unsupported on this non-RaspberryPi!")
 
 # Post installation task to setup raspberry pi
 class install(_install):
@@ -51,16 +54,27 @@ class install(_install):
 led_driver =  Extension('rstem.led_matrix.led_driver', sources = ['rstem/led_matrix/led_driver.c'])
 accel = Extension('rstem.accel', sources = ['rstem/accel.c'])
 
+# setuid the pullup.sbin before installation
+os.system("sudo chown 0:0 ./rstem/gpio/pullup.sbin")
+os.system("sudo chmod u+s ./rstem/gpio/pullup.sbin")
+
+# Attempt to add numpy, if not installed require it in the setup_requires.
+build_requires = []
+try:
+    import numpy
+except:
+    build_requires = ['numpy>=1.5.1']
+
 setup(
     name = "raspberrystem",
-    version = "0.0.1",
+    version = "0.0.7",
     author = "Brian Silverman",
     author_email = "bri@raspberrystem.com",
     description = ("RaspberrySTEM Educational and Hobbyist Development Kit "
                     "based on the Raspberry Pi."),
     license = "BSD",
     keywords = ["raspberrypi", "stem"],
-    url = "https://github.com/scottsilverlabs/raspberrystem",
+    url = "https://raspberrystem.com",
     packages = find_packages(),
     include_package_data = True,
     long_description = read('README.md'),
@@ -73,9 +87,10 @@ setup(
         "Programming Language :: Python :: 3.2",
         "Programming Language :: Python :: 3.3",
     ],
-    install_requires=[ 'RPi'  # insert python packages as needed
-    ],
+    install_requires=['numpy', 'pygame'],  # insert python packages as needed
     cmdclass={'install': install},  # overload install command
+    include_dirs = [numpy.get_include()],  # Get numpy/arrayobject.h
+    setup_requires = build_requires,
     test_suite = 'tests',
     ext_modules = [led_driver, accel]  # c extensions defined above
 )
