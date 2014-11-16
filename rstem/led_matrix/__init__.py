@@ -56,6 +56,7 @@ def _valid_color(color):
         return True
     return False
 
+
 def _convert_color(color):
     """Converts the given color to an int.
     @param color: A color to be converted
@@ -222,6 +223,7 @@ def init_grid(num_rows=None, num_cols=None, angle=0, math_coords=True, spi_speed
     init_matrices(mat_list, math_coords=False, spi_speed=spi_speed, spi_port=spi_port)
     container_math_coords = math_coords
 
+
 def show():
     """Shows the current framebuffer on the display.
     Tells the led_driver to send framebuffer to SPI port.    
@@ -232,6 +234,7 @@ def show():
     """
     _init_check()
     return led_driver.flush()
+
 
 def cleanup():
     """Unintializes matrices and frees all memory. 
@@ -247,6 +250,7 @@ def cleanup():
         initialized = False
         spi_initialized = False
 
+
 def fill(color=0xF):
     """Fills the framebuffer with the given color.
     @param color: Color to fill the entire display with
@@ -259,6 +263,7 @@ def fill(color=0xF):
 def erase():
     """Clears display"""
     fill(0)
+
 
 def point(x, y=None, color=0xF):
     """Sends point to the framebuffer.
@@ -286,6 +291,7 @@ def point(x, y=None, color=0xF):
             x, y = _convert_to_std_coords(x, y)
         return led_driver.point(int(x), int(y), color)
 
+
 def rect(origin, dimensions, fill=True, color=0xF):
     """Creates a rectangle from start point using given dimensions
     
@@ -312,9 +318,9 @@ def rect(origin, dimensions, fill=True, color=0xF):
         line((x + width - 1, y), (x, y), color)
     
 
-
 def _sign(n):
     return 1 if n >= 0 else -1
+
 
 def line(point_a, point_b, color=0xF):
     """Create a line from point_a to point_b.
@@ -341,7 +347,8 @@ def line(point_a, point_b, color=0xF):
         if e2 < dx:
             err += dx
             y1 += sy
-            
+
+
 def _line_fast(point_a, point_b, color=0xF):
     """A faster c implementation of line. Use if you need the speed."""
     if container_math_coords:
@@ -438,7 +445,8 @@ def sprite(sprite, origin=(0,0), crop_origin=(0,0), crop_dimensions=None):
             point((x, y), color=sprite.bitmap[y_sprite][x_sprite])
             x += 1
         y += 1
-        
+
+
 def frame(numpy_bitmap):
     """Sends the entire frame (represented as a numpy bitmap) to the led matrix.
     
@@ -454,11 +462,12 @@ class LEDSprite(object):
     @note: The text file must only contain hex numbers 0-9, a-f, A-F, or - (dash)
     @note: The hex number indicates pixel color and "-" indicates a transparent pixel
     """
-    def __init__(self, filename=None, height=0, width=0, color=0x0):
+    def __init__(self, string=None, height=0, width=0, color=0x0):
         """Creates a L{LEDSprite} object from the given .spr file or image file or creates an empty sprite of given
         height and width if filename == None.
         
-        @param filename: The full path location of a .spr sprite file or image file
+        @param string: A string properly formatted to represent a sprite.
+            All pixels are represented as the characters (0-9, a-f, or '-') seperated by spaces or newline characters.
         @type: string
         @param height: The height of given sprite if creating an empty sprite or want to resize a sprite from and image file.
         @type height: int
@@ -470,72 +479,72 @@ class LEDSprite(object):
         bitmap = []
         bitmap_width = 0  # keep track of width and height
         bitmap_height = 0
-        if filename is not None:
-            filename = filename.strip()
+        if string is not None:
+            string = string.strip()
             # if filename doesn't exist, convert string
-            if not os.path.isfile(filename):
+            # if not os.path.isfile(string):
                 # determine if a string is given
-                if not re.match(r'^(\s*[A-Fa-f0-9-](\s+|(\s*\n)))*([A-Fa-f0-9-]\s*)$', filename):
-                    if filename[-4:] == ".spr":
-                        raise ValueError("File does not exist.")
-                    raise ValueError("String parameter does not match sprite formatting.")
-                # convert string to bitmap
-                filename = filename.replace("-", "10")  # replace transparent pixels
-                # remove extra whitespace
-                result = [re.sub(r'\s+', " ", line).strip() for line in filename.split("\n")]
-                # split into 2d
-                result = [line.split(" ") for line in result]
-                bitmap = [[int(pixel, 16) for pixel in line] for line in result]
-
-            else:
-                self.filename = filename
-                # get filetype
-                proc = subprocess.Popen("file " + str(filename), shell=True, stdout=subprocess.PIPE)
-                output, errors = proc.communicate()
-                if type(output) == bytes:  # convert from byte to a string (happens if using python3)
-                    output = output.decode()
-                if errors is not None or (output.find("ERROR") != -1):
-                    raise IOError("Invalid file.")
-                if output.find("text") != -1 or output.find("FORTRAN") != -1:  # file is a text file
-                    if filename[-4:] != ".spr":
-                        raise ValueError("Filename must have '.spr' extension.")
-                    f = open(filename, 'r')
-                    for line in f:
-                        leds = [_convert_color(char) for char in line.split()]
-                        # Determine if widths are consistent
-                        if bitmap_width != 0:
-                            if len(leds) != bitmap_width:
-                                raise ValueError("Sprite has different widths")
-                        else:
-                            bitmap_width = len(leds)
-                        bitmap.append(leds)
-                        bitmap_height += 1
-                    f.close()
-
-                elif output.find("image") != -1:  # file is an image file
-                    import scipy.misc, numpy, sys
-                    if sys.version_info[0] > 2:
-                        raise ValueError("As of now, only python 2 supports images to sprites.")
-                    # if no height or width given try to fill as much of the display
-                    # with the image without stretching it
-                    if height <= 0 or width <= 0:
-                        from PIL import Image
-                        im = Image.open(filename)
-                        im_width, im_height = im.size
-                        bitmap_height = min(height, im_height)
-                        bitmap_width = min(width, bitmap_height * (im_width / im_height))
-                    else:
-                        bitmap_height = height
-                        bitmap_width = width
-                    # pixelize and resize image with scipy
-                    image = scipy.misc.imread(filename, flatten=True)
-                    con_image = scipy.misc.imresize(image, (bitmap_width, bitmap_height), interp='cubic')
-                    con_image = numpy.transpose(con_image)  # convert from column-wise to row-wise
-                    con_image = numpy.fliplr(con_image)  # re-orient the image
-                    con_image = numpy.rot90(con_image, k=1)
-                    bitmap = [[int(pixel*16/255) for pixel in line] for line in con_image]  # convert to bitmap
-                else:
-                    raise IOError("Unsupported filetype")
+            if not re.match(r'^(\s*[A-Fa-f0-9-](\s+|(\s*\n)))*([A-Fa-f0-9-]\s*)$', string):
+                # if filename[-4:] == ".spr":
+                #     raise ValueError("File does not exist.")
+                raise ValueError("String parameter does not match sprite formatting.")
+            # convert string to bitmap
+            string = string.replace("-", "10")  # replace transparent pixels
+            # remove extra whitespace
+            result = [re.sub(r'\s+', " ", line).strip() for line in string.split("\n")]
+            # split into 2d
+            result = [line.split(" ") for line in result]
+            bitmap = [[int(pixel, 16) for pixel in line] for line in result]
+            #
+            # else:
+            #     self.filename = filename
+            #     # get filetype
+            #     proc = subprocess.Popen("file " + str(filename), shell=True, stdout=subprocess.PIPE)
+            #     output, errors = proc.communicate()
+            #     if type(output) == bytes:  # convert from byte to a string (happens if using python3)
+            #         output = output.decode()
+            #     if errors is not None or (output.find("ERROR") != -1):
+            #         raise IOError("Invalid file.")
+            #     if output.find("text") != -1 or output.find("FORTRAN") != -1:  # file is a text file
+            #         if filename[-4:] != ".spr":
+            #             raise ValueError("Filename must have '.spr' extension.")
+            #         f = open(filename, 'r')
+            #         for line in f:
+            #             leds = [_convert_color(char) for char in line.split()]
+            #             # Determine if widths are consistent
+            #             if bitmap_width != 0:
+            #                 if len(leds) != bitmap_width:
+            #                     raise ValueError("Sprite has different widths")
+            #             else:
+            #                 bitmap_width = len(leds)
+            #             bitmap.append(leds)
+            #             bitmap_height += 1
+            #         f.close()
+            #
+            #     elif output.find("image") != -1:  # file is an image file
+            #         import scipy.misc, numpy, sys
+            #         if sys.version_info[0] > 2:
+            #             raise ValueError("As of now, only python 2 supports images to sprites.")
+            #         # if no height or width given try to fill as much of the display
+            #         # with the image without stretching it
+            #         if height <= 0 or width <= 0:
+            #             from PIL import Image
+            #             im = Image.open(filename)
+            #             im_width, im_height = im.size
+            #             bitmap_height = min(height, im_height)
+            #             bitmap_width = min(width, bitmap_height * (im_width / im_height))
+            #         else:
+            #             bitmap_height = height
+            #             bitmap_width = width
+            #         # pixelize and resize image with scipy
+            #         image = scipy.misc.imread(filename, flatten=True)
+            #         con_image = scipy.misc.imresize(image, (bitmap_width, bitmap_height), interp='cubic')
+            #         con_image = numpy.transpose(con_image)  # convert from column-wise to row-wise
+            #         con_image = numpy.fliplr(con_image)  # re-orient the image
+            #         con_image = numpy.rot90(con_image, k=1)
+            #         bitmap = [[int(pixel*16/255) for pixel in line] for line in con_image]  # convert to bitmap
+            #     else:
+            #         raise IOError("Unsupported filetype")
         else:
             # create an empty sprite of given height and width
             bitmap = [[color for i in range(width)] for j in range(height)]
@@ -707,12 +716,12 @@ def _char_to_sprite(char, font_path):
         font_path = os.path.join(font_path, "space.spr")
     else:
         font_path = os.path.join(font_path, "misc", str(ord(char)) + ".spr")
-        
-    if os.path.isfile(font_path):
-        return LEDSprite(font_path)
-    else:
-        return LEDSprite(os.path.join(orig_font_path, "unknown.spr"))
-        
+    # use unknown character if character doesn't exist in font folders
+    if not os.path.isfile(font_path):
+        font_path = os.path.join(orig_font_path, "unknown.spr")
+
+    with open(font_path, "r") as f:
+        return LEDSprite(f.read())
         
 
 class LEDText(LEDSprite):
