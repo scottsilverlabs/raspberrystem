@@ -37,7 +37,7 @@ CREATING A NEW RASPBERRYSTEM RELEASE:
 
 USER INSTALLATION:
     The following instructions are for a user installing the RaspberrySTEM environment.
-    NEED: RaspberryPi, SD card, Linux/Mac/Windows
+    NEED: RaspberryPi, SD card, Wifi USB Adapter/Ethernet, Linux/Mac/Windows
 
     - Install Raspbian onto the SD card by either writing the image to the SD card or using NOOBS (easier):
         http://www.raspberrypi.org/documentation/installation/installing-images/
@@ -55,13 +55,10 @@ USER INSTALLATION:
     - Using the terminal, we will now install some required programs and then rstem python package.
         - run the following commands on your raspberry pi:
             sudo apt-get update
-            sudo apt-get install python-pip python-numpy libi2c-dev espeak
+            sudo apt-get install python-pip python-numpy python-pygame libi2c-dev espeak
             - pip version:
                 sudo pip install raspberrystem
-            - easy_install version:
+            - easy_install version: (Note: easy_install does not run the post install script!)
                 sudo easy_install raspberrystem
-                (Note: easy_install does not run the post install script!)
-            sudo pip install --upgrade setuptools
-            sudo pip install raspberrystem OR sudo easy_install raspberrystem
             // TODO: insert user install instructions for raspberrystem-ide
             // sudo apt-get install raspberrystemide
