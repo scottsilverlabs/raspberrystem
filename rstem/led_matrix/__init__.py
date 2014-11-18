@@ -357,7 +357,7 @@ def _line_fast(point_a, point_b, color=0xF):
     led_driver.line(point_a[0], point_a[1], point_b[0], point_b[1], _convert_color(color))
 
 
-def text(text, origin=(0, 0), crop_origin=(0, 0), crop_dimensions=None, font_name="small", font_path=None):
+def text(text, origin=(0, 0), crop_origin=(0, 0), crop_dimensions=None, color=None, font_name="small", font_path=None):
     """Sets given string to be displayed on the led matrix
         
     Example:
@@ -378,7 +378,7 @@ def text(text, origin=(0, 0), crop_origin=(0, 0), crop_dimensions=None, font_nam
     @rtype: L{LEDText}
     """
     if type(text) == str:
-        text = LEDText(text, font_name=font_name, font_path=font_path)
+        text = LEDText(text, color=color, font_name=font_name, font_path=font_path)
     elif type(text) != LEDText and type(text) != LEDSprite:
         raise ValueError("Invalid text")
     sprite(text, origin, crop_origin, crop_dimensions)
@@ -780,9 +780,9 @@ class LEDText(LEDSprite):
         # change text color
         if color and _valid_color(color):
             color = _convert_color(color)
-            for i, line in enumerate(bitmap):
+            for i, line in enumerate(init_sprite.bitmap):
                 for j, pixel in enumerate(line):
-                    bitmap[i][j] = color if pixel != 16 else pixel
+                    init_sprite.bitmap[i][j] = color if pixel != 16 else pixel
 
         self.bitmap = init_sprite.bitmap
         self.text = message
