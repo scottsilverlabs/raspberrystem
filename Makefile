@@ -17,9 +17,15 @@ DUMMY=$(shell pkg/version.sh)
 # Name must be generated the same way as setup.py
 RSTEM_NAME:=$(shell cat pkg/NAME)
 RSTEM_VER:=$(shell cat pkg/VERSION)
-RSTEM_TAR:=$(OUT)/$(RSTEM_NAME)-$(RSTEM_VER).tar.gz
 
-GIT_FILES=$(shell git ls-files)
+# Final targets
+RSTEM_TAR:=$(OUT)/$(RSTEM_NAME)-$(RSTEM_VER).tar.gz
+RSTEM_PROJ:=$(OUT)/$(RSTEM_NAME)_projs-$(RSTEM_VER).tar.gz
+PYDOC_TAR:=$(OUT)/$(RSTEM_NAME)_api_docs-$(RSTEM_VER).tar.gz
+
+# Dependency files
+RSTEM_GIT_FILES=$(shell git ls-files | grep -v ^projects/)
+PROJ_GIT_FILES=$(shell git ls-files | grep ^projects/)
 
 all: rstem
 
@@ -29,24 +35,28 @@ help:
 	@echo "    rstem             setup.py sdist - Create a pip installable source distribution"
 	@echo "    rstem-dev       * setup.py develop - Build/install on target for (fast) development"
 	@echo "    rstem-undev     * setup.py develop --uninstall - Reverse of make rstem-dev"
+	@echo "    rstem-register    setup.py register - One-time user register/login on Cheeseshop"
 	@echo "    rstem-upload      setup.py upload - Upload source distribution to Cheeseshop"
-	@echo "    rstem-register    setup.py register - Register user on Cheeseshop"
-	@echo "    rstem-doc         HTML API docs, for upload"
-	@echo "    rstem-doc-upload  Upload built API doc to <TBD>"
 	@echo "    rstem-install   * pip install <tar.gz> - Install from source distribution"
 	@echo "    rstem-clean     * Remove all host and target rstem files"
+	@echo ""
+	@echo "Pydoc commands (HTML API documentation generated from source):"
+	@echo "    pydoc           * HTML API docs, for upload"
+	@echo "    pydoc-upload      Upload built API doc to <TBD>"
+	@echo "    pydoc-install   * pip install <tar.gz> - Install from source distribution"
+	@echo "    pydoc-clean     * Remove all host and target rstem files"
 	@echo ""
 	@echo "Proj commands (projects are programs that use the rstem API):"
 	@echo "    proj              Create projects/cells tarball"
 	@echo "    proj-install    * Copy projects/cells to user directory on target"
 	@echo "    proj-clean      * Remove all target project/cells directories"
 	@echo ""
-	@echo "Doc commands (docs are in a separate git repo.  Skips if not found):"
+	@echo "Doc commands (docs are in a separate git repo.  Skip if not found):"
 	@echo "    doc               Create PDF docs and HTML lesson plans"
 	@echo "    doc-install     * Install lesson plans (from Instructor Manual)"
 	@echo "    doc-clean       * Uninstall lesson plans"
 	@echo ""
-	@echo "IDE commands (IDE is in a separate git repo.  Skips if not found):"
+	@echo "IDE commands (IDE is in a separate git repo.  Skip if not found):"
 	@echo "    ide               Build IDE."
 	@echo "    ide-install     * Install IDE."
 	@echo "    ide-clean       * Clean IDE."
@@ -65,7 +75,7 @@ help:
 	@echo "    For rstem development"
 	@echo "        <edit files>"
 	@echo "        Either (fast way):  make rstem-dev"
-	@echo "        Or (normal way)  :  make rstem && make install"
+	@echo "        Or (normal way)  :  make rstem && make rstem-install"
 	@echo "        <test & repeat>"
 	@echo "    X development (where X is in [proj, ide, doc, rstem]:"
 	@echo "        <edit files>"
@@ -81,15 +91,13 @@ help:
 	@echo "        make upload"
 	@echo ""
 	@echo "Final targets:"
-	@echo "    RSTEM API (w/ api_docs) (sdist): rstem_vM.N.P.rcX.tar.gz"
-	@echo "    Uploadable API doc HTML tarball: rstem_api_docs_vM.N.P.rcX.tar.gz"
-	@echo "    Projects/cells programs tarball: rstem_projs_vM.N.P.rcX.tar.gz"
-	@echo "    IDE (sdist):                     rstem_ide_vM.N.P.rcX.tar.gz"
-	@echo "    Lesson Plans (sdist):            rstem_lessons_vM.N.P.rcX.tar.gz"
-	@echo "    Docs (PDF):                      *_vM.N.P.rcX.pdf"
+	@echo "    RSTEM API (w/ api_docs) (sdist): $(RSTEM_TAR)"
+	@echo "    Projects/cells programs tarball: $(RSTEM_PROJ)"
+	@echo "    Uploadable API doc HTML tarball: $(PYDOC_TAR)"
+	@echo "    IDE (sdist):                     rstem_ide_VERSION.tar.gz"
+	@echo "    Lesson Plans (sdist):            rstem_lessons_VERSION.tar.gz"
+	@echo "    Docs (PDF):                      *_VERSION.pdf"
 	@echo "Note: sdist is a pip installable tarball creates via setuptools."
-
-
 
 ./rstem/gpio/pullup.sbin: ./rstem/gpio/pullup.sbin.c
 	# compile pullup.sbin
@@ -97,21 +105,22 @@ help:
 	# set pullup.sbin as a root program
 	sudo chown 0:0 ./rstem/gpio/pullup.sbin
 	sudo chmod u+s ./rstem/gpio/pullup.sbin
-	
-push:
-	rsync -azP --delete --exclude-from=.gitignore --exclude=.git ./ $(PI):~/rsinstall
+
+# ##################################################
+# rstem commands
+#
 
 rstem: $(RSTEM_TAR)
-$(RSTEM_TAR): $(GIT_FILES)
+$(RSTEM_TAR): $(RSTEM_GIT_FILES)
 	$(SETUP) sdist
 	mkdir -p $(OUT)
 	mv dist/$(notdir $@) $@
 
-rstem-dev: $(GIT_FILES)
+rstem-dev: $(RSTEM_GIT_FILES)
 	$(MAKE) push
 	$(RUNONPI) sudo $(SETUP) develop
 
-rstem-undev: $(GIT_FILES)
+rstem-undev: $(RSTEM_GIT_FILES)
 	$(RUNONPI) sudo $(SETUP) develop --uninstall
 
 rstem-upload:
@@ -124,16 +133,72 @@ rstem-install:
 	scp $(RSTEM_TAR) $(PI):/tmp
 	$(RUNONPI) sudo $(PIP) install --upgrade --force-reinstall /tmp/$(notdir $(RSTEM_TAR))
 
-rstem-doc:
-	# TBD
-	epydoc --html rstem -o doc
-	rm -f doc.zip
-	cd doc; zip ../doc.zip *; cd ../
+rstem-clean:
+	rm -rf dist build
+	rm -f $(RSTEM_TAR)
 
-proj:
+# ##################################################
+# Pydoc commands
+#
+
+pydoc: $(PYDOC_TAR)
+$(PYDOC_TAR): $(RSTEM_GIT_FILES)
+	$(MAKE) push
+	$(RUNONPI) epydoc --html rstem -o doc
+	$(RUNONPI) tar cvzf doc.tar.gz doc
+	scp $(PI):~/rsinstall/doc.tar.gz $@
+
+pydoc-clean:
+	$(RUNONPI) rm -rf doc.tar.gz doc
+	rm -f $(PYDOC_TAR)
+
+# ##################################################
+# Proj commands
+#
+
+proj: $(PROJ_TAR)
+$(PROJ_TAR): $(PROJ_GIT_FILES)
+	git archive --format tar.gz -o $@ HEAD projects
+
 proj-install:
-	mkdir -p $(PROJECTSDIR)
-	cp -r ./projects $(PROJECTSDIR)
-	mkdir -p $(CELLSDIR)
-	cp -r ./cells $(CELLSDIR)
+	scp $(PROJ_TAR) $(PI):/tmp
+	$(RUNONPI) /tmp/$(notdir $(PROJ_TAR))
 
+proj-clean:
+	rm -f $(PROJ_TAR)
+
+# ##################################################
+# External Repo commands
+#
+# External repo makefiles can support any target rules they want, but must
+# include at least these targets:
+#	all - builds primary targets
+#	targets - echoes the list of targets built by 'make all'
+# If the external repo does not exist, it will be ignored with a warning.
+#
+
+doc_REPO=../raspberrystem-doc
+ide_REPO=../raspberrystem-ide
+
+.PHONY: ide doc
+ide: ide-all
+doc: doc-all
+ide-% doc-%:
+	@# Ugly eval to compute the value in the variable "$(reponame_REPO)"
+	$(eval REPO=$($(subst -$*,,$@)_REPO))
+	@if [ ! -d $(REPO) ]; then \
+		echo "Warning: Skipping build of '$@'.  Git repo $(REPO) not found"; \
+	else \
+		echo "MAKE $@ (from external repo)"; \
+		$(MAKE) -C $(REPO) $*; \
+		$(eval TARGETS=$(shell $(MAKE) -C $(REPO) targets)) \
+		cp $(addprefix $(REPO)/,$(TARGETS)) $(OUT); \
+	fi
+
+
+# ##################################################
+# Top-level commands
+#
+
+push:
+	rsync -azP --delete --exclude-from=.gitignore --exclude=.git ./ $(PI):~/rsinstall
