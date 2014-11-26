@@ -7,25 +7,23 @@ PROJECTSDIR=$$HOME/rstem
 CELLSDIR=$$HOME/rstem
 
 PI=pi@raspberrypi
-RUNONPI=ssh $(SSHFLAGS) -q -t $(PI) "cd rsinstall;"
+RUNONPI=ssh $(SSHFLAGS) -q -t $(PI) "mkdir -p rsinstall; cd rsinstall;"
 
 OUT=out
 
 # Create version name
-DUMMY=$(shell pkg/version.sh)
+DUMMY:=$(shell scripts/version.sh)
 
 # Name must be generated the same way as setup.py
-RSTEM_NAME:=$(shell cat pkg/NAME)
-RSTEM_VER:=$(shell cat pkg/VERSION)
+RSTEM_NAME:=$(shell cat NAME)
+RSTEM_VER:=$(shell cat VERSION)
 
 # Final targets
 RSTEM_TAR:=$(OUT)/$(RSTEM_NAME)-$(RSTEM_VER).tar.gz
-RSTEM_PROJ:=$(OUT)/$(RSTEM_NAME)_projs-$(RSTEM_VER).tar.gz
 PYDOC_TAR:=$(OUT)/$(RSTEM_NAME)_api_docs-$(RSTEM_VER).tar.gz
 
 # Dependency files
-RSTEM_GIT_FILES=$(shell git ls-files | grep -v ^projects/)
-PROJ_GIT_FILES=$(shell git ls-files | grep ^projects/)
+RSTEM_GIT_FILES=$(shell git ls-files)
 
 all: rstem
 
@@ -46,11 +44,6 @@ help:
 	@echo "    pydoc-install   * pip install <tar.gz> - Install from source distribution"
 	@echo "    pydoc-clean     * Remove all host and target rstem files"
 	@echo ""
-	@echo "Proj commands (projects are programs that use the rstem API):"
-	@echo "    proj              Create projects/cells tarball"
-	@echo "    proj-install    * Copy projects/cells to user directory on target"
-	@echo "    proj-clean      * Remove all target project/cells directories"
-	@echo ""
 	@echo "Doc commands (docs are in a separate git repo.  Skip if not found):"
 	@echo "    doc               Create PDF docs and HTML lesson plans"
 	@echo "    doc-install     * Install lesson plans (from Instructor Manual)"
@@ -58,14 +51,17 @@ help:
 	@echo ""
 	@echo "IDE commands (IDE is in a separate git repo.  Skip if not found):"
 	@echo "    ide               Build IDE."
+	@echo "    ide-upload      * Upload IDE."
 	@echo "    ide-install     * Install IDE."
 	@echo "    ide-clean       * Clean IDE."
 	@echo ""
 	@echo "Top-level commands:"
-	@echo "    [all]             make rstem, proj, doc, ide"
+	@echo "    [all]             make rstem, doc, ide"
+	@echo "    pi-setup        * One-time setup required on clean Raspbian install."
 	@echo "    test            * Run tests (TBD)"
 	@echo "    push            * Push changes on local computer onto pi"
-	@echo "    upload            make *-upload, and upload final binaries"
+	@echo "    pull            * Pull changes on pi back to local onto pi (BE CARFEULL!!)"
+	@echo "    upload            make *-upload, and upload final binaries to <TBD>"
 	@echo "    install         * make *-install"
 	@echo "    clean           * make *-clean"
 	@echo ""
@@ -73,11 +69,17 @@ help:
 	@echo ""
 	@echo "Use cases:"
 	@echo "    For rstem development"
-	@echo "        <edit files>"
-	@echo "        Either (fast way):  make rstem-dev"
-	@echo "        Or (normal way)  :  make rstem && make rstem-install"
-	@echo "        <test & repeat>"
-	@echo "    X development (where X is in [proj, ide, doc, rstem]:"
+	@echo "        Either (fast way):"
+	@echo "            make rstem-dev"
+	@echo "            <edit files>"
+	@echo "            make push
+	@echo "            <test & repeat>"
+	@echo "            make rstem-undev"
+	@echo "        Or (normal way):"
+	@echo "            <edit files>"
+	@echo "            make rstem && make rstem-install"
+	@echo "            <test & repeat>"
+	@echo "    X development (where X is in [ide, doc, rstem]:"
 	@echo "        <edit files>"
 	@echo "        make X && make X-install"
 	@echo "        <test & repeat>"
@@ -89,10 +91,13 @@ help:
 	@echo "        git tag M.N.P    # in each repo to be released"
 	@echo "        make"
 	@echo "        make upload"
+	@echo "    Install from PyPI"
+	@echo "        From target, to install ide:"
+	@echo "            pip install raspberrystem"
+	@echo "            pip install raspberrystem-ide"
 	@echo ""
 	@echo "Final targets:"
 	@echo "    RSTEM API (w/ api_docs) (sdist): $(RSTEM_TAR)"
-	@echo "    Projects/cells programs tarball: $(RSTEM_PROJ)"
 	@echo "    Uploadable API doc HTML tarball: $(PYDOC_TAR)"
 	@echo "    IDE (sdist):                     rstem_ide_VERSION.tar.gz"
 	@echo "    Lesson Plans (sdist):            rstem_lessons_VERSION.tar.gz"
@@ -114,6 +119,7 @@ rstem: $(RSTEM_TAR)
 $(RSTEM_TAR): $(RSTEM_GIT_FILES)
 	$(SETUP) sdist
 	mkdir -p $(OUT)
+	git clean -i $(shell awk '/^graft/{print $2}' MANIFEST.in)
 	mv dist/$(notdir $@) $@
 
 rstem-dev: $(RSTEM_GIT_FILES)
@@ -121,6 +127,7 @@ rstem-dev: $(RSTEM_GIT_FILES)
 	$(RUNONPI) sudo $(SETUP) develop
 
 rstem-undev: $(RSTEM_GIT_FILES)
+	$(MAKE) push
 	$(RUNONPI) sudo $(SETUP) develop --uninstall
 
 rstem-upload:
@@ -131,7 +138,8 @@ rstem-register:
 
 rstem-install:
 	scp $(RSTEM_TAR) $(PI):/tmp
-	$(RUNONPI) sudo $(PIP) install --upgrade --force-reinstall /tmp/$(notdir $(RSTEM_TAR))
+	-$(RUNONPI) sudo $(PIP) uninstall -y $(RSTEM_NAME)
+	$(RUNONPI) sudo $(PIP) install /tmp/$(notdir $(RSTEM_TAR))
 
 rstem-clean:
 	rm -rf dist build
@@ -153,21 +161,6 @@ pydoc-clean:
 	rm -f $(PYDOC_TAR)
 
 # ##################################################
-# Proj commands
-#
-
-proj: $(PROJ_TAR)
-$(PROJ_TAR): $(PROJ_GIT_FILES)
-	git archive --format tar.gz -o $@ HEAD projects
-
-proj-install:
-	scp $(PROJ_TAR) $(PI):/tmp
-	$(RUNONPI) /tmp/$(notdir $(PROJ_TAR))
-
-proj-clean:
-	rm -f $(PROJ_TAR)
-
-# ##################################################
 # External Repo commands
 #
 # External repo makefiles can support any target rules they want, but must
@@ -177,28 +170,71 @@ proj-clean:
 # If the external repo does not exist, it will be ignored with a warning.
 #
 
-doc_REPO=../raspberrystem-doc
-ide_REPO=../raspberrystem-ide
+#
+# doc repo
+#
+DOC_REPO=../raspberrystem-doc
 
-.PHONY: ide doc
-ide: ide-all
+ifeq ($(wildcard $(DOC_REPO)),)
+doc doc-%:
+	@echo "Warning: Skipping build of $@.  Git repo not found."
+else
+TARGETS=$(addprefix $(DOC_REPO)/,$(shell $(MAKE) -C $(DOC_REPO) targets))
+.PHONY: doc
 doc: doc-all
-ide-% doc-%:
-	@# Ugly eval to compute the value in the variable "$(reponame_REPO)"
-	$(eval REPO=$($(subst -$*,,$@)_REPO))
-	@if [ ! -d $(REPO) ]; then \
-		echo "Warning: Skipping build of '$@'.  Git repo $(REPO) not found"; \
-	else \
-		echo "MAKE $@ (from external repo)"; \
-		$(MAKE) -C $(REPO) $*; \
-		$(eval TARGETS=$(shell $(MAKE) -C $(REPO) targets)) \
-		cp $(addprefix $(REPO)/,$(TARGETS)) $(OUT); \
-	fi
+	cp $(TARGETS) $(OUT)
 
+doc-%:
+	$(MAKE) -C $(DOC_REPO) $*
+endif
+
+#
+# IDE repo
+#
+IDE_REPO=../raspberrystem-ide
+
+ifeq ($(wildcard $(IDE_REPO)),)
+ide ide-%:
+	@echo "Warning: Skipping build of $@.  Git repo not found."
+else
+TARGETS=$(addprefix $(IDE_REPO)/,$(shell $(MAKE) -C $(IDE_REPO) targets))
+.PHONY: ide
+ide: ide-all
+	cp $(TARGETS) $(OUT)
+
+ide-%:
+	$(MAKE) -C $(IDE_REPO) $*
+endif
 
 # ##################################################
 # Top-level commands
 #
 
 push:
-	rsync -azP --delete --exclude-from=.gitignore --exclude=.git ./ $(PI):~/rsinstall
+	rsync -azP --delete --include=NAME --include=VERSION --exclude-from=.gitignore --exclude=.git ./ $(PI):~/rsinstall
+
+pull:
+	rsync -azP "$(PI):~/rsinstall/*" ./
+
+pi-setup:
+	@echo "Required for this setup sequence to work:"
+	@echo "		- Base NOOBS install"
+	@echo "		- Wifi or ethernet setup (/etc/network/interface)"
+	@echo "		- ssh setup for user 'pi'"
+	$(RUNONPI) sudo sed -i '/XKBLAYOUT/s/\".*\"/\"us\"/' /etc/default/keyboard
+	$(RUNONPI) sudo apt-get update -y
+	$(RUNONPI) sudo apt-get install -y python3-pip
+
+ALL_GROUPS=rstem pydoc ide doc
+UPLOAD_GROUPS=rstem pydoc ide
+
+clean: $(addsuffix -clean,$(ALL_GROUPS))
+	rm NAME VERSION
+	$(RUNONPI) "cd ~; sudo rm -rf ~/rsinstall"
+
+install: $(addsuffix -install,$(ALL_GROUPS))
+
+upload: $(addsuffix -upload,$(UPLOAD_GROUPS))
+
+test:
+	@echo "NOT IMPLEMENTED"

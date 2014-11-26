@@ -1,8 +1,9 @@
+*.so
 *.tar
 *.pyc
 /build/
 *.egg-info/
 /dist/
 /out/
-pkg/VERSION
-pkg/NAME
+VERSION
+NAME

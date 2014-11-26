@@ -62,8 +62,8 @@ led_driver =  Extension('rstem.led_matrix.led_driver', sources = ['rstem/led_mat
 accel = Extension('rstem.accel', sources = ['rstem/accel.c'])
 
 setup(
-    name = read('pkg/NAME').strip(),
-    version = read('pkg/VERSION').strip(),
+    name = read('NAME').strip(),
+    version = read('VERSION').strip(),
     author = "Brian Silverman",
     author_email = "bri@raspberrystem.com",
     description = ("RaspberrySTEM Test"),

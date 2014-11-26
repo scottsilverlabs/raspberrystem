@@ -1,9 +1,10 @@
-include rstem/accel.c
 include rstem/gpio/pullup.sbin.c
 include rstem/gpio/pullup.sbin
-include rstem/led_matrix/led_driver.c
 graft rstem/led_matrix/font
+graft rstem/projects
 graft pkg
 graft doc
 include README.md
 include LICENSE
+include NAME
+include VERSION
