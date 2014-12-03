@@ -4,23 +4,32 @@ from functools import wraps
 import os
 import sys
 
-SEPARATOR="="*78
+SEPARATOR= '\n' + '=' * 78
+
+class TestFailureException(Exception):
+    pass
+
+class TestSkippedException(TestFailureException):
+    pass
+
+def map_exception(choice):
+    exception_mapping = {
+        'p' : 0,
+        'f' : TestFailureException('MANUAL_FAIL'),
+        's' : TestSkippedException('MANUAL_SKIP'),
+        't' : TestFailureException('TIMEOUT'),
+    }
+    return choice if isinstance(choice, Exception) else exception_mapping[choice]
 
 def enum(*names):
     for i, name in enumerate(names):
         globals()[name] = i
     return names
 
-enum(
-    'RESULT_PASSED',
-    'RESULT_FAILED',
-    'RESULT_SKIPPED',
-    'RESULT_TIMEOUT',
-    )
-
 ordered_test_types = enum(
-    'MANUAL_OUTPUT',
-    'MANUAL_INPUT',
+    'MANUAL_OUTPUT_TEST',
+    'MANUAL_INPUT_TEST',
+    'AUTOMATIC_TEST',
     )
 
 def manual_output(func):
@@ -48,9 +57,9 @@ def manual_output(func):
                 choice = ret[0].lower()
                 if choice in 'pfrs':
                     break
-                print("INVALID CHOICE!")
-        testing_log.write(func, choice)
-    wrapper.test_type = MANUAL_OUTPUT
+                print('INVALID CHOICE!')
+        testing_log.write(func, ordered_test_types[wrapper.test_type], map_exception(choice))
+    wrapper.test_type = MANUAL_OUTPUT_TEST
     return wrapper
 
 def manual_input(func):
@@ -67,8 +76,8 @@ def manual_input(func):
             result = func()
         except e:
             result = e
-        testing_log.write(func, choice)
-    wrapper.test_type = MANUAL_INPUT
+        testing_log.write(func, result)
+    wrapper.test_type = MANUAL_INPUT_TEST
     return wrapper
 
 if __name__ == '__main__':
@@ -78,17 +87,19 @@ if __name__ == '__main__':
     tests = [func for func in funcs if hasattr(func, 'test_type')]
     test_types = set([test.test_type for test in tests])
 
-    # For each test type, in the defined order
+    # For each test type, in the defined order, run the tests
     testing_log.create()
-    for t, name in enumerate(ordered_test_types):
-        if t in test_types:
-            # Run all tests of the given type
-            for test in tests:
-                if test.test_type == t:
-                    test()
+    try:
+        for t, name in enumerate(ordered_test_types):
+            if t in test_types:
+                # Run all tests of the given type
+                for test in tests:
+                    if test.test_type == t:
+                        test()
+    except KeyboardInterrupt as e:
+        testing_log.write(None, e)
     testing_log.close()
 
     print(SEPARATOR)
-    print("SUMMARY:")
     testing_log.dump()
 

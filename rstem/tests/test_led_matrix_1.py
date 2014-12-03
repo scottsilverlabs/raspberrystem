@@ -34,12 +34,12 @@ def vertical_bars():
 
 @testing.manual_output
 def horizontal_bars():
-    '''A horizontal bar on the LED Matrix moving from top to bottom in about 1 second.
+    '''A horizontal bar on the LED Matrix moving from bottom to top in about 1 second.
     '''
     led.init_grid()
-    for x in range(8):
+    for y in range(8):
         led.erase()
-        led.line((x,0),(x,7))
+        led.line((0,y),(7,y))
         led.show()
         time.sleep(0.1)
 
