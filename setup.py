@@ -46,8 +46,7 @@ def read(fname):
 def _post_install(dir):
     from subprocess import call
     if os.system("grep 'BCM2708' /proc/cpuinfo > /dev/null") == 0:
-        pass
-        #call("./pkg/postinstall")
+        call("bash ./pkg/postinstall", shell=True)
     else:
         print("WARNING: GPIO, I2C, and SPI are unsupported on this non-RaspberryPi!")
 
@@ -82,10 +81,7 @@ setup(
         "Programming Language :: Python :: 3.2",
         "Programming Language :: Python :: 3.3",
     ],
-    #install_requires=['numpy', 'pygame'],  # insert python packages as needed
     cmdclass={'install': install},  # overload install command
-    #include_dirs = [numpy.get_include()],  # Get numpy/arrayobject.h
-    #setup_requires = build_requires,
     ext_modules = [led_driver, accel]  # c extensions defined above
 
 )
