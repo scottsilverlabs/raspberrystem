@@ -4,6 +4,8 @@ from functools import wraps
 import os
 import sys
 
+SEPARATOR="="*78
+
 def enum(*names):
     for i, name in enumerate(names):
         globals()[name] = i
@@ -25,7 +27,7 @@ def manual_output(func):
     @wraps(func)
     def wrapper():
         choice = 'r'
-        print("=" * 72)
+        print(SEPARATOR)
         while choice == 'r':
             print('MANUAL OUTPUT TEST: {0}'.format(func.__name__))
             print('VERIFY THE FOLLOWING:')
@@ -54,7 +56,7 @@ def manual_output(func):
 def manual_input(func):
     @wraps(func)
     def wrapper():
-        print("=" * 72)
+        print(SEPARATOR)
         print('MANUAL INPUT TEST: {0}'.format(func.__name__))
         print('PROVIDE THE FOLLOWING INPUT:')
         for line in func.__doc__.split('\n'):
@@ -77,7 +79,7 @@ if __name__ == '__main__':
     test_types = set([test.test_type for test in tests])
 
     # For each test type, in the defined order
-    testing_log.new()
+    testing_log.create()
     for t, name in enumerate(ordered_test_types):
         if t in test_types:
             # Run all tests of the given type
@@ -86,7 +88,7 @@ if __name__ == '__main__':
                     test()
     testing_log.close()
 
-    print("=" * 72)
+    print(SEPARATOR)
     print("SUMMARY:")
     testing_log.dump()
 

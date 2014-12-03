@@ -1,38 +1,53 @@
 from os.path import expanduser
 import time
 import os
+import csv
 
-log = None
+class TestLogger:
+    def __init__(self):
+        log_dir, symlink_name, log_file_name = self._log_name()
+        print('Creating new log:', log_file_name)
+        os.makedirs(log_dir, exist_ok=True)
+        try: 
+            os.remove(symlink_name)
+        except: pass
+        os.symlink(log_file_name, symlink_name)
+        self.log_file = open(symlink_name, 'w')
+        self.log = csv.writer(self.log_file, delimiter=',', quotechar='"')
 
-def log_name():
-    global log
-    log_dir = expanduser("~/rstem_logs/")
-    symlink_name = log_dir + 'testlog.txt'
-    log_file_name = 'testlog.' + str(int(time.time())) + '.txt'
-    return (log_dir, symlink_name, log_file_name)
+    def _log_name(self):
+        log_dir = expanduser("~/rstem_logs/")
+        symlink_name = log_dir + 'testlog.txt'
+        log_file_name = 'testlog.' + str(int(time.time())) + '.txt'
+        return (log_dir, symlink_name, log_file_name)
+        
+    def write(self, func, result):
+        self.log.writerow([str(func), str(result)])
+
+    def close(self):
+        self.log_file.close()
+
+    def dump(self):
+        log_dir, symlink_name, log_file_name = self._log_name()
+        with open(symlink_name) as log:
+            for row in csv.reader(log):
+                print(row)
+
+logger = None
+
+def create():
+    global logger
+    logger = TestLogger()
     
-def new():
-    global log
-    log_dir, symlink_name, log_file_name = log_name()
-    print('Creating new log:', log_file_name)
-    os.makedirs(log_dir, exist_ok=True)
-    try: 
-        os.remove(symlink_name)
-    except: pass
-    os.symlink(log_file_name, symlink_name)
-    log = open(log_dir + log_file_name, 'w')
-
 def write(func, result):
-    global log
-    log.write(str(func) + str(result) + '\n')
+    global logger
+    logger.write(func, result)
 
 def close():
     global log
-    log.close()
+    logger.close()
 
 def dump():
     global log
-    log_dir, symlink_name, log_file_name = log_name()
-    with open(symlink_name) as log:
-        for line in log:
-            print(line)
+    logger.dump()
+
