@@ -30,7 +30,37 @@ ordered_test_types = enum(
     'MANUAL_OUTPUT_TEST',
     'MANUAL_INPUT_TEST',
     'AUTOMATIC_TEST',
+    'KEYBOARD_INTR',
     )
+
+def test_type_short_name(test_type):
+    test_type_mapping = {
+        'MANUAL_OUTPUT_TEST' : 'OUT',
+        'MANUAL_INPUT_TEST' : 'IN',
+        'AUTOMATIC_TEST' : 'AUTO',
+        'KEYBOARD_INTR' : 'KERR'
+    }
+    test_type_mapping[test_type]
+
+def automatic(func):
+    @wraps(func)
+    def wrapper():
+        print(SEPARATOR)
+        print('AUTOMATIC TEST: {0}'.format(func.__name__))
+        try:
+            passed = func()
+            if passed:
+                print('--> PASSED')
+                exc = 0 
+            else:
+                print('--> FAILED')
+                exc = TestFailureException('AUTOMATIC_TEST_FAIL')
+        except Exception as e:
+            print('--> FAILED BY EXCEPTION:' + str(e))
+            exc = e
+        testing_log.write(func, ordered_test_types[wrapper.test_type], exc)
+    wrapper.test_type = AUTOMATIC_TEST
+    return wrapper
 
 def manual_output(func):
     @wraps(func)
@@ -47,8 +77,7 @@ def manual_output(func):
                 func()
             except Exception as e:
                 choice = e
-                print('TEST FAILED BY EXCEPTION:')
-                print(e)
+                print('--> FAILED BY EXCEPTION:' + str(e))
                 break
             while True:
                 ret = input('Check the output - pass, fail, retry or skip? [P/f/r/s]: ').strip()
@@ -97,9 +126,12 @@ if __name__ == '__main__':
                     if test.test_type == t:
                         test()
     except KeyboardInterrupt as e:
-        testing_log.write(None, e)
+        testing_log.keyboard_interrupt()
     testing_log.close()
 
     print(SEPARATOR)
-    testing_log.dump()
+    testing_log.print_result_table()
+
+    print(SEPARATOR)
+    testing_log.print_summary()
 
