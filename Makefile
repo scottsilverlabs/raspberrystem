@@ -122,12 +122,10 @@ $(RSTEM_TAR): $(RSTEM_GIT_FILES)
 	git clean -i $(shell awk '/^graft/{print $2}' MANIFEST.in)
 	mv dist/$(notdir $@) $@
 
-rstem-dev: $(RSTEM_GIT_FILES)
-	$(MAKE) push
+rstem-dev: push
 	$(RUNONPI) sudo $(SETUP) develop
 
-rstem-undev: $(RSTEM_GIT_FILES)
-	$(MAKE) push
+rstem-undev: push
 	$(RUNONPI) sudo $(SETUP) develop --uninstall
 
 rstem-upload:
@@ -136,7 +134,7 @@ rstem-upload:
 rstem-register:
 	$(SETUP) register
 
-rstem-install:
+rstem-install: rstem-undev
 	scp $(RSTEM_TAR) $(PI):/tmp
 	-$(RUNONPI) sudo $(PIP) uninstall -y $(RSTEM_NAME)
 	$(RUNONPI) sudo $(PIP) install /tmp/$(notdir $(RSTEM_TAR))
