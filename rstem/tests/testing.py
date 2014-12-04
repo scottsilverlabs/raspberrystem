@@ -101,13 +101,21 @@ def manual_input(func):
         print('PROVIDE THE FOLLOWING INPUT:')
         for line in func.__doc__.split('\n'):
             print('\t' + line)
-        input('Press Enter to start test:')
-        # Requires timeout
-        try:
-            result = func()
-        except e:
-            result = e
-        testing_log.write(func, result)
+        print('NOTE: Ctrl-C during this test will cancel only this test')
+        ret = input('Press Enter to start test (s to skip):').strip()
+        if ret and ret[0].lower() == 's':
+            exc = TestSkippedException()
+        else:
+            exc = 0
+            try:
+                passed = func()
+                if not passed:
+                    raise TestFailureException()
+            except KeyboardInterrupt:
+                exc = TestCancelledException()
+            except Exception as e:
+                exc = e
+        testing_log.write(func, ordered_test_types[wrapper.test_type], exc)
     wrapper.test_type = MANUAL_INPUT_TEST
     return wrapper
 
