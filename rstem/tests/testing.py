@@ -35,12 +35,14 @@ ordered_test_types = enum(
 
 def test_type_short_name(test_type):
     test_type_mapping = {
+        'AUTOMATIC_TEST' : 'AUTO',
         'MANUAL_OUTPUT_TEST' : 'OUT',
         'MANUAL_INPUT_TEST' : 'IN',
-        'AUTOMATIC_TEST' : 'AUTO',
-        'KEYBOARD_INTR' : 'KERR'
     }
-    test_type_mapping[test_type]
+    try:
+        return test_type_mapping[test_type]
+    except KeyError:
+        return "ERR"
 
 def automatic(func):
     @wraps(func)
@@ -51,7 +53,7 @@ def automatic(func):
             passed = func()
             if passed:
                 print('--> PASSED')
-                exc = 0 
+                exc = 0
             else:
                 print('--> FAILED')
                 exc = TestFailureException('AUTOMATIC_TEST_FAIL')

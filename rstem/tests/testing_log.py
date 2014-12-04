@@ -11,7 +11,7 @@ class TestLogger:
         log_dir, symlink_name, log_file_name = self._log_name()
         print('Creating new log:', log_file_name)
         os.makedirs(log_dir, exist_ok=True)
-        try: 
+        try:
             os.remove(symlink_name)
         except: pass
         os.symlink(log_file_name, symlink_name)
@@ -23,7 +23,7 @@ class TestLogger:
         symlink_name = log_dir + 'testlog.txt'
         log_file_name = 'testlog.' + str(int(time.time())) + '.txt'
         return (log_dir, symlink_name, log_file_name)
-        
+
     def write(self, test, test_type, exc):
         filename = line_num = func_name = line_text = exc_name = exc_msg = ''
         if exc:
@@ -39,7 +39,7 @@ class TestLogger:
 
         self.log.writerow([
             test_func_name,
-            str(test_type),
+            test_type,
             exc_name,
             filename,
             line_num,
@@ -48,7 +48,10 @@ class TestLogger:
             ])
 
     def keyboard_interrupt(self):
-        self.write(None, testing.ordered_test_types[testing.KEYBOARD_INTR], None)
+        self.write(
+            None,
+            None,
+            KeyboardInterrupt())
 
     def close(self):
         self.log_file.close()
@@ -69,33 +72,35 @@ class TestLogger:
                 pass_counts_per_test_type[t] = PassCounts()
             for row in csv.reader(log):
                 test_name, test_type, exc_name, filename, line_num, func_name, exc_msg = row
-                if not exc_name:
-                    pass_counts_per_test_type[test_type].passed += 1
-                elif exc_name == testing.TestSkippedException.__name__:
-                    pass_counts_per_test_type[test_type].failed += 1
-                else:
-                    pass_counts_per_test_type[test_type].skipped += 1
-                pass_counts_per_test_type[test_type].total += 1
+                if test_type:
+                    if not exc_name:
+                        pass_counts_per_test_type[test_type].passed += 1
+                    elif exc_name == testing.TestSkippedException.__name__:
+                        pass_counts_per_test_type[test_type].skipped += 1
+                    else:
+                        pass_counts_per_test_type[test_type].failed += 1
+                    pass_counts_per_test_type[test_type].total += 1
             print("TEST SUMMARY:")
             for t in testing.ordered_test_types:
-                if pass_counts_per_test_type[t].passed == pass_counts_per_test_type[t].total:
-                    print('\t{}: PASSED ALL TESTS ({})'.format(
-                        t,
-                        pass_counts_per_test_type[t].total,
-                        ))
-                elif pass_counts_per_test_type[t].skipped == 0:
-                    print('\t{}: passed {} of {}'.format(
-                        t,
-                        pass_counts_per_test_type[t].passed,
-                        pass_counts_per_test_type[t].total,
-                        ))
-                else:
-                    print('\t{}: passed {} of {} (skipped {})'.format(
-                        t,
-                        pass_counts_per_test_type[t].passed,
-                        pass_counts_per_test_type[t].total,
-                        pass_counts_per_test_type[t].skipped,
-                        ))
+                if pass_counts_per_test_type[t].total > 0:
+                    if pass_counts_per_test_type[t].passed == pass_counts_per_test_type[t].total:
+                        print('\t{}: PASSED ALL TESTS ({})'.format(
+                            t,
+                            pass_counts_per_test_type[t].total,
+                            ))
+                    elif pass_counts_per_test_type[t].skipped == 0:
+                        print('\t{}: passed {} of {}'.format(
+                            t,
+                            pass_counts_per_test_type[t].passed,
+                            pass_counts_per_test_type[t].total,
+                            ))
+                    else:
+                        print('\t{}: passed {} of {} (skipped {})'.format(
+                            t,
+                            pass_counts_per_test_type[t].passed,
+                            pass_counts_per_test_type[t].total,
+                            pass_counts_per_test_type[t].skipped,
+                            ))
                 expected_total = 0
                 expected_total += pass_counts_per_test_type[t].passed
                 expected_total += pass_counts_per_test_type[t].failed
@@ -124,13 +129,7 @@ class TestLogger:
         with open(symlink_name) as log:
             for row in csv.reader(log):
                 test_name, test_type, exc_name, filename, line_num, func_name, exc_msg = row
-                test_type_mapping = {
-                    'MANUAL_OUTPUT_TEST' : 'OUT',
-                    'MANUAL_INPUT_TEST' : 'IN',
-                    'AUTOMATIC_TEST' : 'AUTO',
-                    'KEYBOARD_INTR' : 'KERR'
-                }
-                test_type = test_type_mapping[test_type]
+                test_type = testing.test_type_short_name(test_type)
                 if exc_name:
                     pass_fail_char = 'F'
                     if exc_name == testing.TestSkippedException.__name__:
@@ -161,14 +160,14 @@ logger = None
 def create():
     global logger
     logger = TestLogger()
-    
+
 def logger_func_factory(method_name):
     def func(*args, **kwargs):
         global logger
         method = getattr(logger, method_name)
         method(*args, **kwargs)
     return func
-        
+
 method_names = [
     'write',
     'close',
