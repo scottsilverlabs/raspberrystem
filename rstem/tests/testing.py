@@ -16,9 +16,9 @@ def enum(*names):
     return names
 
 ordered_test_types = enum(
+    'AUTOMATIC_TEST',
     'MANUAL_OUTPUT_TEST',
     'MANUAL_INPUT_TEST',
-    'AUTOMATIC_TEST',
     )
 
 def test_type_short_name(test_type):
