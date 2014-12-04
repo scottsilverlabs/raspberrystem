@@ -6,20 +6,9 @@ import sys
 
 SEPARATOR= '\n' + '=' * 78
 
-class TestFailureException(Exception):
-    pass
-
-class TestSkippedException(TestFailureException):
-    pass
-
-def map_exception(choice):
-    exception_mapping = {
-        'p' : 0,
-        'f' : TestFailureException('MANUAL_FAIL'),
-        's' : TestSkippedException('MANUAL_SKIP'),
-        't' : TestFailureException('TIMEOUT'),
-    }
-    return choice if isinstance(choice, Exception) else exception_mapping[choice]
+class TestFailureException(Exception): pass
+class TestSkippedException(TestFailureException): pass
+class TestCancelledException(TestFailureException): pass
 
 def enum(*names):
     for i, name in enumerate(names):
@@ -30,7 +19,6 @@ ordered_test_types = enum(
     'MANUAL_OUTPUT_TEST',
     'MANUAL_INPUT_TEST',
     'AUTOMATIC_TEST',
-    'KEYBOARD_INTR',
     )
 
 def test_type_short_name(test_type):
@@ -56,7 +44,7 @@ def automatic(func):
                 exc = 0
             else:
                 print('--> FAILED')
-                exc = TestFailureException('AUTOMATIC_TEST_FAIL')
+                exc = TestFailureException()
         except Exception as e:
             print('--> FAILED BY EXCEPTION:' + str(e))
             exc = e
@@ -67,29 +55,41 @@ def automatic(func):
 def manual_output(func):
     @wraps(func)
     def wrapper():
-        choice = 'r'
+        retry = True
         print(SEPARATOR)
-        while choice == 'r':
+        while retry:
+            retry = False
             print('MANUAL OUTPUT TEST: {0}'.format(func.__name__))
             print('VERIFY THE FOLLOWING:')
             for line in func.__doc__.split('\n'):
                 print('\t' + line)
-            input('Press Enter to start test:')
-            try:
-                func()
-            except Exception as e:
-                choice = e
-                print('--> FAILED BY EXCEPTION:' + str(e))
-                break
-            while True:
-                ret = input('Check the output - pass, fail, retry or skip? [P/f/r/s]: ').strip()
-                if not ret:
-                    ret = 'p'
-                choice = ret[0].lower()
-                if choice in 'pfrs':
+            ret = input('Press Enter to start test (s to skip):').strip()
+            if ret and ret[0].lower() == 's':
+                exc = TestSkippedException()
+            else:
+                exc = 0
+                try:
+                    func()
+                except Exception as e:
+                    exc = e
+                    print('--> FAILED BY EXCEPTION:' + str(e))
                     break
-                print('INVALID CHOICE!')
-        testing_log.write(func, ordered_test_types[wrapper.test_type], map_exception(choice))
+                chosen = False
+                while not chosen:
+                    ret = input('Check the output - pass, fail, or retry? [P/f/r]: ').strip()
+                    choice = ret[0].lower() if ret else 'p'
+                    chosen = True
+                    if choice == 'p':
+                        exc = 0
+                    elif choice == 'f':
+                        exc = TestFailureException()
+                    elif choice == 'r':
+                        retry = True
+                        pass
+                    else:
+                        chosen = False
+                        print('INVALID CHOICE!')
+        testing_log.write(func, ordered_test_types[wrapper.test_type], exc)
     wrapper.test_type = MANUAL_OUTPUT_TEST
     return wrapper
 
