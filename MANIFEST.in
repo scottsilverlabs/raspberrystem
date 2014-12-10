@@ -2,6 +2,7 @@ include rstem/gpio/pullup.sbin.c
 include rstem/gpio/pullup.sbin
 graft rstem/led_matrix/font
 graft rstem/projects
+graft rstem/api
 graft pkg
 graft doc
 include README.md

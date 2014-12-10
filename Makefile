@@ -22,6 +22,10 @@ RSTEM_VER:=$(shell cat VERSION)
 RSTEM_TAR:=$(OUT)/$(RSTEM_NAME)-$(RSTEM_VER).tar.gz
 PYDOC_TAR:=$(OUT)/$(RSTEM_NAME)_api_docs-$(RSTEM_VER).tar.gz
 
+# Target paths
+PI_IDE_API_DIR=/var/local/raspberrystem/ide/api
+PI_API_NAME=$(notdir $(PI_IDE_API_DIR))
+
 # Dependency files
 GIT_FILES=$(shell git ls-files)
 
@@ -42,7 +46,6 @@ help:
 	@echo "Pydoc commands (HTML API documentation generated from source):"
 	@echo "    pydoc           * HTML API docs, for upload"
 	@echo "    pydoc-upload      Upload built API doc to <TBD>"
-	@echo "    pydoc-install   * pip install <tar.gz> - Install from source distribution"
 	@echo "    pydoc-clean     * Remove all host and target rstem files"
 	@echo ""
 	@echo "Doc commands (docs are in a separate git repo.  Skip if not found):"
@@ -65,6 +68,7 @@ help:
 	@echo "    upload            make *-upload, and upload final binaries to <TBD>"
 	@echo "    install         * make *-install"
 	@echo "    clean           * make *-clean"
+	@echo "    run             * Run IDE"
 	@echo ""
 	@echo " * Requires access to target Raspberry Pi"
 	@echo ""
@@ -120,10 +124,11 @@ $(OUT):
 #
 
 rstem: $(RSTEM_TAR)
-$(RSTEM_TAR): $(GIT_FILES) $(OUT)
-	@# If there's any files that are not in git but that would end up being in
-	@# the MANIFEST (via graft of a whole directory) then inteactively clean them.
+$(RSTEM_TAR): $(GIT_FILES) $(PYDOC_TAR) | $(OUT)
+	@# If there's any files that are untracked in git but that would end up being in
+	@# the MANIFEST (via graft of a whole directory) then interactively clean them.
 	git clean -i $(shell awk '/^graft/{print $2}' MANIFEST.in)
+	tar xf $(PYDOC_TAR) -C rstem
 	$(SETUP) sdist
 	mv dist/$(notdir $@) $@
 
@@ -153,14 +158,14 @@ rstem-clean:
 #
 
 pydoc: $(PYDOC_TAR)
-$(PYDOC_TAR): $(GIT_FILES)
+$(PYDOC_TAR): $(GIT_FILES) | $(OUT)
 	$(MAKE) push
-	$(RUNONPI) pdoc --html --html-dir doc rstem
-	$(RUNONPI) tar cvzf doc.tar.gz doc
-	scp $(PI):~/rsinstall/doc.tar.gz $@
+	$(RUNONPI) pdoc --overwrite --html --html-dir $(PI_API_NAME) rstem
+	$(RUNONPI) tar czf $(PI_API_NAME).tar.gz $(PI_API_NAME)
+	scp $(PI):~/rsinstall/$(PI_API_NAME).tar.gz $@
 
 pydoc-clean:
-	$(RUNONPI) rm -rf doc.tar.gz doc
+	$(RUNONPI) rm -rf $(PI_API_NAME).tar.gz $(PI_API_NAME)
 	rm -f $(PYDOC_TAR)
 
 # ##################################################
@@ -172,6 +177,9 @@ pydoc-clean:
 #	targets - echoes the list of targets built by 'make all'
 # If the external repo does not exist, it will be ignored with a warning.
 #
+# If we need to add any more external repos, this should probably switched to
+# an define/call/eval - but being that those are so painfully ugly, I'm
+# avoiding that for now.
 
 #
 # doc repo
@@ -184,7 +192,7 @@ doc doc-%:
 else
 TARGETS=$(addprefix $(DOC_REPO)/,$(shell $(MAKE) -C $(DOC_REPO) targets))
 .PHONY: doc
-doc: doc-all $(OUT)
+doc: doc-all | $(OUT)
 	cp $(TARGETS) $(OUT)
 
 doc-%:
@@ -202,7 +210,7 @@ ide ide-%:
 else
 TARGETS=$(addprefix $(IDE_REPO)/,$(shell $(MAKE) -C $(IDE_REPO) targets))
 .PHONY: ide
-ide: ide-all $(OUT)
+ide: ide-all | $(OUT)
 	cp $(TARGETS) $(OUT)
 
 ide-%:
@@ -233,17 +241,20 @@ pi-setup:
 	$(RUNONPI) sudo $(PIP) install pytest
 	$(RUNONPI) sudo $(PIP) install pdoc
 
-ALL_GROUPS=rstem pydoc ide doc
-UPLOAD_GROUPS=rstem pydoc ide
+CLEAN_TARGETS=rstem pydoc ide doc
+INSTALL_TARGETS=rstem ide doc
+UPLOAD_TARGETS=rstem pydoc ide
 
-clean: $(addsuffix -clean,$(ALL_GROUPS))
+clean: $(addsuffix -clean,$(CLEAN_TARGETS))
 	rm NAME VERSION
 	rm -rf *.egg-info
 	$(RUNONPI) "cd ~; sudo rm -rf ~/rsinstall"
 
-install: $(addsuffix -install,$(ALL_GROUPS))
+install: $(addsuffix -install,$(INSTALL_TARGETS))
 
-upload: $(addsuffix -upload,$(UPLOAD_GROUPS))
+upload: $(addsuffix -upload,$(UPLOAD_TARGETS))
+
+run: ide-run
 
 TEST_FILES=$(wildcard rstem/tests/test_*.py)
 test: $(foreach test,$(TEST_FILES),test-$(subst test_,,$(basename $(notdir $(test)))))
