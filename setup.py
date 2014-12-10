@@ -26,16 +26,6 @@ def shell(cmd):
     stdout, stderr = process.communicate()
     return stdout.decode().strip()
 
-# check python version is good
-if sys.version_info[0] == 2:
-    if not sys.version_info >= (2, 6):
-        raise ValueError('This package requires Python 2.6 or above')
-elif sys.version_info[0] == 3:
-    if not sys.version_info >= (3, 2):
-        raise ValueError('This package requires Python 3.2 or above')
-else:
-    raise ValueError('What version of Python is this?!')
-
 # Utility function to read the README file.
 # Used for the long_description.  It's nice, because now 1) we have a top level
 # README file and 2) it's easier to type in the README file than to put a raw
