@@ -23,9 +23,10 @@ RSTEM_TAR:=$(OUT)/$(RSTEM_NAME)-$(RSTEM_VER).tar.gz
 PYDOC_TAR:=$(OUT)/$(RSTEM_NAME)_api_docs-$(RSTEM_VER).tar.gz
 
 # Dependency files
-RSTEM_GIT_FILES=$(shell git ls-files)
+GIT_FILES=$(shell git ls-files)
 
-all: rstem
+#all: rstem ide doc pydoc
+all: rstem ide pydoc
 
 help:
 	@echo "Usage: make <make-target>, where <make-target> is one of:"
@@ -72,7 +73,7 @@ help:
 	@echo "        Either (fast way):"
 	@echo "            make rstem-dev"
 	@echo "            <edit files>"
-	@echo "            make push
+	@echo "            make push"
 	@echo "            <test & repeat>"
 	@echo "            make rstem-undev"
 	@echo "        Or (normal way):"
@@ -111,15 +112,19 @@ help:
 	sudo chown 0:0 ./rstem/gpio/pullup.sbin
 	sudo chmod u+s ./rstem/gpio/pullup.sbin
 
+$(OUT):
+	mkdir -p $(OUT)
+
 # ##################################################
 # rstem commands
 #
 
 rstem: $(RSTEM_TAR)
-$(RSTEM_TAR): $(RSTEM_GIT_FILES)
-	$(SETUP) sdist
-	mkdir -p $(OUT)
+$(RSTEM_TAR): $(GIT_FILES) $(OUT)
+	@# If there's any files that are not in git but that would end up being in
+	@# the MANIFEST (via graft of a whole directory) then inteactively clean them.
 	git clean -i $(shell awk '/^graft/{print $2}' MANIFEST.in)
+	$(SETUP) sdist
 	mv dist/$(notdir $@) $@
 
 rstem-dev: push
@@ -148,9 +153,9 @@ rstem-clean:
 #
 
 pydoc: $(PYDOC_TAR)
-$(PYDOC_TAR): $(RSTEM_GIT_FILES)
+$(PYDOC_TAR): $(GIT_FILES)
 	$(MAKE) push
-	$(RUNONPI) epydoc --html rstem -o doc
+	$(RUNONPI) pdoc --html --html-dir doc rstem
 	$(RUNONPI) tar cvzf doc.tar.gz doc
 	scp $(PI):~/rsinstall/doc.tar.gz $@
 
@@ -179,7 +184,7 @@ doc doc-%:
 else
 TARGETS=$(addprefix $(DOC_REPO)/,$(shell $(MAKE) -C $(DOC_REPO) targets))
 .PHONY: doc
-doc: doc-all
+doc: doc-all $(OUT)
 	cp $(TARGETS) $(OUT)
 
 doc-%:
@@ -197,7 +202,7 @@ ide ide-%:
 else
 TARGETS=$(addprefix $(IDE_REPO)/,$(shell $(MAKE) -C $(IDE_REPO) targets))
 .PHONY: ide
-ide: ide-all
+ide: ide-all $(OUT)
 	cp $(TARGETS) $(OUT)
 
 ide-%:
@@ -226,12 +231,14 @@ pi-setup:
 	$(RUNONPI) sudo apt-get install -y libi2c-dev
 	# pytest no longer required?
 	$(RUNONPI) sudo $(PIP) install pytest
+	$(RUNONPI) sudo $(PIP) install pdoc
 
 ALL_GROUPS=rstem pydoc ide doc
 UPLOAD_GROUPS=rstem pydoc ide
 
 clean: $(addsuffix -clean,$(ALL_GROUPS))
 	rm NAME VERSION
+	rm -rf *.egg-info
 	$(RUNONPI) "cd ~; sudo rm -rf ~/rsinstall"
 
 install: $(addsuffix -install,$(ALL_GROUPS))
