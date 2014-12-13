@@ -29,8 +29,7 @@ PI_API_NAME=$(notdir $(PI_IDE_API_DIR))
 # Dependency files
 GIT_FILES=$(shell git ls-files)
 
-#all: rstem ide doc pydoc
-all: rstem ide pydoc
+all: rstem ide doc pydoc
 
 help:
 	@echo "Usage: make <make-target>, where <make-target> is one of:"
@@ -190,10 +189,10 @@ ifeq ($(wildcard $(DOC_REPO)),)
 doc doc-%:
 	@echo "Warning: Skipping build of $@.  Git repo not found."
 else
-TARGETS=$(addprefix $(DOC_REPO)/,$(shell $(MAKE) -C $(DOC_REPO) targets))
+DOC_TARGETS=$(shell $(MAKE) -C $(DOC_REPO) targets)
 .PHONY: doc
 doc: doc-all | $(OUT)
-	cp $(TARGETS) $(OUT)
+	cp $(DOC_TARGETS) $(OUT)
 
 doc-%:
 	$(MAKE) -C $(DOC_REPO) $*
@@ -208,10 +207,10 @@ ifeq ($(wildcard $(IDE_REPO)),)
 ide ide-%:
 	@echo "Warning: Skipping build of $@.  Git repo not found."
 else
-TARGETS=$(addprefix $(IDE_REPO)/,$(shell $(MAKE) -C $(IDE_REPO) targets))
+IDE_TARGETS=$(shell $(MAKE) -C $(IDE_REPO) targets)
 .PHONY: ide
 ide: ide-all | $(OUT)
-	cp $(TARGETS) $(OUT)
+	cp $(IDE_TARGETS) $(OUT)
 
 ide-%:
 	$(MAKE) -C $(IDE_REPO) $*
@@ -248,6 +247,7 @@ UPLOAD_TARGETS=rstem pydoc ide
 clean: $(addsuffix -clean,$(CLEAN_TARGETS))
 	rm NAME VERSION
 	rm -rf *.egg-info
+	rm -rf $(OUT)
 	$(RUNONPI) "cd ~; sudo rm -rf ~/rsinstall"
 
 install: $(addsuffix -install,$(INSTALL_TARGETS))
