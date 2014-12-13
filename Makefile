@@ -9,7 +9,7 @@ CELLSDIR=$$HOME/rstem
 PI=pi@raspberrypi
 RUNONPI=ssh $(SSHFLAGS) -q -t $(PI) "mkdir -p rsinstall; cd rsinstall;"
 
-OUT=out
+OUT=$(abspath out)
 
 # Create version name
 DUMMY:=$(shell scripts/version.sh)
@@ -166,6 +166,12 @@ $(PYDOC_TAR): $(GIT_FILES) | $(OUT)
 pydoc-clean:
 	$(RUNONPI) rm -rf $(PI_API_NAME).tar.gz $(PI_API_NAME)
 	rm -f $(PYDOC_TAR)
+
+pydoc-upload:
+	rm -rf build/docs
+	mkdir -p build/docs
+	cd build/docs && tar xvf $(PYDOC_TAR)
+	$(SETUP) upload_docs --upload-dir=build/docs/api/rstem
 
 # ##################################################
 # External Repo commands
