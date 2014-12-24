@@ -86,6 +86,15 @@ def _convert_to_std_coords(x, y):
     @return: (x,y) coordinates in standard programming coordinates"""
     return x, (height - 1 - y)
 
+
+def _framebuffer():
+    global width
+    global height
+
+    flat_fb = led_driver.framebuffer()
+    transposed_array = reversed([flat_fb[i*height:i*height+height] for i in range(width)])
+    return [list(i) for i in zip(*transposed_array)]
+
     
 def display_on_terminal():
     """Toggles on and off the terminal display of the led matrix on show()"""
