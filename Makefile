@@ -1,97 +1,112 @@
-SHELL = /bin/bash
-
 PYTHON=python3
+SETUP=$(PYTHON) setup.py
+PIP=pip-3.2
 
-PYFLAGS=
-DESTDIR=/
 # install directories
 PROJECTSDIR=$$HOME/rstem
 CELLSDIR=$$HOME/rstem
-#BUILDIR=$(CURDIR)/debian/raspberrystem
+
 PI=pi@raspberrypi
+RUNONPI=ssh $(SSHFLAGS) -q -t $(PI) "mkdir -p rsinstall; cd rsinstall;"
 
-ifdef ON_PI
-	#$(warning 1)
-	PYDIR:=$(shell $(PYTHON) $(PYFLAGS) -c "import site; print('site.getsitepackages()[0]')")
+OUT=$(abspath out)
 
-	#$(warning 2)
-	# Calculate the base names of the distribution, the location of all source,
-	NAME:=$(shell cp README.md pkg/README.md; $(PYTHON) $(PYFLAGS) ./pkg/setup.py --name; rm pkg/README.md)
-	VER:=$(shell cp README.md pkg/README.md; $(PYTHON) $(PYFLAGS) ./pkg/setup.py --version; rm pkg/README.md)
+# Create version name
+DUMMY:=$(shell scripts/version.sh)
 
-	#$(warning 3)
-	PYVER:=$(shell $(PYTHON) $(PYFLAGS) -c "import sys; print('py%d.%d' % sys.version_info[:2])")
+# Name must be generated the same way as setup.py
+RSTEM_NAME:=$(shell cat NAME)
+RSTEM_VER:=$(shell cat VERSION)
 
-	#$(warning 4)
-	# all files to be included in rstem package (all python files plus files included in MANIFEST.in)
-	PY_SOURCES:=$(shell \
-		$(PYTHON) $(PYFLAGS) setup.py egg_info >/dev/null 2>&1 && \
-		grep -v "\.egg-info" $(NAME).egg-info/SOURCES.txt)
-	DEB_SOURCES:=debian/changelog \
-		debian/control \
-		debian/copyright \
-		debian/rules \
-		#	debian/docs \
-		$(wildcard debian/*.init) \
-		$(wildcard debian/*.default) \
-		$(wildcard debian/*.manpages) \
-		$(wildcard debian/*.docs) \
-		$(wildcard debian/*.doc-base) \
-		$(wildcard debian/*.desktop)
-	DOC_SOURCES:=doc/epydoc.js \
-		$(wildcard doc/*.png) \
-		$(wildcard doc/*.html)
+# Final targets
+RSTEM_TAR:=$(OUT)/$(RSTEM_NAME)-$(RSTEM_VER).tar.gz
+PYDOC_TAR:=$(OUT)/$(RSTEM_NAME)_api_docs-$(RSTEM_VER).tar.gz
 
-	# Types of dist files all located in dist folder
-	DIST_EGG=dist/$(NAME)-$(VER)-$(PYVER).egg
-	DIST_TAR=dist/$(NAME)-$(VER).tar.gz
-	DIST_ZIP=dist/$(NAME)-$(VER).zip
-	DIST_DEB=dist/python-$(NAME)_$(VER)_armhf.deb \
-		dist/python3-$(NAME)_$(VER)_armhf.deb
-	#	dist/python-$(NAME)-docs_$(VER)-1$(DEB_SUFFIX)_all.deb
-	DIST_DSC=dist/$(NAME)_$(VER).tar.gz \
-		dist/$(NAME)_$(VER).dsc \
-		dist/$(NAME)_$(VER)_source.changes
-endif
+# Target paths
+PI_IDE_API_DIR=/var/local/raspberrystem/ide/api
+PI_API_NAME=$(notdir $(PI_IDE_API_DIR))
 
-# Commands that have a pi-* conterpart
-COMMANDS=install test source egg zip tar deb dist install-projects \
-    upload-all upload-ppa upload-cheeseshop register doc uninstall clean
+# Dependency files
+GIT_FILES=$(shell git ls-files)
 
-$(warning 5)
-.PHONY: all local-install upload-check help purge-pi push pull release pull-doc  \
-    $(COMMANDS) $(addprefix pi-, $(COMMANDS))
+all: rstem ide doc pydoc
 
 help:
-#	@echo "make - Compile sources locally"
-	@echo "make push - Push changes on local computer onto pi"
-	@echo "make pull - Pull changes on pi onto local computer (BE CAREFULL!!!)"
-	@echo "make uninstall - Uninstalls rstem package on remote Raspberry Pi"
-	@echo "make install - Install onto remote Raspberry Pi"
-	@echo "make local-install - Install onto local machine"
-	@echo "make install-projects - Install projects to home folder"
-	@echo "make test - Run tests"
-	@echo "make doc - Generate HTML documentation (packages must be installed locally first)"
-	@echo "make pull-doc - Pulls the doc.zip file from the Raspberry Pi"
-	@echo "make source - Create source package"
-	@echo "make egg - Generate a PyPI egg package"
-	@echo "make zip - Generate a source zip package"
-	@echo "make tar - Generate a source tar package"
-	@echo "make deb - Generate Debian packages (NOT COMPLETED)"
-	@echo "make dist - Generate all packages"
-	@echo "make purge-pi - Remove the rsinstall folder from the Raspberry Pi"
-	@echo "make clean - Get rid of all build files on the Raspberry Pi"
-	@echo "make release - Create and tag a new release"
-	@echo "make upload-all - Upload the new release to all repositories"
-	@echo "make upload-ppa - Upload the new release to ppa"
-	@echo "make register - Register raspberry pi to PyPi repository"
-	@echo "make upload-cheeseshop - Upload the new release to cheeseshop"
-
-setup.py:
-	cp pkg/setup.py ./
-	
-MANIFEST.in:
-	cp pkg/MANIFEST.in ./
+	@echo "Usage: make <make-target>, where <make-target> is one of:"
+	@echo "rstem commands (use to make/install pip packages):"
+	@echo "    rstem             setup.py sdist - Create a pip installable source distribution"
+	@echo "    rstem-dev       * setup.py develop - Build/install on target for (fast) development"
+	@echo "    rstem-undev     * setup.py develop --uninstall - Reverse of make rstem-dev"
+	@echo "    rstem-register    setup.py register - One-time user register/login on Cheeseshop"
+	@echo "    rstem-upload      setup.py upload - Upload source distribution to Cheeseshop"
+	@echo "    rstem-install   * pip install <tar.gz> - Install from source distribution"
+	@echo "    rstem-clean     * Remove all host and target rstem files"
+	@echo ""
+	@echo "Pydoc commands (HTML API documentation generated from source):"
+	@echo "    pydoc           * HTML API docs, for upload"
+	@echo "    pydoc-upload      Upload built API doc to <TBD>"
+	@echo "    pydoc-clean     * Remove all host and target rstem files"
+	@echo ""
+	@echo "Doc commands (docs are in a separate git repo.  Skip if not found):"
+	@echo "    doc               Create PDF docs and HTML lesson plans"
+	@echo "    doc-install     * Install lesson plans (from Instructor Manual)"
+	@echo "    doc-clean       * Uninstall lesson plans"
+	@echo ""
+	@echo "IDE commands (IDE is in a separate git repo.  Skip if not found):"
+	@echo "    ide               Build IDE."
+	@echo "    ide-upload      * Upload IDE."
+	@echo "    ide-install     * Install IDE."
+	@echo "    ide-clean       * Clean IDE."
+	@echo ""
+	@echo "Top-level commands:"
+	@echo "    [all]             make rstem, doc, ide"
+	@echo "    pi-setup        * One-time setup required on clean Raspbian install."
+	@echo "    test            * Run tests (TBD)"
+	@echo "    push            * Push changes on local computer onto pi"
+	@echo "    pull            * Pull changes on pi back to local onto pi (BE CARFEULL!!)"
+	@echo "    upload            make *-upload, and upload final binaries to <TBD>"
+	@echo "    install         * make *-install"
+	@echo "    clean           * make *-clean"
+	@echo "    run             * Run IDE"
+	@echo ""
+	@echo " * Requires access to target Raspberry Pi"
+	@echo ""
+	@echo "Use cases:"
+	@echo "    For rstem development"
+	@echo "        Either (fast way):"
+	@echo "            make rstem-dev"
+	@echo "            <edit files>"
+	@echo "            make push"
+	@echo "            <test & repeat>"
+	@echo "            make rstem-undev"
+	@echo "        Or (normal way):"
+	@echo "            <edit files>"
+	@echo "            make rstem && make rstem-install"
+	@echo "            <test & repeat>"
+	@echo "    X development (where X is in [ide, doc, rstem]:"
+	@echo "        <edit files>"
+	@echo "        make X && make X-install"
+	@echo "        <test & repeat>"
+	@echo "    Make and install everything"
+	@echo "        make clean #optional"
+	@echo "        make && make install"
+	@echo "    Release:"
+	@echo "        git commit ...   # in each repo to be released"
+	@echo "        git tag M.N.P    # in each repo to be released"
+	@echo "        make"
+	@echo "        make upload"
+	@echo "    Install from PyPI"
+	@echo "        From target, to install ide:"
+	@echo "            pip install raspberrystem"
+	@echo "            pip install raspberrystem-ide"
+	@echo ""
+	@echo "Final targets:"
+	@echo "    RSTEM API (w/ api_docs) (sdist): $(RSTEM_TAR)"
+	@echo "    Uploadable API doc HTML tarball: $(PYDOC_TAR)"
+	@echo "    IDE (sdist):                     rstem_ide_VERSION.tar.gz"
+	@echo "    Lesson Plans (sdist):            rstem_lessons_VERSION.tar.gz"
+	@echo "    Docs (PDF):                      *_VERSION.pdf"
+	@echo "Note: sdist is a pip installable tarball creates via setuptools."
 
 ./rstem/gpio/pullup.sbin: ./rstem/gpio/pullup.sbin.c
 	# compile pullup.sbin
@@ -99,177 +114,156 @@ MANIFEST.in:
 	# set pullup.sbin as a root program
 	sudo chown 0:0 ./rstem/gpio/pullup.sbin
 	sudo chmod u+s ./rstem/gpio/pullup.sbin
-	
-debian:
-	cp -r pkg/debian debian
 
-cleanup:
-	rm -f ./setup.py
-	rm -f ./MANIFEST.in
-	rm -rf debian
-	rm -f ./rstem/gpio/pullup.sbin
+$(OUT):
+	mkdir -p $(OUT)
 
+# ##################################################
+# rstem commands
+#
 
-# update files on raspberry pi
-push:
-	rsync -azP --include-from='pkg/install_include.txt' --exclude='*' ./ $(PI):~/rsinstall
+rstem: $(RSTEM_TAR)
+$(RSTEM_TAR): $(GIT_FILES) $(PYDOC_TAR) | $(OUT)
+	@# If there's any files that are untracked in git but that would end up being in
+	@# the MANIFEST (via graft of a whole directory) then interactively clean them.
+	git clean -i $(shell awk '/^graft/{print $2}' MANIFEST.in)
+	tar xf $(PYDOC_TAR) -C rstem
+	$(SETUP) sdist
+	mv dist/$(notdir $@) $@
 
+rstem-dev: push
+	$(RUNONPI) sudo $(SETUP) develop
 
-# send changed files on pi back to user
-pull:
-	rsync -azP $(PI):~/rsinstall/* ./
-	$(MAKE) cleanup
+rstem-undev: push
+	$(RUNONPI) sudo $(SETUP) develop --uninstall
 
+rstem-upload:
+	$(SETUP) sdist upload
 
-# for each command push new files to raspberry pi then run command on the pi
-$(COMMANDS)::
+rstem-register:
+	$(SETUP) register
+
+rstem-install: rstem-undev
+	scp $(RSTEM_TAR) $(PI):/tmp
+	-$(RUNONPI) sudo $(PIP) uninstall -y $(RSTEM_NAME)
+	$(RUNONPI) sudo $(PIP) install /tmp/$(notdir $(RSTEM_TAR))
+
+rstem-clean:
+	rm -rf dist build
+	rm -f $(RSTEM_TAR)
+
+# ##################################################
+# Pydoc commands
+#
+
+pydoc: $(PYDOC_TAR)
+$(PYDOC_TAR): $(GIT_FILES) | $(OUT)
 	$(MAKE) push
-	ssh $(SSHFLAGS) -t $(PI) "cd rsinstall; make pi-$@ PI=$(PI) PYTHON=$(PYTHON) ON_PI=1"
+	$(RUNONPI) pdoc --overwrite --html --html-dir $(PI_API_NAME) rstem
+	$(RUNONPI) tar czf $(PI_API_NAME).tar.gz $(PI_API_NAME)
+	scp $(PI):~/rsinstall/$(PI_API_NAME).tar.gz $@
 
+pydoc-clean:
+	$(RUNONPI) rm -rf $(PI_API_NAME).tar.gz $(PI_API_NAME)
+	rm -f $(PYDOC_TAR)
 
-# on pi commands start with "pi-"
+pydoc-upload:
+	rm -rf build/docs
+	mkdir -p build/docs
+	cd build/docs && tar xvf $(PYDOC_TAR)
+	$(SETUP) upload_docs --upload-dir=build/docs/api/rstem
 
-PREVDIR = $(CURDIR)
+# ##################################################
+# External Repo commands
+#
+# External repo makefiles can support any target rules they want, but must
+# include at least these targets:
+#	all - builds primary targets
+#	targets - echoes the list of targets built by 'make all'
+# If the external repo does not exist, it will be ignored with a warning.
+#
+# If we need to add any more external repos, this should probably switched to
+# an define/call/eval - but being that those are so painfully ugly, I'm
+# avoiding that for now.
 
-pi-doc:
-	rm -rf doc
-	# installing rstem packages...
-	$(MAKE) pi-install PYTHON=python
-	# generating doc...
-	cd; epydoc --html rstem -o $(PREVDIR)/doc; cd $(PREVDIR)
-	# generate doc.zip
-	rm -f doc.zip
-	cd doc; zip ../doc.zip *; cd ../
+#
+# doc repo
+#
+DOC_REPO=../raspberrystem-doc
 
-pull-doc:
-	rsync -azP $(PI):~/rsinstall/doc.zip ./
+ifeq ($(wildcard $(DOC_REPO)),)
+doc doc-%:
+	@echo "Warning: Skipping build of $@.  Git repo not found."
+else
+DOC_TARGETS=$(shell $(MAKE) -C $(DOC_REPO) targets)
+.PHONY: doc
+doc: doc-all | $(OUT)
+	cp $(DOC_TARGETS) $(OUT)
 
-local-install: setup.py MANIFEST.in ./rstem/gpio/pullup.sbin
-	# Pretend we are on the pi and install
-	sudo $(PYTHON) $(PYFLAGS) ./setup.py install
-	$(MAKE) cleanup
+doc-%:
+	$(MAKE) -C $(DOC_REPO) $*
+endif
 
-pi-uninstall:
-	-sudo pip-2.7 uninstall $(NAME)
-	-sudo pip-3.2 uninstall $(NAME)
+#
+# IDE repo
+#
+IDE_REPO=../raspberrystem-ide
 
-pi-install: setup.py MANIFEST.in ./rstem/gpio/pullup.sbin
-	sudo $(PYTHON) $(PYFLAGS) ./setup.py install
-	$(MAKE) pi-install-projects
-	$(MAKE) cleanup
+ifeq ($(wildcard $(IDE_REPO)),)
+ide ide-%:
+	@echo "Warning: Skipping build of $@.  Git repo not found."
+else
+IDE_TARGETS=$(shell $(MAKE) -C $(IDE_REPO) targets)
+.PHONY: ide
+ide: ide-all | $(OUT)
+	cp $(IDE_TARGETS) $(OUT)
 
-pi-install-projects:
-	mkdir -p $(PROJECTSDIR)
-	cp -r ./projects $(PROJECTSDIR)
-	mkdir -p $(CELLSDIR)
-	cp -r ./cells $(CELLSDIR)
+ide-%:
+	$(MAKE) -C $(IDE_REPO) $*
+endif
 
-pi-test:
-	@echo "There are no test files at this time."
+# ##################################################
+# Top-level commands
+#
 
-upload-check:
-	# Check that we are  in correct branch....
-	@if ! git branch | grep -q "* rel/$(VER)"; then \
-		echo "Not in the expected branch rel/$(VER)."; \
-		echo "Either change your branch to rel/$(VER) or update the version number in ./setup.py"; \
-		exit 2; \
-	else \
-		echo "In correct branch."; \
-	fi
+push:
+	rsync -azP --delete --include=NAME --include=VERSION --exclude-from=.gitignore --exclude=.git ./ $(PI):~/rsinstall
 
-pi-upload-all:
-	$(MAKE) pi-upload-ppa
-	$(MAKE) pi-upload-cheeseshop
+pull:
+	rsync -azP "$(PI):~/rsinstall/*" ./
 
-pi-upload-ppa: $(DIST_DSC) setup.py MANIFEST.in ./rstem/gpio/pullup.sbin
-	# TODO: change this from raspberrystem-test ppa to an official one
-	# (to add this repo on raspberrypi type: sudo add-apt-repository ppa:r-jon-s/ppa)
-	$(MAKE) upload-check
-	dput ppa:r-jon-s/ppa dist/$(NAME)_$(VER)_source.changes
-	$(MAKE) cleanup
+pi-setup:
+	@echo "Required for this setup sequence to work:"
+	@echo "		- Base NOOBS install"
+	@echo "		- Wifi or ethernet setup (/etc/network/interface)"
+	@echo "		- ssh setup for user 'pi'"
+	$(RUNONPI) sudo sed -i '/XKBLAYOUT/s/\".*\"/\"us\"/' /etc/default/keyboard
+	$(RUNONPI) sudo apt-get update -y
+	$(RUNONPI) sudo apt-get install -y python3-pip
+	# Should this be a dependency?
+	$(RUNONPI) sudo apt-get install -y libi2c-dev
+	# pytest no longer required?
+	$(RUNONPI) sudo $(PIP) install pytest
+	$(RUNONPI) sudo $(PIP) install pdoc
 
-pi-upload-cheeseshop: $(PY_SOURCES) setup.py MANIFEST.in ./rstem/gpio/pullup.sbin
-	# update the package's registration on PyPI (in case any metadata's changed)
-	# f$(MAKE) upload-check
-	$(PYTHON) $(PYFLAGS) setup.py sdist upload
-	$(MAKE) cleanup
+CLEAN_TARGETS=rstem pydoc ide doc
+INSTALL_TARGETS=rstem ide doc
+UPLOAD_TARGETS=rstem pydoc ide
 
-pi-register: setup.py MANIFEST.in
-	$(PYTHON) $(PYFLAGS) setup.py register
+clean: $(addsuffix -clean,$(CLEAN_TARGETS))
+	rm NAME VERSION
+	rm -rf *.egg-info
+	rm -rf $(OUT)
+	$(RUNONPI) "cd ~; sudo rm -rf ~/rsinstall"
 
-release: $(PY_SOURCES) $(DOC_SOURCES)
-	$(MAKE) upload-check
-	# update the debian changelog with new release information
-	dch --newversion $(VER) --controlmaint
-	# commit the changes and add a new tag
-	git commit debian/changelog -m "Updated changelog for release $(VER)"
-	git tag -s release-$(VER) -m "Release $(VER)"
+install: $(addsuffix -install,$(INSTALL_TARGETS))
 
-pi-source: $(DIST_TAR) $(DIST_ZIP)
+upload: $(addsuffix -upload,$(UPLOAD_TARGETS))
 
-pi-egg: $(DIST_EGG)
+run: ide-run
 
-pi-zip: $(DIST_ZIP)
+TEST_FILES=$(wildcard rstem/tests/test_*.py)
+test: $(foreach test,$(TEST_FILES),test-$(subst test_,,$(basename $(notdir $(test)))))
 
-pi-tar: $(DIST_TAR)
-
-#pi-deb: $(DIST_DSC) $(DIST_DEB) // uncomment when debian is finished
-pi-deb: setup.py MANIFEST.in
-	@echo "make deb is currently BETA!!!"
-	$(PYTHON) setup.py --command-packages=stdeb.command bdist_deb
-
-pi-dist: $(DIST_EGG) $(DIST_DEB) $(DIST_DSC) $(DIST_TAR) $(DIST_ZIP)
-
-# clean all files from raspberry pi
-purge-pi:
-	ssh $(SSHFLAGS) -t $(PI) "sudo rm -rf ~/rsinstall; sudo rm -rf ~/rstem"
-
-# clean all files locally
-pi-clean: setup.py MANIFEST.in
-	sudo $(PYTHON) $(PYFLAGS) setup.py clean
-	$(MAKE) -f $(CURDIR)/pkg/debian/rules clean
-	sudo rm -rf build dist/
-	rm -rf $(NAME).egg-info
-	rm -rf $(NAME)-$(VER).tar.gz
-	rm -rf pkg/debian/python3-$(NAME) pkg/debian/python-$(NAME)
-	rm -f pkg/debian/python*
-	rm -f ../$(NAME)_$(VER).orig.tar.gz ../$(NAME)_$(VER)_armhf.build ../$(NAME)_$(VER)_armhf.changes ../$(NAME)_$(VER)_source.build
-	rm -f ../python-$(NAME)_$(VER)_armhf.deb ../python3-$(NAME)_$(VER)_armhf.deb
-	rm -f ../$(NAME)_$(VER).dsc ../$(NAME)_$(VER).tar.gz ../$(NAME)_$(VER)_source.changes
-	rm -rf ENV
-	find $(CURDIR) -name '*.pyc' -delete
-	rm -f pkg/debian/files
-	touch pkg/debian/files
-	rm -rf doc
-	rm -rf deb_dist
-	sudo rm -f ./rstem/gpio/pullup.sbin
-	$(MAKE) cleanup
-
-$(DIST_TAR): $(PY_SOURCES) setup.py MANIFEST.in
-	$(PYTHON) $(PYFLAGS) setup.py sdist --formats gztar
-
-$(DIST_ZIP): $(PY_SOURCES) setup.py MANIFEST.in
-	$(PYTHON) $(PYFLAGS) setup.py sdist --formats zip
-
-$(DIST_EGG): $(PY_SOURCES) setup.py MANIFEST.in
-	$(PYTHON) $(PYFLAGS) setup.py bdist_egg
-
-$(DIST_DEB): $(PY_SOURCES) $(DEB_SOURCES) setup.py MANIFEST.in debian
-	# build the binary package in the parent directory then rename it to
-	# project_version.orig.tar.gz
-	$(PYTHON) $(PYFLAGS) setup.py sdist --dist-dir=../
-	rename -f 's/$(NAME)-(.*)\.tar\.gz/$(NAME)_$$1\.orig\.tar\.gz/' ../*
-	debuild -b -i -I -Idist -Ibuild -Idocs/_build -Icoverage -I__pycache__ -I.coverage -Itags -I*.pyc -I*.vim -I*.xcf -aarmhf -rfakeroot
-	mkdir -p dist/
-	for f in $(DIST_DEB); do cp ../$${f##*/} dist/; done
-
-$(DIST_DSC): $(PY_SOURCES) $(DEB_SOURCES) setup.py MANIFEST.in debian
-	# build the source package in the parent directory then rename it to
-	# project_version.orig.tar.gz
-	cp -r  pkg/debian debian
-	$(PYTHON) $(PYFLAGS) setup.py sdist --dist-dir=../
-	rename -f 's/$(NAME)-(.*)\.tar\.gz/$(NAME)_$$1\.orig\.tar\.gz/' ../*
-	debuild -S -i -I -Idist -Ibuild -Idocs/_build -Icoverage -I__pycache__ -I.coverage -Itags -I*.pyc -I*.vim -I*.xcf -aarmhf -rfakeroot
-	mkdir -p dist/
-	for f in $(DIST_DSC); do cp ../$${f##*/} dist/; done
-
+test-%: push
+	$(RUNONPI) "cd rstem/tests; $(PYTHON) -m testing $*"

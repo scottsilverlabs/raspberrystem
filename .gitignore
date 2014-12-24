@@ -1,4 +1,13 @@
+.DS_Store
+*.so
 *.tar
+*.tar.gz
 *.pyc
 /build/
 *.egg-info/
+/dist/
+/out/
+/doc/
+api/
+VERSION
+NAME
