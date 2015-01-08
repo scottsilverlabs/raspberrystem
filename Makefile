@@ -262,8 +262,14 @@ upload: $(addsuffix -upload,$(UPLOAD_TARGETS))
 
 run: ide-run
 
-TEST_FILES=$(wildcard rstem/tests/test_*.py)
-test: $(foreach test,$(TEST_FILES),test-$(subst test_,,$(basename $(notdir $(test)))))
+test:
+	@echo "What do you want to test?"
+	@for FULLFILE in rstem/tests/test_*.py; do \
+		BASENAME=`basename "$$FULLFILE"`; \
+		WITHOUT_EXTENSION="$${BASENAME%.*}"; \
+		TESTNAME="$${WITHOUT_EXTENSION##test_}"; \
+		echo "    make test-$$TESTNAME"; \
+	done
 
 test-%: push
 	$(RUNONPI) "cd rstem/tests; $(PYTHON) -m testing $*"

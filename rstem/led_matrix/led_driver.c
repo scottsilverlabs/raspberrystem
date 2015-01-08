@@ -353,6 +353,21 @@ void print_framebuffer(void){
 
 // Python Wrappers =================================================
 
+static PyObject *py_framebuffer(PyObject *self, PyObject *args){
+    PyObject *pylist, *item;
+    int length = framebuffer_size/sizeof(int);
+    int i;
+
+    pylist = PyList_New(length);
+    if (pylist != NULL) {
+        for (i=0; i<length; i++) {
+            item = PyLong_FromLong(framebuffer[i]);
+            PyList_SET_ITEM(pylist, i, item);
+        }
+    }
+    return pylist;
+}
+
 static PyObject *py_num_of_matrices(PyObject *self, PyObject *args){
 	int ret = num_of_matrices();
 	if(ret < 0){
@@ -540,6 +555,7 @@ static PyMethodDef led_driver_methods[] = {
     {"frame", py_frame, METH_VARARGS, "Exchanges current framebuffer for a numpy framebuffer."},
     {"display_on_terminal", py_display_on_terminal, METH_NOARGS, "Toggles on and off display_on_terminal mode"}, 
 	{"detect", py_num_of_matrices, METH_NOARGS, "Returns the number of matrices connected"},
+	{"framebuffer", py_framebuffer, METH_NOARGS, "Returns framebuffer"},
 	{NULL, NULL, 0, NULL}  /* Sentinal */
 };
 
