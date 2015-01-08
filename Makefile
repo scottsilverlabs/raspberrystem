@@ -174,6 +174,16 @@ pydoc-upload:
 	$(SETUP) upload_docs --upload-dir=build/docs/api/rstem
 
 # ##################################################
+# Host commands
+#
+# Targets that can run on the host without needing the target Pi.
+#
+host-clean:
+	rm NAME VERSION
+	rm -rf *.egg-info
+	rm -rf $(OUT)
+
+# ##################################################
 # External Repo commands
 #
 # External repo makefiles can support any target rules they want, but must
@@ -246,14 +256,11 @@ pi-setup:
 	$(RUNONPI) sudo $(PIP) install pytest
 	$(RUNONPI) sudo $(PIP) install pdoc
 
-CLEAN_TARGETS=rstem pydoc ide doc
+CLEAN_TARGETS=rstem pydoc ide doc host
 INSTALL_TARGETS=rstem ide doc
 UPLOAD_TARGETS=rstem pydoc ide
 
 clean: $(addsuffix -clean,$(CLEAN_TARGETS))
-	rm NAME VERSION
-	rm -rf *.egg-info
-	rm -rf $(OUT)
 	$(RUNONPI) "cd ~; sudo rm -rf ~/rsinstall"
 
 install: $(addsuffix -install,$(INSTALL_TARGETS))
