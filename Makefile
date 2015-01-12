@@ -6,6 +6,7 @@ PIP=pip-3.2
 PROJECTSDIR=$$HOME/rstem
 CELLSDIR=$$HOME/rstem
 
+SSHFLAGS=
 PI=pi@raspberrypi
 RUNONPI=ssh $(SSHFLAGS) -q -t $(PI) "mkdir -p rsinstall; cd rsinstall;"
 
@@ -249,8 +250,6 @@ pi-setup:
 	$(RUNONPI) sudo apt-get install -y python3-pip
 	# Should this be a dependency?
 	$(RUNONPI) sudo apt-get install -y libi2c-dev
-	# pytest no longer required?
-	$(RUNONPI) sudo $(PIP) install pytest
 	$(RUNONPI) sudo $(PIP) install pdoc
 
 CLEAN_TARGETS=rstem pydoc ide doc host
