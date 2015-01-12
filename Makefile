@@ -108,13 +108,6 @@ help:
 	@echo "    Docs (PDF):                      *_VERSION.pdf"
 	@echo "Note: sdist is a pip installable tarball creates via setuptools."
 
-./rstem/gpio/pullup.sbin: ./rstem/gpio/pullup.sbin.c
-	# compile pullup.sbin
-	gcc ./rstem/gpio/pullup.sbin.c -o ./rstem/gpio/pullup.sbin
-	# set pullup.sbin as a root program
-	sudo chown 0:0 ./rstem/gpio/pullup.sbin
-	sudo chmod u+s ./rstem/gpio/pullup.sbin
-
 $(OUT):
 	mkdir -p $(OUT)
 
@@ -122,11 +115,15 @@ $(OUT):
 # rstem commands
 #
 
+rstem-util:
+	$(MAKE) -C util
+
 rstem: $(RSTEM_TAR)
-$(RSTEM_TAR): $(GIT_FILES) $(PYDOC_TAR) | $(OUT)
+$(RSTEM_TAR): $(GIT_FILES) $(PYDOC_TAR) rstem-util | $(OUT)
 	@# If there's any files that are untracked in git but that would end up being in
 	@# the MANIFEST (via graft of a whole directory) then interactively clean them.
-	git clean -i $(shell awk '/^graft/{print $2}' MANIFEST.in)
+	@# EXCEPT: util/bin includes specific externally built binaries.
+	git clean -i $(shell awk '/^graft/{print $$2}' MANIFEST.in | grep -v util/bin)
 	tar xf $(PYDOC_TAR) -C rstem
 	$(SETUP) sdist
 	mv dist/$(notdir $@) $@

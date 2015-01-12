@@ -1,5 +1,16 @@
 #!/bin/bash
 
+PKG_DIR=$1
+PKG_NAME=$2
+
+# Set setuid root permission on .sbin files
+for SRC in ./util/bin/*.sbin; do
+    DEST=/usr/local/bin/`basename $SRC`
+    echo "Installing as setuid root: $DEST"
+    sudo cp $SRC $DEST
+    sudo chown root:root $DEST
+    sudo chmod 4755 $DEST
+done
 
 # Copy udev rule to correct place
 sudo cp ./pkg/90-raspberrystem.rules /etc/udev/rules.d/90-raspberrystem.rules
