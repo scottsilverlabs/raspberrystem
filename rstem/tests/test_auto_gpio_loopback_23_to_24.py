@@ -67,8 +67,8 @@ def output_turned_off_via_set(i, o):
 def io_on_off_sequence(i, o):
     on_times = 0
     off_times = 0
-    TRIES = 1000
-    for i in range(TRIES):
+    TRIES = 100
+    for n in range(TRIES):
         o.on()
         if i.is_on:
             on_times += 1
@@ -179,4 +179,34 @@ def input_button_is_pressed(i, o):
 def input_button_is_released(i, o):
     o.off()
     return i.is_released()
+
+@testing.automatic
+@io_setup
+def time_output(i, o):
+    TRIES = 100
+    start = time.time()
+    for n in range(TRIES):
+        o.on()
+    end = time.time()
+    rate = float(TRIES)/(end-start)
+    # We expect this to run at least MINIMUM_RATE in Hz.  Arbitrary, just to
+    # keep it reasonable (testing shows it runs at ~3kHz).
+    MINIMUM_RATE = 1000
+    print("Output test running at: {:.2f}Hz (MINIMUM_RATE: {}Hz)".format(rate, MINIMUM_RATE))
+    return rate > MINIMUM_RATE
+
+@testing.automatic
+@io_setup
+def time_input(i, o):
+    TRIES = 100
+    start = time.time()
+    for n in range(TRIES):
+        i.is_on()
+    end = time.time()
+    rate = float(TRIES)/(end-start)
+    # We expect this to run at least MINIMUM_RATE in Hz.  Arbitrary, just to
+    # keep it reasonable (testing shows it runs at ~3kHz).
+    MINIMUM_RATE = 1000
+    print("Input test running at: {:.2f}Hz (MINIMUM_RATE: {}Hz)".format(rate, MINIMUM_RATE))
+    return rate > MINIMUM_RATE
 

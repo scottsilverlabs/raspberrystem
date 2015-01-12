@@ -228,10 +228,9 @@ class Pin:
         if level != 0 and level != 1:
             raise ValueError("Level must be either 1 or 0.")
         with self.mutex:
-            # write value wasn't working for some reason...
-            os.system("echo %s > %s/value" % (str(level), self.gpio_dir))
-            # self.fvalue.seek(0)
-            # self.fvalue.write(str(level))
+            self.fvalue.seek(0)
+            self.fvalue.write(str(level))
+            self.fvalue.flush()
 
 
 class Input(Pin):
