@@ -134,7 +134,10 @@ class TestLogger:
                     pass_fail_char = 'F'
                     if exc_name == testing.TestSkippedException.__name__:
                         pass_fail_char = 's'
-                    fmt = base_fmt + '{exc_name}:{exc_msg}'
+                    if exc_msg:
+                        fmt = base_fmt + '{exc_name}:{exc_msg}'
+                    else:
+                        fmt = base_fmt + '{exc_name}'
                     if filename or line_num or func_name:
                         spacer = base_fmt.format( pass_fail_char='', test_name='', test_type='')
                         fmt += '\n' + spacer + '{filename}:{line_num}:{func_name}()'
