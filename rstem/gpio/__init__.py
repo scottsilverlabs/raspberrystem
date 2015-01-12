@@ -57,8 +57,7 @@ class Pin:
                     f.write("%d\n" % pin)
 
     def __pullup(self, pin, enable):
-        here = os.path.dirname(os.path.realpath(__file__))
-        os.system(here + "/pullup.sbin %d %d" % (pin, enable))
+        os.system("pullup.sbin %d %d" % (pin, enable))
 
     def __enable_pullup(self, pin):
         self.__pullup(pin, ARG_PULL_UP)
@@ -206,7 +205,8 @@ class Pin:
         self.last = level
         return clicked
 
-    def get_level(self):
+    @property
+    def level(self):
         """Returns the current level of the GPIO pin.
         @returns: int (1 for HIGH, 0 for LOW)
         @note: The GPIO pins are active low.
@@ -217,7 +217,8 @@ class Pin:
             self.fvalue.seek(0)
             return int(self.fvalue.read())
 
-    def set_level(self, level):
+    @level.setter
+    def level(self, level):
         """Sets the level of the GPIO port.
         @param level: Level to set. Must be either HIGH or LOW.
         @param level: int
@@ -233,37 +234,37 @@ class Pin:
             # self.fvalue.write(str(level))
 
 
-class Pins:
-    def __init__(self):
-        self.gpios = [Pin(i) for i in range(max(PINS) + 1)]
+class Input(Pin):
+    def __init__(self, pin):
+        super().__init__(pin)
+        self.configure(INPUT)
 
-    def __validate_gpio(self, pin, direction):
-        class UninitializedError(Exception):
-            pass
+    def is_on(self):
+        return bool(self.level)
 
-        if not pin in PINS:
-            raise ValueError("Invalid GPIO")
-        if self.gpios[pin].direction != direction:
-            raise UninitializedError()
+    def is_off(self):
+        return not self.is_on()
 
-    def configure(self, pin, direction):
-        if not pin in PINS:
-            raise ValueError("Invalid GPIO")
-        self.gpios[pin].configure(direction)
+class Output(Pin):
+    def __init__(self, pin):
+        super().__init__(pin)
+        self.configure(OUTPUT)
 
-    def was_clicked(self):
-        inputs = [g for g in self.gpios if g.direction == INPUT]
-        return [g.pin for g in inputs if g.was_clicked()]
+    def on(self):
+        self.level = 1
 
-    def get_level(self, pin):
-        self.__validate_gpio(pin, INPUT)
-        return self.gpios[pin].get_level()
+    def off(self):
+        self.level = 0
 
-    def set_level(self, pin, level):
-        self.__validate_gpio(pin, OUTPUT)
-        self.gpios[pin].set_level(level)
+class Button(Input):
+    def __init__(self, pin):
+        super().__init__(pin)
 
-# Export functions in this module
-g = Pins()
-for name in ['configure', 'get_level', 'set_level', 'was_clicked']:
-    globals()[name] = getattr(g, name)
+    def is_pressed(self):
+        return self.is_on()
+
+    def is_released(self):
+        return self.is_off()
+
+    pass
+
