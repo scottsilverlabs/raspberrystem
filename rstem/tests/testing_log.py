@@ -110,19 +110,28 @@ class TestLogger:
 
     def print_result_table(self):
         log_dir, symlink_name, log_file_name = self._log_name()
-        base_fmt = '{pass_fail_char:2}{test_type:5}{test_name:30}'
+        base_fmt = '{pass_fail_char:2}{test_type:5}{test_name:{test_name_length}}'
+
+        # Calc longest test_name length
+        test_name_length = 0
+        with open(symlink_name) as log:
+            for row in csv.reader(log):
+                test_name, test_type, exc_name, filename, line_num, func_name, exc_msg = row
+                test_name_length = max(test_name_length, len(test_name) + 1)
 
         # Header - 2 lines: line of labels, then line of "-" for each label.
         header_fmt = base_fmt + '{exc:40}'
         kwfmt = {
             'pass_fail_char' : '*',
             'test_name' : 'TEST NAME',
+            'test_name_length' : test_name_length,
             'test_type' : 'TYPE',
             'exc' : 'EXCEPTION INFO (AND END OF TRACEBACK)',
             }
         print(header_fmt.format(**kwfmt))
         for key in kwfmt.keys():
-            kwfmt[key] = '-' * len(kwfmt[key])
+            if isinstance(kwfmt[key], str):
+                kwfmt[key] = '-' * len(kwfmt[key])
         print(header_fmt.format(**kwfmt))
 
         # For each line in log
@@ -139,7 +148,9 @@ class TestLogger:
                     else:
                         fmt = base_fmt + '{exc_name}'
                     if filename or line_num or func_name:
-                        spacer = base_fmt.format( pass_fail_char='', test_name='', test_type='')
+                        spacer = base_fmt.format(
+                            pass_fail_char='', test_name='', test_name_length=test_name_length, test_type=''
+                            )
                         fmt += '\n' + spacer + '{filename}:{line_num}:{func_name}()'
                 else:
                     pass_fail_char = '-'
@@ -148,6 +159,7 @@ class TestLogger:
                 print(fmt.format(
                     pass_fail_char=pass_fail_char,
                     test_name=test_name,
+                    test_name_length=test_name_length,
                     test_type=test_type,
                     exc_name=exc_name,
                     filename=filename,
