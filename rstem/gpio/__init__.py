@@ -171,6 +171,7 @@ class _Pin:
             self.__end_thread()  # end any previous callback functions
             self.poll_thread_stop = Event()
             self.poll_thread = Thread(target=_Pin.__poll_thread_run, args=(self, callback, bouncetime))
+            self.poll_thread.daemon = True
             self.poll_thread.start()
 
 
