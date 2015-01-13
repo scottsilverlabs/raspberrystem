@@ -182,7 +182,7 @@ def input_init_pullnone(i, o):
 def input_invalid_pin():
     passed = False
     try:
-        Input(5)
+        g.Input(5)
     except ValueError:
         passed = True
     return passed
@@ -190,13 +190,13 @@ def input_invalid_pin():
 @testing.automatic
 @io_setup(button=True)
 def input_button_is_pressed(b, o):
-    o.on()
+    o.level = 0
     return b.is_pressed()
 
 @testing.automatic
 @io_setup(button=True)
 def input_button_is_released(b, o):
-    o.off()
+    o.level = 1
     return b.is_released()
 
 @testing.automatic
