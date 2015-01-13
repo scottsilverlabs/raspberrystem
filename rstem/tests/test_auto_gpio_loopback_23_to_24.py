@@ -15,14 +15,16 @@ Short GPIO 23 to 24.
 OUTPUT_PIN = 23
 INPUT_PIN = 24
 
-def io_setup(button=False):
+def io_setup(button=False, input_active_low=False, output_active_low=False, pull=None):
     def decorator(func):
         @wraps(func)
         def wrapper():
             # Setup
-            InputFunc = g.Button if button else g.Input
-            i = InputFunc(INPUT_PIN)
-            o = g.Output(OUTPUT_PIN)
+            if button:
+                i = g.Button(INPUT_PIN)
+            else:
+                i = g.Input(INPUT_PIN, active_low=input_active_low, pull=pull)
+            o = g.Output(OUTPUT_PIN, active_low=output_active_low)
 
             passed = func(i, o)
 
@@ -89,9 +91,16 @@ def output_init_start_off_false(i, o):
     return False
 
 @testing.automatic
-@io_setup()
-def output_init_active_low_false(i, o):
-    return False
+@io_setup(output_active_low=True)
+def output_init_active_low_on(i, o):
+    o.on()
+    return i.level == 0
+
+@testing.automatic
+@io_setup(output_active_low=True)
+def output_init_active_low_off(i, o):
+    o.off()
+    return i.level == 1
 
 @testing.automatic
 @io_setup()
@@ -119,15 +128,6 @@ def input_is_on_via_get(i, o):
 
 @testing.automatic
 @io_setup()
-def input_is_on_via_get_triplet(i, o):
-    # TBD
-    # Add optional parameter to get() triplet of falling, rising, and current
-    # values
-    # 
-    return False
-
-@testing.automatic
-@io_setup()
 def input_wait_for_change(i, o):
     return False
 
@@ -147,9 +147,16 @@ def input_call_if_changed_disable(i, o):
     return False
 
 @testing.automatic
-@io_setup()
-def input_init_active_low_false(i, o):
-    return False
+@io_setup(input_active_low=True)
+def input_init_active_low_on(i, o):
+    o.level = 0
+    return i.is_on()
+
+@testing.automatic
+@io_setup(input_active_low=True)
+def input_init_active_low_off(i, o):
+    o.level = 1
+    return i.is_off()
 
 @testing.automatic
 @io_setup()
@@ -170,6 +177,15 @@ def input_init_pulldown(i, o):
 @io_setup()
 def input_init_pullnone(i, o):
     return False
+
+@testing.automatic
+def input_invalid_pin():
+    passed = False
+    try:
+        Input(5)
+    except ValueError:
+        passed = True
+    return passed
 
 @testing.automatic
 @io_setup(button=True)

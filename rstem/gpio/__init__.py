@@ -27,6 +27,9 @@ OUTPUT = 1
 INPUT = 2
 DISABLED = 3
 
+PULL_UP = "pull_up"
+PULL_DOWN = "pull_down"
+
 # Edge Detection
 NONE = "none"
 RISING = "rising"
@@ -41,7 +44,7 @@ HIGH = 1
 LOW = 0
 
 
-class Pin:
+class _Pin:
     def __init__(self, pin):
         self.gpio_dir = "/sys/class/gpio/gpio%d" % pin
         self.pin = pin
@@ -108,12 +111,12 @@ class Pin:
             while self.poll_thread.isAlive():
                 self.poll_thread.join(1)
 
-    def remove_edge_detect(self):
+    def _remove_edge_detect(self):
         """Removes edge detect interrupt"""
         self.__set_edge(NONE)
         self.__end_thread()
 
-    def wait_for_edge(self, edge):
+    def _wait_for_edge(self, edge):
         """Blocks until the given edge has happened
         @param edge: Either gpio.FALLING, gpio.RISING, gpio.BOTH
         @type edge: string
@@ -145,7 +148,7 @@ class Pin:
             else:
                 first_time = False
 
-    def edge_detect(self, edge, callback=None, bouncetime=200):
+    def _edge_detect(self, edge, callback=None, bouncetime=200):
         """Sets up edge detection interrupt.
         @param edge: either gpio.NONE, gpio.RISING, gpio.FALLING, or gpio.BOTH
         @type edge: int
@@ -167,11 +170,11 @@ class Pin:
         if edge != NONE:
             self.__end_thread()  # end any previous callback functions
             self.poll_thread_stop = Event()
-            self.poll_thread = Thread(target=Pin.__poll_thread_run, args=(self, callback, bouncetime))
+            self.poll_thread = Thread(target=_Pin.__poll_thread_run, args=(self, callback, bouncetime))
             self.poll_thread.start()
 
 
-    def configure(self, direction):
+    def _configure(self, direction, pull=None):
         """Configure the GPIO pin to either be an input, output or disabled.
         @param direction: Either gpio.INPUT, gpio.OUTPUT, or gpio.DISABLED
         @type direction: int
@@ -186,15 +189,18 @@ class Pin:
                     # For future use
                     fdirection.write("out")
                     self.fvalue = open(self.gpio_dir + "/value", "w")
+                    if pull:
+                        raise ValueError("Can't set pull resistor on output")
                 elif direction == INPUT:
-                    self.__enable_pullup(self.pin)
+                    if pull:
+                        self.__pullup(self.pin, ARG_PULL_UP if pull == PULL_UP else ARG_PULL_DOWN)
                     fdirection.write("in")
                     self.fvalue = open(self.gpio_dir + "/value", "r")
                 elif direction == DISABLED:
                     fdirection.write("in")
                     self.fvalue.close()
 
-    def was_clicked(self):
+    def _was_clicked(self):
         # TODO: make work for any type of edge change and rename function
         """Detects whether the GPIO has been clicked or on since the pin has been initialized or
         since the last time was_clicked() has been called.
@@ -206,7 +212,7 @@ class Pin:
         return clicked
 
     @property
-    def level(self):
+    def _level(self):
         """Returns the current level of the GPIO pin.
         @returns: int (1 for HIGH, 0 for LOW)
         @note: The GPIO pins are active low.
@@ -217,53 +223,57 @@ class Pin:
             self.fvalue.seek(0)
             return int(self.fvalue.read())
 
-    @level.setter
-    def level(self, level):
+    @_level.setter
+    def _level(self, level):
         """Sets the level of the GPIO port.
         @param level: Level to set. Must be either HIGH or LOW.
         @param level: int
         """
         if self.direction != OUTPUT:
             raise ValueError("GPIO must be configured to be an OUTPUT!")
-        if level != 0 and level != 1:
-            raise ValueError("Level must be either 1 or 0.")
         with self.mutex:
             self.fvalue.seek(0)
-            self.fvalue.write(str(level))
+            self.fvalue.write('1' if level else '0')
             self.fvalue.flush()
 
 
-class Input(Pin):
-    def __init__(self, pin):
+class Input(_Pin):
+    def __init__(self, pin, active_low=False, pull=None):
         super().__init__(pin)
-        self.configure(INPUT)
+        self._active_low = active_low
+        self._configure(INPUT, pull)
 
     def is_on(self):
-        return bool(self.level)
+        return bool(self.level) != self._active_low
 
     def is_off(self):
         return not self.is_on()
 
-class Output(Pin):
-    def __init__(self, pin):
+    level = _Pin._level
+
+class Output(_Pin):
+    def __init__(self, pin, active_low=False):
         super().__init__(pin)
-        self.configure(OUTPUT)
+        self._active_low = active_low
+        self._configure(OUTPUT)
 
     def on(self):
-        self.level = 1
+        self.level = not self._active_low
 
     def off(self):
-        self.level = 0
+        self.level = self._active_low
 
-class Button(Input):
+    level = _Pin._level
+
+class Button(_Pin):
     def __init__(self, pin):
         super().__init__(pin)
-
-    def is_pressed(self):
-        return self.is_on()
+        self._configure(INPUT, pull=PULL_UP)
 
     def is_released(self):
-        return self.is_off()
+        return bool(self.level)
 
-    pass
+    def is_pressed(self):
+        return not self.is_released()
 
+    level = _Pin._level
