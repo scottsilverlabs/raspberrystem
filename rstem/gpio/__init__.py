@@ -25,33 +25,18 @@ PINS = [2, 3, 4, 14, 15, 17, 18, 22, 23, 24, 25, 27]
 
 button_threads = {}
 
-# Directions
-OUTPUT = 1
-INPUT = 2
-DISABLED = 3
-
-PULL_UP = "pull_up"
-PULL_DOWN = "pull_down"
-
-# Edge Detection
-NONE = "none"
-RISING = "rising"
-FALLING = "falling"
-BOTH = "both"
-
-ARG_PULL_DISABLE = 0
-ARG_PULL_DOWN = 1
-ARG_PULL_UP = 2
-
-HIGH = 1
-LOW = 0
-
+PRESS = 1
+RELEASE = 2
+BOTH = 3
 
 class _Pin:
+    _ARG_PULL_DISABLE = 0
+    _ARG_PULL_DOWN = 1
+    _ARG_PULL_UP = 2
+
     def __init__(self, pin):
         self.gpio_dir = "/sys/class/gpio/gpio%d" % pin
         self.pin = pin
-        self.direction = DISABLED
         self.mutex = Lock()
         self.poll_thread = None
         self.poll_thread_stop = None
@@ -67,16 +52,16 @@ class _Pin:
         os.system("pullup.sbin %d %d" % (pin, enable))
 
     def _enable_pullup(self, pin):
-        self._pullup(pin, ARG_PULL_UP)
+        self._pullup(pin, self._ARG_PULL_UP)
 
     def _disable_pullup(self, pin):
-        self._pullup(pin, ARG_PULL_DISABLE)
+        self._pullup(pin, self._ARG_PULL_DISABLE)
 
     def _enable_pulldown(self, pin):
-        self._pullup(pin, ARG_PULL_DOWN)
+        self._pullup(pin, self._ARG_PULL_DOWN)
 
     def _disable_pulldown(self, pin):
-        self._pullup(pin, ARG_PULL_DISABLE)
+        self._pullup(pin, self._ARG_PULL_DISABLE)
 
     def _end_thread(self):
         global button_threads
@@ -172,25 +157,19 @@ class Button(_Pin):
         self.fvalue.seek(0)
         return int(self.fvalue.read())
 
+    def is_pressed(self, change=PRESS):
+        pressed = not bool(self._get()) 
+        return pressed if change == PRESS else not pressed
+
     def is_released(self):
-        return bool(self._get())
+        return not self.is_pressed()
 
-    def is_pressed(self):
-        return not self.is_released()
-
-    def presses(self):
+    def presses(self, change=PRESS):
         _releases, _presses = self._edges()
-        return _presses
+        return _presses if change == PRESS else _releases
 
-    def releases(self):
-        _releases, _presses = self._edges()
-        return _releases
-
-    def one_press(self):
-        return self._one_edge(0)
-
-    def one_release(self):
-        pass
+    def one_press(self, change=PRESS):
+        return self._one_edge(0 if change == PRESS else 1)
 
     """ TBD:
     def wait(self): wait for press, release, or either

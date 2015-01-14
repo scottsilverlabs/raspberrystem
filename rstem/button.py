@@ -17,9 +17,11 @@
 from rstem import gpio
 
 
-PRESSED = gpio.FALLING
-RELEASED = gpio.RISING
-BOTH = gpio.BOTH
+RISING = "rising"
+FALLING = "falling"
+BOTH = "both"
+PRESSED = FALLING
+RELEASED = RISING
 
 A = 4
 B = 17
