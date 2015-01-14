@@ -55,20 +55,6 @@ def output_turned_off(b, o):
 
 @testing.automatic
 @io_setup()
-def output_turned_on_via_set(b, o):
-    o.off()
-    o.level = 1
-    return b.is_released()
-
-@testing.automatic
-@io_setup()
-def output_turned_off_via_set(b, o):
-    o.on()
-    o.level = 0
-    return b.is_pressed()
-
-@testing.automatic
-@io_setup()
 def io_on_off_sequence(b, o):
     on_times = 0
     off_times = 0
@@ -122,13 +108,13 @@ def button_is_released(b, o):
 MINIMUM_BUTTON_PRESS_PERIOD = 0.050
 def try_n_half_presses(n, b, o):
     # Start with button released, and clear presses()
-    o.level = 1
+    o.on()
     time.sleep(MINIMUM_BUTTON_PRESS_PERIOD)
     b.presses()
 
     level = 0
     for i in range(n):
-        o.level = level
+        o._set(level)
         time.sleep(MINIMUM_BUTTON_PRESS_PERIOD)
         level = 0 if level else 1
 
