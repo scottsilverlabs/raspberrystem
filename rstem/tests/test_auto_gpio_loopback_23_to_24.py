@@ -16,18 +16,15 @@ Short GPIO 23 to 24.
 OUTPUT_PIN = 23
 INPUT_PIN = 24
 
-def io_setup(button=False, input_active_low=False, output_active_low=False, pull=None):
+def io_setup(output_active_low=False, pull=None):
     def decorator(func):
         @wraps(func)
         def wrapper():
             # Setup
-            if button:
-                i = g.Button(INPUT_PIN)
-            else:
-                i = g.Input(INPUT_PIN, active_low=input_active_low, pull=pull)
+            b = g.Button(INPUT_PIN)
             o = g.Output(OUTPUT_PIN, active_low=output_active_low)
 
-            passed = func(i, o)
+            passed = func(b, o)
 
             # Teardown
             g.DisabledPin(OUTPUT_PIN)
@@ -37,323 +34,233 @@ def io_setup(button=False, input_active_low=False, output_active_low=False, pull
         return wrapper
     return decorator
 
-"""
 @testing.automatic
 @io_setup()
-def output_starts_off(i, o):
-    return i.is_off()
+def output_starts_off(b, o):
+    return b.is_pressed()
 
 @testing.automatic
 @io_setup()
-def output_turned_on(i, o):
+def output_turned_on(b, o):
     o.off()
     o.on()
-    return i.is_on()
+    return b.is_released()
 
 @testing.automatic
 @io_setup()
-def output_turned_off(i, o):
+def output_turned_off(b, o):
     o.on()
     o.off()
-    return i.is_off()
+    return b.is_pressed()
 
 @testing.automatic
 @io_setup()
-def output_turned_on_via_set(i, o):
+def output_turned_on_via_set(b, o):
     o.off()
     o.level = 1
-    return i.is_on()
+    return b.is_released()
 
 @testing.automatic
 @io_setup()
-def output_turned_off_via_set(i, o):
+def output_turned_off_via_set(b, o):
     o.on()
     o.level = 0
-    return i.is_off()
+    return b.is_pressed()
 
 @testing.automatic
 @io_setup()
-def io_on_off_sequence(i, o):
+def io_on_off_sequence(b, o):
     on_times = 0
     off_times = 0
-    TRIES = 100
+    TRIES = 10
     for n in range(TRIES):
         o.on()
-        if i.is_on:
+        time.sleep(0.050)
+        if b.is_released:
             on_times += 1
         o.off()
-        if i.is_off:
+        time.sleep(0.050)
+        if b.is_pressed:
             off_times += 1
     passed = on_times == TRIES and off_times == TRIES
     if not passed:
         print("Failed: on_times {}, off_times {}, TRIES {}".format(on_times, off_times, TRIES))
     return passed
 
+""" TBD:
 @testing.automatic
 @io_setup()
-def output_init_start_off_false(i, o):
+def output_init_start_off_false(b, o):
+    # Create output that starts HIGH
     return False
+"""
 
 @testing.automatic
 @io_setup(output_active_low=True)
-def output_init_active_low_on(i, o):
+def output_init_active_low_on(b, o):
     o.on()
-    return i.level == 0
+    return b.is_pressed()
 
 @testing.automatic
 @io_setup(output_active_low=True)
-def output_init_active_low_off(i, o):
+def output_init_active_low_off(b, o):
     o.off()
-    return i.level == 1
+    return b.is_released()
 
 @testing.automatic
 @io_setup()
-def input_is_off(i, o):
+def button_is_pressed(b, o):
     o.off()
-    return i.is_off()
+    return b.is_pressed()
 
 @testing.automatic
 @io_setup()
-def input_is_on(i, o):
-    o.off()
-    return i.is_off()
-
-@testing.automatic
-@io_setup()
-def input_is_off_via_get(i, o):
+def button_is_released(b, o):
     o.on()
-    return i.level
+    return b.is_released()
 
-@testing.automatic
-@io_setup()
-def input_is_on_via_get(i, o):
-    o.off()
-    return not i.level
-
-@testing.automatic
-@io_setup()
-def input_wait_for_change(i, o):
-    return False
-
-@testing.automatic
-@io_setup()
-def input_wait_for_change_with_timeout(i, o):
-    return False
-
-@testing.automatic
-@io_setup()
-def input_call_if_changed_rising(i, o):
-    input_call_if_changed_rising.count = 0
-    def callme(change):
-        input_call_if_changed_rising.count += 1
-    o.level = 0
-    i.call_if_changed(callme, g.RISING)
+MINIMUM_BUTTON_PRESS_PERIOD = 0.050
+def try_n_half_presses(n, b, o):
+    # Start with button released, and clear presses()
     o.level = 1
-    print("Rising edge detected {} times".format(input_call_if_changed_rising.count))
-    return input_call_if_changed_rising.count == 1
+    time.sleep(MINIMUM_BUTTON_PRESS_PERIOD)
+    b.presses()
 
-@testing.automatic
-@io_setup()
-def input_wait_for_change_rising(i, o):
-    def callme(o):
-        o.level = 1
-    o.level = 0
-    Timer(0.1, callme, args=[o]).start()
-    i.wait_for_change(g.RISING)
-    return True
-
-@testing.automatic
-@io_setup()
-def input_wait_for_change_rising_timeout(i, o):
-    def callme(o):
-        o.level = 1
-    o.level = 0
-    Timer(0.1, callme, args=[o]).start()
-    i.wait_for_change(g.RISING, timeout=10)
-    return True
-
-@testing.automatic
-@io_setup()
-def input_wait_for_change_norising_timeout(i, o):
-    def callme(o):
-        o.level = 0
-    o.level = 1
-    Timer(0.1, callme, args=[o]).start()
-    i.wait_for_change(g.RISING, timeout=10)
-    return True
-
-@testing.automatic
-@io_setup()
-def input_wait_for_change_falling(i, o):
-    def callme(o):
-        o.level = 0
-    o.level = 1
-    Timer(0.1, callme, args=[o]).start()
-    i.wait_for_change(g.FALLING)
-    return True
-
-@testing.automatic
-@io_setup()
-def input_wait_for_change_both(i, o):
-    def callme(o, level):
+    level = 0
+    for i in range(n):
         o.level = level
-    o.level = 1
-    Timer(0.1, callme, args=[o, 0]).start()
-    i.wait_for_change(g.FALLING)
-    Timer(0.1, callme, args=[o, 1]).start()
-    i.wait_for_change(g.RISING)
-    return True
+        time.sleep(MINIMUM_BUTTON_PRESS_PERIOD)
+        level = 0 if level else 1
 
 @testing.automatic
 @io_setup()
-def input_changes_starts_zero(i, o):
-    return i.changes() == (0, 0, 0)
+def button_0_half_presses(b, o):
+    try_n_half_presses(0, b, o)
+    return b.presses() == 0
 
 @testing.automatic
 @io_setup()
-def input_changes_starts_zero_2(i, o):
-    time.sleep(0.01)
-    return i.changes() == (0, 0, 0)
+def button_1_half_presses(b, o):
+    try_n_half_presses(1, b, o)
+    return b.presses() == 1
 
 @testing.automatic
 @io_setup()
-def input_changes_rising(i, o):
-    o.level = 0
-    o.level = 1
-    time.sleep(0.1)
-    changes = i.changes()
-    #print(changes)
-    return changes == (1, 0, 1)
+def button_2_half_presses(b, o):
+    try_n_half_presses(2, b, o)
+    return b.presses() == 1
 
 @testing.automatic
 @io_setup()
-def input_changes_rising_2(i, o):
-    o.level = 0
-    o.level = 1
-    time.sleep(0.00001)
-    o.level = 0
-    time.sleep(0.00001)
-    changes = i.changes()
-    print(changes)
-    return changes == (1, 1, 0)
-"""
-def delay_ms(ms):   
-    """ Somewhat accurate millisecond busy-loop delay for testing """
-    start_time = time.time() * 1000
-    while (time.time() * 1000 < start_time + ms):
-        pass
+def button_3_half_presses(b, o):
+    try_n_half_presses(3, b, o)
+    return b.presses() == 2
 
 @testing.automatic
 @io_setup()
-def input_changes_rising_3(i, o):
-    o.level = 0; delay_ms(10); i.changes()
-    print(i.changes())
-
-    o.level = 0; delay_ms(10); i.changes()
-    o.level = 0; delay_ms(10)
-    print(i.changes())
-
-    o.level = 0; delay_ms(10); i.changes()
-    o.level = 0; delay_ms(10)
-    o.level = 1; delay_ms(10)
-    print(i.changes())
-
-    o.level = 0; delay_ms(10); i.changes()
-    o.level = 0; delay_ms(10)
-    o.level = 1; delay_ms(10)
-    o.level = 0; delay_ms(10)
-    print(i.changes())
-
-    o.level = 0; delay_ms(10); i.changes()
-    o.level = 0; delay_ms(10)
-    o.level = 1; delay_ms(10)
-    o.level = 0; delay_ms(10)
-    o.level = 1; delay_ms(10)
-    print(i.changes())
-
-    return changes == (1, 1, 0)
-
-"""
-@testing.automatic
-def input_recreation(i, o):
-    # Recreate input pin serval times and verify
-    pass
+def button_4_half_presses(b, o):
+    try_n_half_presses(4, b, o)
+    return b.presses() == 2
 
 @testing.automatic
 @io_setup()
-def input_changes(i, o):
-    o.level = 0
-    print("CHANGES: ", i.changes())
-    o.level = 1
-    o.level = 0
-    o.level = 1
-    o.level = 0
-    time.sleep(0.000001)
-    print("CHANGES: ", i.changes())
-    print("CHANGES: ", i.changes())
-    return True
+def button_5_half_presses(b, o):
+    try_n_half_presses(5, b, o)
+    return b.presses() == 3
 
 @testing.automatic
 @io_setup()
-def input_call_if_changed_disable(i, o):
-    return False
-
-@testing.automatic
-@io_setup(input_active_low=True)
-def input_init_active_low_on(i, o):
-    o.level = 0
-    return i.is_on()
-
-@testing.automatic
-@io_setup(input_active_low=True)
-def input_init_active_low_off(i, o):
-    o.level = 1
-    return i.is_off()
+def button_6_half_presses(b, o):
+    try_n_half_presses(6, b, o)
+    return b.presses() == 3
 
 @testing.automatic
 @io_setup()
-def input_init_poll_period_slow(i, o):
-    return False
+def button_7_half_presses(b, o):
+    try_n_half_presses(7, b, o)
+    return b.presses() == 4
 
 @testing.automatic
 @io_setup()
-def input_init_pullup(i, o):
-    return False
+def button_8_half_presses(b, o):
+    try_n_half_presses(8, b, o)
+    return b.presses() == 4
 
 @testing.automatic
 @io_setup()
-def input_init_pulldown(i, o):
-    return False
+def button_0_half_releases(b, o):
+    try_n_half_presses(0, b, o)
+    return b.releases() == 0
 
 @testing.automatic
 @io_setup()
-def input_init_pullnone(i, o):
-    return False
+def button_1_half_releases(b, o):
+    try_n_half_presses(1, b, o)
+    return b.releases() == 0
 
 @testing.automatic
-def input_invalid_pin():
+@io_setup()
+def button_2_half_releases(b, o):
+    try_n_half_presses(2, b, o)
+    return b.releases() == 1
+
+@testing.automatic
+@io_setup()
+def button_3_half_releases(b, o):
+    try_n_half_presses(3, b, o)
+    return b.releases() == 1
+
+@testing.automatic
+@io_setup()
+def button_4_half_releases(b, o):
+    try_n_half_presses(4, b, o)
+    return b.releases() == 2
+
+@testing.automatic
+@io_setup()
+def button_5_half_releases(b, o):
+    try_n_half_presses(5, b, o)
+    return b.releases() == 2
+
+@testing.automatic
+@io_setup()
+def button_6_half_releases(b, o):
+    try_n_half_presses(6, b, o)
+    return b.releases() == 3
+
+@testing.automatic
+def button_recreation():
+    # Recreate button pin serval times and verify
+    for i in range(5):
+        g.Button(INPUT_PIN)
+        g.Button(OUTPUT_PIN)
+        g.DisabledPin(INPUT_PIN)
+        g.DisabledPin(OUTPUT_PIN)
+
+    b = g.Button(INPUT_PIN)
+    o = g.Output(OUTPUT_PIN)
+
+    o.on()
+    released_worked = b.is_released()
+    o.off()
+    pressed_worked = b.is_pressed()
+
+    g.DisabledPin(OUTPUT_PIN)
+    g.DisabledPin(INPUT_PIN)
+    return released_worked and pressed_worked
+
+@testing.automatic
+def button_invalid_pin():
     passed = False
     try:
-        g.Input(5)
+        g.Button(5)
     except ValueError:
         passed = True
     return passed
 
 @testing.automatic
-@io_setup(button=True)
-def input_button_is_pressed(b, o):
-    o.level = 0
-    return b.is_pressed()
-
-@testing.automatic
-@io_setup(button=True)
-def input_button_is_released(b, o):
-    o.level = 1
-    return b.is_released()
-
-@testing.automatic
 @io_setup()
-def time_output(i, o):
+def time_output(b, o):
     TRIES = 100
     start = time.time()
     for n in range(TRIES):
@@ -366,19 +273,3 @@ def time_output(i, o):
     print("Output test running at: {:.2f}Hz (MINIMUM_RATE: {}Hz)".format(rate, MINIMUM_RATE))
     return rate > MINIMUM_RATE
 
-@testing.automatic
-@io_setup()
-def time_input(i, o):
-    TRIES = 100
-    start = time.time()
-    for n in range(TRIES):
-        i.is_on()
-    end = time.time()
-    rate = float(TRIES)/(end-start)
-    # We expect this to run at least MINIMUM_RATE in Hz.  Arbitrary, just to
-    # keep it reasonable (testing shows it runs at ~3kHz).
-    MINIMUM_RATE = 1000
-    print("Input test running at: {:.2f}Hz (MINIMUM_RATE: {}Hz)".format(rate, MINIMUM_RATE))
-    return rate > MINIMUM_RATE
-
-"""
