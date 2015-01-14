@@ -215,6 +215,42 @@ def button_6_half_releases(b, o):
     return b.releases() == 3
 
 @testing.automatic
+@io_setup()
+def button_0_half_presses_get_one(b, o):
+    try_n_half_presses(0, b, o)
+    return [b.one_press()] == [0]
+
+@testing.automatic
+@io_setup()
+def button_1_half_presses_get_one(b, o):
+    try_n_half_presses(1, b, o)
+    return [b.one_press(), b.one_press()] == [1, 0]
+
+@testing.automatic
+@io_setup()
+def button_2_half_presses_get_one(b, o):
+    try_n_half_presses(2, b, o)
+    return [b.one_press(), b.one_press()] == [1, 0]
+
+@testing.automatic
+@io_setup()
+def button_3_half_presses_get_one(b, o):
+    try_n_half_presses(3, b, o)
+    return [b.one_press(), b.one_press(), b.one_press()] == [1, 1, 0]
+
+@testing.automatic
+@io_setup()
+def button_4_half_presses_get_one(b, o):
+    try_n_half_presses(4, b, o)
+    return [b.one_press(), b.one_press(), b.one_press()] == [1, 1, 0]
+
+@testing.automatic
+@io_setup()
+def button_5_half_presses_get_one(b, o):
+    try_n_half_presses(5, b, o)
+    return [b.one_press(), b.one_press(), b.one_press(), b.one_press()] == [1, 1, 1, 0]
+
+@testing.automatic
 def button_recreation():
     # Recreate button pin serval times and verify
     for i in range(5):

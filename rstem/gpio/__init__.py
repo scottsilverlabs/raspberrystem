@@ -158,6 +158,16 @@ class Button(_Pin):
             pass
         return releases, presses
 
+    def _one_edge(self, level_wanted):
+        try:
+            while True:
+                level = self.button_queue.get_nowait()
+                if level == level_wanted:
+                    return 1
+        except Empty:
+            pass
+        return 0
+
     def _get(self):
         self.fvalue.seek(0)
         return int(self.fvalue.read())
@@ -177,9 +187,11 @@ class Button(_Pin):
         return _releases
 
     def one_press(self):
-        pass
+        return self._one_edge(0)
+
     def one_release(self):
         pass
+
     """ TBD:
     def wait(self): wait for press, release, or either
     def callback(self): callback if press, release, or either
