@@ -204,7 +204,6 @@ def input_wait_for_change_both(i, o):
     i.wait_for_change(g.RISING)
     return True
 
-"""
 @testing.automatic
 @io_setup()
 def input_changes_starts_zero(i, o):
@@ -212,8 +211,67 @@ def input_changes_starts_zero(i, o):
 
 @testing.automatic
 @io_setup()
-def input_changes_starts_zero(i, o):
+def input_changes_starts_zero_2(i, o):
+    time.sleep(0.01)
     return i.changes() == (0, 0, 0)
+
+@testing.automatic
+@io_setup()
+def input_changes_rising(i, o):
+    o.level = 0
+    o.level = 1
+    time.sleep(0.1)
+    changes = i.changes()
+    #print(changes)
+    return changes == (1, 0, 1)
+
+@testing.automatic
+@io_setup()
+def input_changes_rising_2(i, o):
+    o.level = 0
+    o.level = 1
+    time.sleep(0.00001)
+    o.level = 0
+    time.sleep(0.00001)
+    changes = i.changes()
+    print(changes)
+    return changes == (1, 1, 0)
+"""
+def delay_ms(ms):   
+    """ Somewhat accurate millisecond busy-loop delay for testing """
+    start_time = time.time() * 1000
+    while (time.time() * 1000 < start_time + ms):
+        pass
+
+@testing.automatic
+@io_setup()
+def input_changes_rising_3(i, o):
+    o.level = 0; delay_ms(10); i.changes()
+    print(i.changes())
+
+    o.level = 0; delay_ms(10); i.changes()
+    o.level = 0; delay_ms(10)
+    print(i.changes())
+
+    o.level = 0; delay_ms(10); i.changes()
+    o.level = 0; delay_ms(10)
+    o.level = 1; delay_ms(10)
+    print(i.changes())
+
+    o.level = 0; delay_ms(10); i.changes()
+    o.level = 0; delay_ms(10)
+    o.level = 1; delay_ms(10)
+    o.level = 0; delay_ms(10)
+    print(i.changes())
+
+    o.level = 0; delay_ms(10); i.changes()
+    o.level = 0; delay_ms(10)
+    o.level = 1; delay_ms(10)
+    o.level = 0; delay_ms(10)
+    o.level = 1; delay_ms(10)
+    print(i.changes())
+
+    return changes == (1, 1, 0)
 
 """
 @testing.automatic

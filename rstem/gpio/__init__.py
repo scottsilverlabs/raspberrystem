@@ -81,16 +81,16 @@ class _Pin:
     def __disable_pulldown(self, pin):
         self.__pullup(pin, ARG_PULL_DISABLE)
 
-    def __poll_thread_run(self, poll_thread_stop_fd, bouncetime=100):
+    def __poll_thread_run(self, poll_thread_stop_fd):
         """Run function used in poll_thread"""
         # NOTE: self will not change once this is called
         po = select.epoll()
         po.register(self.fvalue, select.POLLIN | select.EPOLLPRI | select.EPOLLET)
         po.register(poll_thread_stop_fd, select.POLLIN)
-        self.previous = 1
         self.current = 0
         self.rising = 0
         self.falling = 0
+        self.previous = 0
 
         while True:
             events = po.poll()
@@ -98,26 +98,18 @@ class _Pin:
                 break
             self.fvalue.seek(0)
             read = self.fvalue.read().strip()
-            #print("R: ", read, threading.current_thread())
             if len(read):
                 with self.mutex:
                     self.current = 1 if read == '1' else 0
                     if self.current:
-                        #print("RI", self.rising, threading.current_thread())
                         self.rising += 1
-                        if not self.previous:
-                            # Oops missed (at least one) edge!
-                            self.falling += 1
                     else:
                         self.falling += 1
-                        #print("FA", self.falling, threading.current_thread())
-                        if self.previous:
-                            # Oops missed (at least one) edge!
-                            self.rising += 1
 
     def _changes(self):
         with self.mutex:
-            ret = self.rising, self.falling, self.current
+            ret = self.previous, self.rising, self.falling, self.current
+            self.previous = self.current
             self.rising, self.falling, self.current = 0, 0, 0
             #print(ret)
             return ret
@@ -149,14 +141,14 @@ class _Pin:
 
         raise NotImplementedError()
 
-    def _edge_detect(self, edge, callback=None, bouncetime=200):
+    def _edge_detect(self, edge, callback=None, bounce_time=200):
         """Sets up edge detection interrupt.
         @param edge: either gpio.NONE, gpio.RISING, gpio.FALLING, or gpio.BOTH
         @type edge: int
         @param callback: Function to call when given edge has been detected.
         @type callback: function
-        @param bouncetime: Debounce time in milliseconds.
-        @type bouncetime: int
+        @param bounce_time: Debounce time in milliseconds.
+        @type bounce_time: int
         @note: First parameter of callback function will be the pin number of gpio that called it.
         """
         if self.direction != INPUT:
