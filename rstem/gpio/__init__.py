@@ -19,8 +19,11 @@ import os
 import select
 import time
 from threading import Thread, Lock, Event
+import threading
 
 PINS = [2, 3, 4, 14, 15, 17, 18, 22, 23, 24, 25, 27]
+
+input_threads = {}
 
 # Directions
 OUTPUT = 1
@@ -54,6 +57,10 @@ class _Pin:
         self.mutex = Lock()
         self.poll_thread = None
         self.poll_thread_stop = None
+        self.current = 0
+        self.rising = 0
+        self.falling = 0
+        self.fvalue = None
         if pin in PINS:
             if not os.path.exists(self.gpio_dir):
                 with open("/sys/class/gpio/export", "w") as f:
@@ -74,49 +81,60 @@ class _Pin:
     def __disable_pulldown(self, pin):
         self.__pullup(pin, ARG_PULL_DISABLE)
 
-    def __poll_thread_run(self, callback, bouncetime):
+    def __poll_thread_run(self, poll_thread_stop_fd, bouncetime=100):
         """Run function used in poll_thread"""
         # NOTE: self will not change once this is called
         po = select.epoll()
         po.register(self.fvalue, select.POLLIN | select.EPOLLPRI | select.EPOLLET)
-        last_time = 0
-        first_time = True  # used to ignore first trigger
-        # TODO: ignore second trigger too if edge = rising/falling?
+        po.register(poll_thread_stop_fd, select.POLLIN)
+        self.previous = 1
+        self.current = 0
+        self.rising = 0
+        self.falling = 0
 
-        while not self.poll_thread_stop.is_set():
-            event = po.poll(1)
-            if len(event) == 0:
-                # timeout
-                continue
+        while True:
+            events = po.poll()
+            if poll_thread_stop_fd in [fd for fd, bitmask in events]:
+                break
             self.fvalue.seek(0)
-            if not first_time:
-                timenow = time.time()
-                if (timenow - last_time) > (bouncetime/1000) or last_time == 0:
-                    callback(self.pin)
-                    last_time = timenow
-            else:
-                first_time = False
+            read = self.fvalue.read().strip()
+            #print("R: ", read, threading.current_thread())
+            if len(read):
+                with self.mutex:
+                    self.current = 1 if read == '1' else 0
+                    if self.current:
+                        #print("RI", self.rising, threading.current_thread())
+                        self.rising += 1
+                        if not self.previous:
+                            # Oops missed (at least one) edge!
+                            self.falling += 1
+                    else:
+                        self.falling += 1
+                        #print("FA", self.falling, threading.current_thread())
+                        if self.previous:
+                            # Oops missed (at least one) edge!
+                            self.rising += 1
 
-    def __set_edge(self, edge):
+    def _changes(self):
         with self.mutex:
-            with open(self.gpio_dir + "/edge", "w") as fedge:
-                self.edge = edge
-                fedge.write(edge)
+            ret = self.rising, self.falling, self.current
+            self.rising, self.falling, self.current = 0, 0, 0
+            #print(ret)
+            return ret
 
     def __end_thread(self):
-        if self.poll_thread and self.poll_thread.isAlive():
-            # self.poll_thread_running = False
-            self.poll_thread_stop.set()
+        global input_threads
+        if self.pin in input_threads:
+            poll_thread, poll_thread_stop_fd = input_threads[self.pin]
+            self.poll_thread = None
+            del input_threads[self.pin]
+            if poll_thread and poll_thread.isAlive():
+                os.write(poll_thread_stop_fd, b'x')
 
-            while self.poll_thread.isAlive():
-                self.poll_thread.join(1)
+                while poll_thread.isAlive():
+                    poll_thread.join(1)
 
-    def _remove_edge_detect(self):
-        """Removes edge detect interrupt"""
-        self.__set_edge(NONE)
-        self.__end_thread()
-
-    def _wait_for_edge(self, edge):
+    def _wait_for_edge(self, edge, timeout=None):
         """Blocks until the given edge has happened
         @param edge: Either gpio.FALLING, gpio.RISING, gpio.BOTH
         @type edge: string
@@ -126,27 +144,10 @@ class _Pin:
             raise ValueError("GPIO must be configured to be an input first.")
         if edge not in [RISING, FALLING, BOTH]:
             raise ValueError("Invalid edge!")
-        self.__set_edge(edge)
+        if not timeout:
+            timeout = 60
 
-        # wait for edge
-        po = select.epoll()
-        po.register(self.fvalue, select.POLLIN | select.EPOLLPRI | select.EPOLLET)
-        # last_time = 0
-        first_time = True  # used to ignore first trigger
-
-        while True:
-            event = po.poll(60)
-            if len(event) == 0:
-                # timeout to see if edge has changed
-                if self.edge == NONE:
-                    break
-                else:
-                    continue
-            self.fvalue.seek(0)
-            if not first_time:
-                break
-            else:
-                first_time = False
+        raise NotImplementedError()
 
     def _edge_detect(self, edge, callback=None, bouncetime=200):
         """Sets up edge detection interrupt.
@@ -165,21 +166,15 @@ class _Pin:
         if edge not in [NONE, RISING, FALLING, BOTH]:
             raise ValueError("Edge must be NONE, RISING, FALLING, or BOTH")
 
-        self.__set_edge(edge)
-
-        if edge != NONE:
-            self.__end_thread()  # end any previous callback functions
-            self.poll_thread_stop = Event()
-            self.poll_thread = Thread(target=_Pin.__poll_thread_run, args=(self, callback, bouncetime))
-            self.poll_thread.daemon = True
-            self.poll_thread.start()
-
+        raise NotImplementedError()
 
     def _configure(self, direction, pull=None):
         """Configure the GPIO pin to either be an input, output or disabled.
         @param direction: Either gpio.INPUT, gpio.OUTPUT, or gpio.DISABLED
         @type direction: int
         """
+        global input_threads
+
         if direction not in [INPUT, OUTPUT, DISABLED]:
             raise ValueError("Direction must be INPUT, OUTPUT or DISABLED")
 
@@ -197,20 +192,20 @@ class _Pin:
                         self.__pullup(self.pin, ARG_PULL_UP if pull == PULL_UP else ARG_PULL_DOWN)
                     fdirection.write("in")
                     self.fvalue = open(self.gpio_dir + "/value", "r")
+                    with open(self.gpio_dir + "/edge", "w") as fedge:
+                        fedge.write(BOTH)
+                    self.__end_thread()  # end any previous callback functions
+                    r, w = os.pipe()
+                    self.poll_thread_stop = w
+                    self.poll_thread = Thread(target=_Pin.__poll_thread_run, args=(self,r))
+                    input_threads[self.pin] = self.poll_thread, self.poll_thread_stop
+                    self.poll_thread.daemon = True
+                    self.poll_thread.start()
                 elif direction == DISABLED:
+                    self.__end_thread()  # end any previous callback functions
                     fdirection.write("in")
-                    self.fvalue.close()
-
-    def _was_clicked(self):
-        # TODO: make work for any type of edge change and rename function
-        """Detects whether the GPIO has been clicked or on since the pin has been initialized or
-        since the last time was_clicked() has been called.
-        @returns: boolean
-        """
-        level = self.get_level()
-        clicked = level == 1 and self.last == 0
-        self.last = level
-        return clicked
+                    if self.fvalue:
+                        self.fvalue.close()
 
     @property
     def _level(self):
@@ -250,6 +245,17 @@ class Input(_Pin):
     def is_off(self):
         return not self.is_on()
 
+    def changes(self):
+        return self._changes()
+
+    """
+    def call_if_changed(self, callback, change):
+        return self._edge_detect(change, callback)
+
+    def wait_for_change(self, change, timeout=None):
+        return self._wait_for_edge(change)
+    """
+
     level = _Pin._level
 
 class Output(_Pin):
@@ -278,3 +284,8 @@ class Button(_Pin):
         return not self.is_released()
 
     level = _Pin._level
+
+class DisabledPin(_Pin):
+    def __init__(self, pin):
+        super().__init__(pin)
+        self._configure(DISABLED)

@@ -4,6 +4,7 @@ import testing
 import pytest
 import rstem.gpio as g
 import time
+from threading import Timer
 from functools import wraps
 
 '''
@@ -29,11 +30,14 @@ def io_setup(button=False, input_active_low=False, output_active_low=False, pull
             passed = func(i, o)
 
             # Teardown
-            g.Input(OUTPUT_PIN)
+            g.DisabledPin(OUTPUT_PIN)
+            g.DisabledPin(INPUT_PIN)
+
             return passed
         return wrapper
     return decorator
 
+"""
 @testing.automatic
 @io_setup()
 def output_starts_off(i, o):
@@ -138,8 +142,98 @@ def input_wait_for_change_with_timeout(i, o):
 
 @testing.automatic
 @io_setup()
-def input_call_if_changed(i, o):
-    return False
+def input_call_if_changed_rising(i, o):
+    input_call_if_changed_rising.count = 0
+    def callme(change):
+        input_call_if_changed_rising.count += 1
+    o.level = 0
+    i.call_if_changed(callme, g.RISING)
+    o.level = 1
+    print("Rising edge detected {} times".format(input_call_if_changed_rising.count))
+    return input_call_if_changed_rising.count == 1
+
+@testing.automatic
+@io_setup()
+def input_wait_for_change_rising(i, o):
+    def callme(o):
+        o.level = 1
+    o.level = 0
+    Timer(0.1, callme, args=[o]).start()
+    i.wait_for_change(g.RISING)
+    return True
+
+@testing.automatic
+@io_setup()
+def input_wait_for_change_rising_timeout(i, o):
+    def callme(o):
+        o.level = 1
+    o.level = 0
+    Timer(0.1, callme, args=[o]).start()
+    i.wait_for_change(g.RISING, timeout=10)
+    return True
+
+@testing.automatic
+@io_setup()
+def input_wait_for_change_norising_timeout(i, o):
+    def callme(o):
+        o.level = 0
+    o.level = 1
+    Timer(0.1, callme, args=[o]).start()
+    i.wait_for_change(g.RISING, timeout=10)
+    return True
+
+@testing.automatic
+@io_setup()
+def input_wait_for_change_falling(i, o):
+    def callme(o):
+        o.level = 0
+    o.level = 1
+    Timer(0.1, callme, args=[o]).start()
+    i.wait_for_change(g.FALLING)
+    return True
+
+@testing.automatic
+@io_setup()
+def input_wait_for_change_both(i, o):
+    def callme(o, level):
+        o.level = level
+    o.level = 1
+    Timer(0.1, callme, args=[o, 0]).start()
+    i.wait_for_change(g.FALLING)
+    Timer(0.1, callme, args=[o, 1]).start()
+    i.wait_for_change(g.RISING)
+    return True
+
+"""
+@testing.automatic
+@io_setup()
+def input_changes_starts_zero(i, o):
+    return i.changes() == (0, 0, 0)
+
+@testing.automatic
+@io_setup()
+def input_changes_starts_zero(i, o):
+    return i.changes() == (0, 0, 0)
+
+"""
+@testing.automatic
+def input_recreation(i, o):
+    # Recreate input pin serval times and verify
+    pass
+
+@testing.automatic
+@io_setup()
+def input_changes(i, o):
+    o.level = 0
+    print("CHANGES: ", i.changes())
+    o.level = 1
+    o.level = 0
+    o.level = 1
+    o.level = 0
+    time.sleep(0.000001)
+    print("CHANGES: ", i.changes())
+    print("CHANGES: ", i.changes())
+    return True
 
 @testing.automatic
 @io_setup()
@@ -229,3 +323,4 @@ def time_input(i, o):
     print("Input test running at: {:.2f}Hz (MINIMUM_RATE: {}Hz)".format(rate, MINIMUM_RATE))
     return rate > MINIMUM_RATE
 
+"""
