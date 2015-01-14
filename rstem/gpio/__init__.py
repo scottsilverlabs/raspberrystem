@@ -19,7 +19,7 @@ import os
 import select
 import time
 from threading import Thread, Lock, Event
-import threading
+from queue import Queue, Empty
 
 PINS = [2, 3, 4, 14, 15, 17, 18, 22, 23, 24, 25, 27]
 
@@ -56,7 +56,6 @@ class _Pin:
         self.poll_thread = None
         self.poll_thread_stop = None
         self.previous = 0
-        self.current = 0
         self.rising = 0
         self.falling = 0
         self.fvalue = None
@@ -84,11 +83,7 @@ class _Pin:
 
     def __button_poll_thread(self):
         """Run function used in poll_thread"""
-        # NOTE: self will not change once this is called
-        self.rising = 0
-        self.falling = 0
-        self.previous = 1
-        self.current = 0
+        previous = -1
 
         bounce_time = 0.030
         while not self.poll_thread_stop.wait(bounce_time):
@@ -96,19 +91,23 @@ class _Pin:
             read = self.fvalue.read().strip()
             if len(read):
                 with self.mutex:
-                    self.current = 1 if read == '1' else 0
-                    if self.current != self.previous:
-                        if self.current:
-                            self.rising += 1
-                        else:
-                            self.falling += 1
-                    self.previous = self.current
+                    current = 1 if read == '1' else 0
+                    if previous >= 0 and current != previous:
+                        self.button_queue.put(current)
+                    previous = current
 
     def _edges(self):
-        with self.mutex:
-            ret = self.rising, self.falling
-            self.rising, self.falling = 0, 0
-            return ret
+        try:
+            releases, presses = 0, 0
+            while True:
+                level = self.button_queue.get_nowait()
+                if level:
+                    releases += 1
+                else:
+                    presses += 1
+        except Empty:
+            pass
+        return releases, presses
 
     def __end_thread(self):
         global input_threads
@@ -145,6 +144,7 @@ class _Pin:
                     fdirection.write("in")
                     self.fvalue = open(self.gpio_dir + "/value", "r")
                     self.__end_thread()  # end any previous callback functions
+                    self.button_queue = Queue()
                     self.poll_thread_stop = Event()
                     self.poll_thread = Thread(target=_Pin.__button_poll_thread, args=(self,))
                     input_threads[self.pin] = self.poll_thread, self.poll_thread_stop
