@@ -153,6 +153,20 @@ class Button(_Pin):
             pass
         return 0
 
+    def _wait(self, level_wanted, timeout=None):
+        try:
+            start = time.time()
+            while True:
+                if timeout:
+                    remaining = max(0, time.time() + timeout - start)
+                    level = self.button_queue.get(timeout=remaining)
+                else:
+                    level = self.button_queue.get()
+                if level == level_wanted:
+                    return True
+        except Empty:
+            return False
+
     def _get(self):
         self.fvalue.seek(0)
         return int(self.fvalue.read())
@@ -171,8 +185,10 @@ class Button(_Pin):
     def one_press(self, change=PRESS):
         return self._one_edge(0 if change == PRESS else 1)
 
+    def wait(self, change=PRESS, timeout=None):
+        return self._wait(0 if change == PRESS else 1, timeout=timeout)
+
     """ TBD:
-    def wait(self): wait for press, release, or either
     def callback(self): callback if press, release, or either
     classmethod versions of the above, that can take a list of buttons
     """

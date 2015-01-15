@@ -16,6 +16,8 @@ Short GPIO 23 to 24.
 OUTPUT_PIN = 23
 INPUT_PIN = 24
 
+MINIMUM_BUTTON_PRESS_PERIOD = 0.050
+
 def io_setup(output_active_low=False, pull=None):
     def decorator(func):
         @wraps(func)
@@ -61,11 +63,11 @@ def io_on_off_sequence(b, o):
     TRIES = 10
     for n in range(TRIES):
         o.on()
-        time.sleep(0.050)
+        time.sleep(MINIMUM_BUTTON_PRESS_PERIOD)
         if b.is_released:
             on_times += 1
         o.off()
-        time.sleep(0.050)
+        time.sleep(MINIMUM_BUTTON_PRESS_PERIOD)
         if b.is_pressed:
             off_times += 1
     passed = on_times == TRIES and off_times == TRIES
@@ -105,7 +107,6 @@ def button_is_released(b, o):
     o.on()
     return b.is_released()
 
-MINIMUM_BUTTON_PRESS_PERIOD = 0.050
 def try_n_half_presses(n, b, o):
     # Start with button released, and clear presses()
     o.on()
@@ -279,6 +280,52 @@ def button_invalid_pin():
     except ValueError:
         passed = True
     return passed
+
+def button_wait(b, o, press, push_time, timeout_time):
+    def push():
+        o.off()
+        time.sleep(MINIMUM_BUTTON_PRESS_PERIOD)
+        o.on()
+
+    kwargs = {}
+    if timeout_time:
+        kwargs['timeout'] = timeout_time
+    if press:
+        kwargs['change'] = g.RELEASE
+
+    o.on()
+    b.presses() # clear queue
+    try:
+        t = Timer(push_time, push)
+        t.start()
+        wait_success = b.wait(**kwargs)
+    finally:
+        t.join()
+    return wait_success
+
+@testing.automatic
+@io_setup()
+def button_wait_press(b, o):
+    wait_success = button_wait(b, o, press=True, push_time=0.2, timeout_time=None)
+    return wait_success
+
+@testing.automatic
+@io_setup()
+def button_wait_release(b, o):
+    wait_success = button_wait(b, o, press=False, push_time=0.2, timeout_time=None)
+    return wait_success
+
+@testing.automatic
+@io_setup()
+def button_wait_with_timeout_failed(b, o):
+    wait_success = button_wait(b, o, press=True, push_time=0.5, timeout_time=0.2)
+    return not wait_success
+
+@testing.automatic
+@io_setup()
+def button_wait_with_timeout_success(b, o):
+    wait_success = button_wait(b, o, press=True, push_time=0.2, timeout_time=0.5)
+    return wait_success
 
 @testing.automatic
 @io_setup()
