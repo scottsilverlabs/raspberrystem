@@ -29,8 +29,8 @@ def io_setup(output_active_low=False, pull=None):
             passed = func(b, o)
 
             # Teardown
-            g.DisabledPin(OUTPUT_PIN)
-            g.DisabledPin(INPUT_PIN)
+            g.DisablePin(OUTPUT_PIN)
+            g.DisablePin(INPUT_PIN)
 
             return passed
         return wrapper
@@ -257,8 +257,8 @@ def button_recreation():
     for i in range(5):
         g.Button(INPUT_PIN)
         g.Button(OUTPUT_PIN)
-        g.DisabledPin(INPUT_PIN)
-        g.DisabledPin(OUTPUT_PIN)
+        g.DisablePin(INPUT_PIN)
+        g.DisablePin(OUTPUT_PIN)
 
     b = g.Button(INPUT_PIN)
     o = g.Output(OUTPUT_PIN)
@@ -268,8 +268,8 @@ def button_recreation():
     o.off()
     pressed_worked = b.is_pressed()
 
-    g.DisabledPin(OUTPUT_PIN)
-    g.DisabledPin(INPUT_PIN)
+    g.DisablePin(OUTPUT_PIN)
+    g.DisablePin(INPUT_PIN)
     return released_worked and pressed_worked
 
 @testing.automatic

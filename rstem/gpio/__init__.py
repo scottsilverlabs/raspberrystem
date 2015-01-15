@@ -29,7 +29,7 @@ PRESS = 1
 RELEASE = 2
 BOTH = 3
 
-class _Pin:
+class Pin:
     _ARG_PULL_DISABLE = 0
     _ARG_PULL_DOWN = 1
     _ARG_PULL_UP = 2
@@ -37,10 +37,6 @@ class _Pin:
     def __init__(self, pin):
         self.gpio_dir = "/sys/class/gpio/gpio%d" % pin
         self.pin = pin
-        self.mutex = Lock()
-        self.poll_thread = None
-        self.poll_thread_stop = None
-        self.fvalue = None
         if pin in PINS:
             if not os.path.exists(self.gpio_dir):
                 with open("/sys/class/gpio/export", "w") as f:
@@ -70,22 +66,21 @@ class _Pin:
             if poll_thread:
                 poll_thread_stop.set()
                 poll_thread.join()
-            self.poll_thread = None
             del button_threads[self.pin]
 
 
-class Output(_Pin):
+class Output(Pin):
     def __init__(self, pin, active_low=False):
         super().__init__(pin)
         self._active_low = active_low
         with open(self.gpio_dir + "/direction", "w") as fdirection:
             fdirection.write("out")
-            self.fvalue = open(self.gpio_dir + "/value", "w")
+            self._fvalue = open(self.gpio_dir + "/value", "w")
 
     def _set(self, level):
-        self.fvalue.seek(0)
-        self.fvalue.write('1' if level else '0')
-        self.fvalue.flush()
+        self._fvalue.seek(0)
+        self._fvalue.write('1' if level else '0')
+        self._fvalue.flush()
 
     def on(self):
         self._set(not self._active_low)
@@ -93,8 +88,36 @@ class Output(_Pin):
     def off(self):
         self._set(self._active_low)
 
-class Button(_Pin):
+class Button(Pin):
     def __init__(self, pin):
+        """Hey dude
+
+        **test** *itails*
+        This is `self`.
+
+        `pin`
+
+        `is_pressed`
+
+
+        `is_pressed()`
+
+        `Button.is_pressed()`
+
+        `gpio.Button.is_pressed()`
+
+        `rstem.gpio.Button.is_pressed()`
+
+        `is_pressed`
+
+        `Button.is_pressed`
+
+        `gpio.Button.is_pressed`
+
+        `rstem.gpio.Button.is_pressed`
+
+        """
+
         super().__init__(pin)
 
         global button_threads
@@ -104,37 +127,36 @@ class Button(_Pin):
 
         self._enable_pullup(self.pin)
 
-        self.fvalue = open(self.gpio_dir + "/value", "r")
+        self._fvalue = open(self.gpio_dir + "/value", "r")
 
         self._end_thread()  # end any previous callback functions
 
-        self.button_queue = Queue()
-        self.poll_thread_stop = Event()
-        self.poll_thread = Thread(target=self.__button_poll_thread, args=())
-        button_threads[self.pin] = self.poll_thread, self.poll_thread_stop
-        self.poll_thread.daemon = True
-        self.poll_thread.start()
+        self._button_queue = Queue()
+        poll_thread_stop = Event()
+        poll_thread = Thread(target=self.__button_poll_thread, args=(poll_thread_stop,))
+        button_threads[self.pin] = poll_thread, poll_thread_stop
+        poll_thread.daemon = True
+        poll_thread.start()
 
-    def __button_poll_thread(self):
+    def __button_poll_thread(self, poll_thread_stop):
         """Run function used in poll_thread"""
         previous = -1
 
         bounce_time = 0.030
-        while not self.poll_thread_stop.wait(bounce_time):
-            self.fvalue.seek(0)
-            read = self.fvalue.read().strip()
+        while not poll_thread_stop.wait(bounce_time):
+            self._fvalue.seek(0)
+            read = self._fvalue.read().strip()
             if len(read):
-                with self.mutex:
-                    current = 1 if read == '1' else 0
-                    if previous >= 0 and current != previous:
-                        self.button_queue.put(current)
-                    previous = current
+                current = 1 if read == '1' else 0
+                if previous >= 0 and current != previous:
+                    self._button_queue.put(current)
+                previous = current
 
     def _edges(self):
         try:
             releases, presses = 0, 0
             while True:
-                level = self.button_queue.get_nowait()
+                level = self._button_queue.get_nowait()
                 if level:
                     releases += 1
                 else:
@@ -146,7 +168,7 @@ class Button(_Pin):
     def _one_edge(self, level_wanted):
         try:
             while True:
-                level = self.button_queue.get_nowait()
+                level = self._button_queue.get_nowait()
                 if level == level_wanted:
                     return 1
         except Empty:
@@ -159,17 +181,17 @@ class Button(_Pin):
             while True:
                 if timeout != None:
                     remaining = max(0, timeout - (time.time() - start))
-                    level = self.button_queue.get(timeout=remaining)
+                    level = self._button_queue.get(timeout=remaining)
                 else:
-                    level = self.button_queue.get()
+                    level = self._button_queue.get()
                 if level == level_wanted:
                     return True
         except Empty:
             return False
 
     def _get(self):
-        self.fvalue.seek(0)
-        return int(self.fvalue.read())
+        self._fvalue.seek(0)
+        return int(self._fvalue.read())
 
     def is_pressed(self, change=PRESS):
         pressed = not bool(self._get()) 
@@ -204,9 +226,12 @@ class Button(_Pin):
     def callback(self): callback if press, release, or either
     """
 
-class DisabledPin(_Pin):
+class DisablePin(Pin):
     def __init__(self, pin):
         super().__init__(pin)
         with open(self.gpio_dir + "/direction", "w") as fdirection:
             self._end_thread()  # end any previous callback functions
             fdirection.write("in")
+
+__all__ = ['Button', 'Output', 'DisablePin']
+
