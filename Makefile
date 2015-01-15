@@ -38,6 +38,7 @@ help:
 	@echo "    rstem             setup.py sdist - Create a pip installable source distribution"
 	@echo "    rstem-dev       * setup.py develop - Build/install on target for (fast) development"
 	@echo "    rstem-undev     * setup.py develop --uninstall - Reverse of make rstem-dev"
+	@echo "    rstem-pydoc       Extract the pydocs into the rstem package"
 	@echo "    rstem-register    setup.py register - One-time user register/login on Cheeseshop"
 	@echo "    rstem-upload      setup.py upload - Upload source distribution to Cheeseshop"
 	@echo "    rstem-install   * pip install <tar.gz> - Install from source distribution"
@@ -57,6 +58,7 @@ help:
 	@echo "    ide               Build IDE."
 	@echo "    ide-upload      * Upload IDE."
 	@echo "    ide-install     * Install IDE."
+	@echo "    ide-run         * Start IDE server."
 	@echo "    ide-clean       * Clean IDE."
 	@echo ""
 	@echo "Top-level commands:"
@@ -74,16 +76,16 @@ help:
 	@echo ""
 	@echo "Use cases:"
 	@echo "    For rstem development"
-	@echo "        Either (fast way):"
-	@echo "            make rstem-dev"
+	@echo "        make rstem-dev"
+	@echo "        <repeat>:"
 	@echo "            <edit files>"
-	@echo "            make push"
-	@echo "            <test & repeat>"
-	@echo "            make rstem-undev"
-	@echo "        Or (normal way):"
-	@echo "            <edit files>"
-	@echo "            make rstem && make rstem-install"
-	@echo "            <test & repeat>"
+	@echo "            make test-<test_suite>"
+	@echo "        make rstem-undev"
+	@echo "    Make, install and run IDE remotely:"
+	@echo "        make ide"
+	@echo "        make ide-install"
+	@echo "        make ide-run"
+	@echo "        <On host, open browser and point to raspberrypi>"
 	@echo "    X development (where X is in [ide, doc, rstem]:"
 	@echo "        <edit files>"
 	@echo "        make X && make X-install"
@@ -120,14 +122,17 @@ rstem-util:
 	$(MAKE) -C util
 
 rstem: $(RSTEM_TAR)
-$(RSTEM_TAR): $(GIT_FILES) $(PYDOC_TAR) rstem-util | $(OUT)
+$(RSTEM_TAR): $(GIT_FILES) rstem-pydoc rstem-util | $(OUT)
 	@# If there's any files that are untracked in git but that would end up being in
 	@# the MANIFEST (via graft of a whole directory) then interactively clean them.
 	@# EXCEPT: util/bin includes specific externally built binaries.
 	git clean -i $(shell awk '/^graft/{print $$2}' MANIFEST.in | grep -v util/bin)
-	tar xf $(PYDOC_TAR) -C rstem
 	$(SETUP) sdist
 	mv dist/$(notdir $@) $@
+
+rstem-pydoc: $(PYDOC_TAR)
+	rm -rf rstem/api
+	tar xf $(PYDOC_TAR) -C rstem
 
 rstem-dev: push
 	$(RUNONPI) sudo $(SETUP) develop
