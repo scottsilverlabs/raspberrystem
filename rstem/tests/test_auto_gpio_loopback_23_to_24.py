@@ -294,14 +294,23 @@ def button_wait(b, o, press, push_time, timeout_time):
         kwargs['change'] = g.RELEASE
 
     o.on()
-    b.presses() # clear queue
+    # clear queue
+    if isinstance(b, list):
+        for button in b:
+            button.presses()
+    else:
+        b.presses() 
+
     try:
         t = Timer(push_time, push)
         t.start()
-        wait_success = b.wait(**kwargs)
+        if isinstance(b, list):
+            wait_ret = g.Button.wait_many(b, **kwargs)
+        else:
+            wait_ret = b.wait(**kwargs)
     finally:
         t.join()
-    return wait_success
+    return wait_ret
 
 @testing.automatic
 @io_setup()
@@ -326,6 +335,18 @@ def button_wait_with_timeout_failed(b, o):
 def button_wait_with_timeout_success(b, o):
     wait_success = button_wait(b, o, press=True, push_time=0.2, timeout_time=0.5)
     return wait_success
+
+@testing.automatic
+@io_setup()
+def button_wait_button_list(b, o):
+    which_button = button_wait([b], o, press=True, push_time=0.2, timeout_time=None)
+    return which_button == 0
+
+@testing.automatic
+@io_setup()
+def button_wait_button_list_with_timeout(b, o):
+    which_button = button_wait([b], o, press=True, push_time=0.5, timeout_time=0.2)
+    return which_button == None
 
 @testing.automatic
 @io_setup()

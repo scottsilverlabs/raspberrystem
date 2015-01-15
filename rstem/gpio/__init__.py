@@ -157,8 +157,8 @@ class Button(_Pin):
         try:
             start = time.time()
             while True:
-                if timeout:
-                    remaining = max(0, time.time() + timeout - start)
+                if timeout != None:
+                    remaining = max(0, timeout - (time.time() - start))
                     level = self.button_queue.get(timeout=remaining)
                 else:
                     level = self.button_queue.get()
@@ -188,9 +188,20 @@ class Button(_Pin):
     def wait(self, change=PRESS, timeout=None):
         return self._wait(0 if change == PRESS else 1, timeout=timeout)
 
+    @classmethod
+    def wait_many(cls, buttons, change=PRESS, timeout=None):
+        # Python does not provide a way to wait on multiple Queues.  Big bummer.
+        # To avoid overcomplicating this, we'll simply poll the queues.
+        start = time.time()
+        while timeout == None or timeout - (time.time() - start) < 0:
+            for i, button in enumerate(buttons):
+                button_found = button.wait(change=change, timeout=0)
+                if button_found:
+                    return i
+        return None
+
     """ TBD:
     def callback(self): callback if press, release, or either
-    classmethod versions of the above, that can take a list of buttons
     """
 
 class DisabledPin(_Pin):
