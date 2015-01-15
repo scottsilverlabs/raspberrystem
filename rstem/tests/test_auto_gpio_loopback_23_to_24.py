@@ -177,43 +177,43 @@ def button_8_half_presses(b, o):
 @io_setup()
 def button_0_half_releases(b, o):
     try_n_half_presses(0, b, o)
-    return b.presses(change=g.RELEASE) == 0
+    return b.presses(change=g.Button.RELEASE) == 0
 
 @testing.automatic
 @io_setup()
 def button_1_half_releases(b, o):
     try_n_half_presses(1, b, o)
-    return b.presses(change=g.RELEASE) == 0
+    return b.presses(change=g.Button.RELEASE) == 0
 
 @testing.automatic
 @io_setup()
 def button_2_half_releases(b, o):
     try_n_half_presses(2, b, o)
-    return b.presses(change=g.RELEASE) == 1
+    return b.presses(change=g.Button.RELEASE) == 1
 
 @testing.automatic
 @io_setup()
 def button_3_half_releases(b, o):
     try_n_half_presses(3, b, o)
-    return b.presses(change=g.RELEASE) == 1
+    return b.presses(change=g.Button.RELEASE) == 1
 
 @testing.automatic
 @io_setup()
 def button_4_half_releases(b, o):
     try_n_half_presses(4, b, o)
-    return b.presses(change=g.RELEASE) == 2
+    return b.presses(change=g.Button.RELEASE) == 2
 
 @testing.automatic
 @io_setup()
 def button_5_half_releases(b, o):
     try_n_half_presses(5, b, o)
-    return b.presses(change=g.RELEASE) == 2
+    return b.presses(change=g.Button.RELEASE) == 2
 
 @testing.automatic
 @io_setup()
 def button_6_half_releases(b, o):
     try_n_half_presses(6, b, o)
-    return b.presses(change=g.RELEASE) == 3
+    return b.presses(change=g.Button.RELEASE) == 3
 
 @testing.automatic
 @io_setup()
@@ -291,7 +291,7 @@ def button_wait(b, o, press, push_time, timeout_time):
     if timeout_time:
         kwargs['timeout'] = timeout_time
     if press:
-        kwargs['change'] = g.RELEASE
+        kwargs['change'] = g.Button.RELEASE
 
     o.on()
     # clear queue

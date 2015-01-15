@@ -25,10 +25,6 @@ PINS = [2, 3, 4, 14, 15, 17, 18, 22, 23, 24, 25, 27]
 
 button_threads = {}
 
-PRESS = 1
-RELEASE = 2
-BOTH = 3
-
 class Pin:
     _ARG_PULL_DISABLE = 0
     _ARG_PULL_DOWN = 1
@@ -89,6 +85,10 @@ class Output(Pin):
         self._set(self._active_low)
 
 class Button(Pin):
+    PRESS = 1
+    RELEASE = 2
+    BOTH = 3
+
     def __init__(self, pin):
         """Hey dude
 
@@ -195,20 +195,20 @@ class Button(Pin):
 
     def is_pressed(self, change=PRESS):
         pressed = not bool(self._get()) 
-        return pressed if change == PRESS else not pressed
+        return pressed if change == self.PRESS else not pressed
 
     def is_released(self):
         return not self.is_pressed()
 
     def presses(self, change=PRESS):
         _releases, _presses = self._edges()
-        return _presses if change == PRESS else _releases
+        return _presses if change == self.PRESS else _releases
 
     def one_press(self, change=PRESS):
-        return self._one_edge(0 if change == PRESS else 1)
+        return self._one_edge(0 if change == self.PRESS else 1)
 
     def wait(self, change=PRESS, timeout=None):
-        return self._wait(0 if change == PRESS else 1, timeout=timeout)
+        return self._wait(0 if change == self.PRESS else 1, timeout=timeout)
 
     @classmethod
     def wait_many(cls, buttons, change=PRESS, timeout=None):
