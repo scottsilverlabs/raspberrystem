@@ -22,6 +22,8 @@ class Button(Pin):
     """ A button from a GPIO port"""
 
     A = 4
+    """GPIO number of the 'A' button on the GAMER keypad"""
+
     B = 17
     UP = 25
     DOWN = 24
@@ -29,10 +31,6 @@ class Button(Pin):
     RIGHT = 18
     START = 27
     SELECT = 22
-
-    PRESS = 1
-    RELEASE = 2
-    BOTH = 3
 
     def __init__(self, pin):
         """Hey dude
@@ -139,31 +137,31 @@ class Button(Pin):
             self._poll_thread.join()
         super()._deactivate()
 
-    def is_pressed(self, change=PRESS):
+    def is_pressed(self, press=True):
         pressed = not bool(self._get()) 
-        return pressed if change == self.PRESS else not pressed
+        return pressed if press else not pressed
 
     def is_released(self):
         return not self.is_pressed()
 
-    def presses(self, change=PRESS):
+    def presses(self, press=True):
         _releases, _presses = self._edges()
-        return _presses if change == self.PRESS else _releases
+        return _presses if press else _releases
 
-    def one_press(self, change=PRESS):
-        return self._one_edge(0 if change == self.PRESS else 1)
+    def one_press(self, press=True):
+        return self._one_edge(0 if press else 1)
 
-    def wait(self, change=PRESS, timeout=None):
-        return self._wait(0 if change == self.PRESS else 1, timeout=timeout)
+    def wait(self, press=True, timeout=None):
+        return self._wait(0 if press else 1, timeout=timeout)
 
     @classmethod
-    def wait_many(cls, buttons, change=PRESS, timeout=None):
+    def wait_many(cls, buttons, press=True, timeout=None):
         # Python does not provide a way to wait on multiple Queues.  Big bummer.
         # To avoid overcomplicating this, we'll simply poll the queues.
         start = time.time()
         while timeout == None or timeout - (time.time() - start) < 0:
             for i, button in enumerate(buttons):
-                button_found = button.wait(change=change, timeout=0)
+                button_found = button.wait(press=press, timeout=0)
                 if button_found:
                     return i
         return None
