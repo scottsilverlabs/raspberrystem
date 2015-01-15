@@ -13,73 +13,163 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from threading import Thread, Event
+from queue import Queue, Empty
+import time
+from rstem.gpio import Pin
 
-from rstem import gpio
-
-
-RISING = "rising"
-FALLING = "falling"
-BOTH = "both"
-PRESSED = FALLING
-RELEASED = RISING
-
-A = 4
-B = 17
-UP = 25
-DOWN = 24
-LEFT = 23
-RIGHT = 18
-START = 27
-SELECT = 22
-
-
-class Button(object):
+class Button(Pin):
     """ A button from a GPIO port"""
 
-    def __init__(self, port):
+    A = 4
+    B = 17
+    UP = 25
+    DOWN = 24
+    LEFT = 23
+    RIGHT = 18
+    START = 27
+    SELECT = 22
+
+    PRESS = 1
+    RELEASE = 2
+    BOTH = 3
+
+    def __init__(self, pin):
+        """Hey dude
+
+        **test** *itails*
+        This is `self`.
+
+        `pin`
+
+        `is_pressed`
+
+
+        `is_pressed()`
+
+        `Button.is_pressed()`
+
+        `gpio.Button.is_pressed()`
+
+        `rstem.gpio.Button.is_pressed()`
+
+        `is_pressed`
+
+        `Button.is_pressed`
+
+        `gpio.Button.is_pressed`
+
+        `rstem.gpio.Button.is_pressed`
+
         """
-        @param port: GPIO number (BCM mode) that button is plugged into
-        @type port: int
-        """
-        self.port = port
-        self.gpio = gpio.Pin(port)
-        self.gpio.configure(gpio.INPUT)
 
-    def is_pressed(self):
-        """@returns: True if button is pressed"""
-        return not bool(self.gpio.get_level())
+        super().__init__(pin)
 
-    def was_clicked(self):
-        return self.gpio.was_clicked()
+        with open(self.gpio_dir + "/direction", "w") as fdirection:
+            fdirection.write("in")
 
-    def _verify_change_value(change):
-        if change not in [PRESSED, RELEASED, BOTH]:
-            raise ValueError("Invalid change")
+        self._enable_pullup(self.pin)
 
-    def call_on_change(self, event_callback, change=PRESSED, bouncetime=300):
-        """Calls given event_callback function when button changes state (example pressed).
+        self._fvalue = open(self.gpio_dir + "/value", "r")
 
-        @param event_callback: function to call when button changes state
-        @type event_callback: function
-        @param change: type of event to watch for (either button.PRESSED, button.RELEASED, or button.BOTH)
-        @param bouncetime: msec to debounce button
-        @type bouncetime: int8
+        self._button_queue = Queue()
+        self._poll_thread_stop = Event()
+        self._poll_thread = Thread(target=self.__button_poll_thread, args=())
+        self._poll_thread.daemon = True
+        self._poll_thread.start()
 
-        @warning: Function must have the first argument be the port number
-        """
-        Button._verify_change_value(change)
-        self.gpio.edge_detect(change, event_callback, bouncetime)
+    def __button_poll_thread(self):
+        """Run function used in self._poll_thread"""
+        previous = -1
 
-    def remove_call_on_change(self):
-        """Removes the callback function set for this button.
-        Does nothing if no callback function is set
-        """
-        self.gpio.remove_edge_detect()
+        bounce_time = 0.030
+        while not self._poll_thread_stop.wait(bounce_time):
+            self._fvalue.seek(0)
+            read = self._fvalue.read().strip()
+            if len(read):
+                current = 1 if read == '1' else 0
+                if previous >= 0 and current != previous:
+                    self._button_queue.put(current)
+                previous = current
 
-    def wait_for_change(self, change=PRESSED):
-        """Blocks until given change event happens
+    def _edges(self):
+        try:
+            releases, presses = 0, 0
+            while True:
+                level = self._button_queue.get_nowait()
+                if level:
+                    releases += 1
+                else:
+                    presses += 1
+        except Empty:
+            pass
+        return releases, presses
 
-        @param change: type of event to watch for (either button.PRESSED, button.RELEASED, or button.BOTH)
-        """
-        Button._verify_change_value(change)
-        self.gpio.wait_for_edge(change)
+    def _one_edge(self, level_wanted):
+        try:
+            while True:
+                level = self._button_queue.get_nowait()
+                if level == level_wanted:
+                    return 1
+        except Empty:
+            pass
+        return 0
+
+    def _wait(self, level_wanted, timeout=None):
+        try:
+            start = time.time()
+            while True:
+                if timeout != None:
+                    remaining = max(0, timeout - (time.time() - start))
+                    level = self._button_queue.get(timeout=remaining)
+                else:
+                    level = self._button_queue.get()
+                if level == level_wanted:
+                    return True
+        except Empty:
+            return False
+
+    def _get(self):
+        self._fvalue.seek(0)
+        return int(self._fvalue.read())
+
+    def _deactivate(self):
+        if self._poll_thread:
+            self._poll_thread_stop.set()
+            self._poll_thread.join()
+        super()._deactivate()
+
+    def is_pressed(self, change=PRESS):
+        pressed = not bool(self._get()) 
+        return pressed if change == self.PRESS else not pressed
+
+    def is_released(self):
+        return not self.is_pressed()
+
+    def presses(self, change=PRESS):
+        _releases, _presses = self._edges()
+        return _presses if change == self.PRESS else _releases
+
+    def one_press(self, change=PRESS):
+        return self._one_edge(0 if change == self.PRESS else 1)
+
+    def wait(self, change=PRESS, timeout=None):
+        return self._wait(0 if change == self.PRESS else 1, timeout=timeout)
+
+    @classmethod
+    def wait_many(cls, buttons, change=PRESS, timeout=None):
+        # Python does not provide a way to wait on multiple Queues.  Big bummer.
+        # To avoid overcomplicating this, we'll simply poll the queues.
+        start = time.time()
+        while timeout == None or timeout - (time.time() - start) < 0:
+            for i, button in enumerate(buttons):
+                button_found = button.wait(change=change, timeout=0)
+                if button_found:
+                    return i
+        return None
+
+    """ TBD:
+    def callback(self): callback if press, release, or either
+    """
+
+__all__ = ['Button']

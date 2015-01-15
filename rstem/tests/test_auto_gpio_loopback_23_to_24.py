@@ -2,10 +2,12 @@ import testing_log
 import importlib
 import testing
 import pytest
-import rstem.gpio as g
 import time
 from threading import Timer
 from functools import wraps
+
+from rstem.gpio import Output, DisablePin
+from rstem.button import Button
 
 '''
 Automatic tests of gpio module via loopback output to input
@@ -23,14 +25,14 @@ def io_setup(output_active_low=False, pull=None):
         @wraps(func)
         def wrapper():
             # Setup
-            b = g.Button(INPUT_PIN)
-            o = g.Output(OUTPUT_PIN, active_low=output_active_low)
+            b = Button(INPUT_PIN)
+            o = Output(OUTPUT_PIN, active_low=output_active_low)
 
             passed = func(b, o)
 
             # Teardown
-            g.DisablePin(OUTPUT_PIN)
-            g.DisablePin(INPUT_PIN)
+            DisablePin(OUTPUT_PIN)
+            DisablePin(INPUT_PIN)
 
             return passed
         return wrapper
@@ -177,43 +179,43 @@ def button_8_half_presses(b, o):
 @io_setup()
 def button_0_half_releases(b, o):
     try_n_half_presses(0, b, o)
-    return b.presses(change=g.Button.RELEASE) == 0
+    return b.presses(change=Button.RELEASE) == 0
 
 @testing.automatic
 @io_setup()
 def button_1_half_releases(b, o):
     try_n_half_presses(1, b, o)
-    return b.presses(change=g.Button.RELEASE) == 0
+    return b.presses(change=Button.RELEASE) == 0
 
 @testing.automatic
 @io_setup()
 def button_2_half_releases(b, o):
     try_n_half_presses(2, b, o)
-    return b.presses(change=g.Button.RELEASE) == 1
+    return b.presses(change=Button.RELEASE) == 1
 
 @testing.automatic
 @io_setup()
 def button_3_half_releases(b, o):
     try_n_half_presses(3, b, o)
-    return b.presses(change=g.Button.RELEASE) == 1
+    return b.presses(change=Button.RELEASE) == 1
 
 @testing.automatic
 @io_setup()
 def button_4_half_releases(b, o):
     try_n_half_presses(4, b, o)
-    return b.presses(change=g.Button.RELEASE) == 2
+    return b.presses(change=Button.RELEASE) == 2
 
 @testing.automatic
 @io_setup()
 def button_5_half_releases(b, o):
     try_n_half_presses(5, b, o)
-    return b.presses(change=g.Button.RELEASE) == 2
+    return b.presses(change=Button.RELEASE) == 2
 
 @testing.automatic
 @io_setup()
 def button_6_half_releases(b, o):
     try_n_half_presses(6, b, o)
-    return b.presses(change=g.Button.RELEASE) == 3
+    return b.presses(change=Button.RELEASE) == 3
 
 @testing.automatic
 @io_setup()
@@ -255,28 +257,28 @@ def button_5_half_presses_get_one(b, o):
 def button_recreation():
     # Recreate button pin serval times and verify
     for i in range(5):
-        g.Button(INPUT_PIN)
-        g.Button(OUTPUT_PIN)
-        g.DisablePin(INPUT_PIN)
-        g.DisablePin(OUTPUT_PIN)
+        Button(INPUT_PIN)
+        Button(OUTPUT_PIN)
+        DisablePin(INPUT_PIN)
+        DisablePin(OUTPUT_PIN)
 
-    b = g.Button(INPUT_PIN)
-    o = g.Output(OUTPUT_PIN)
+    b = Button(INPUT_PIN)
+    o = Output(OUTPUT_PIN)
 
     o.on()
     released_worked = b.is_released()
     o.off()
     pressed_worked = b.is_pressed()
 
-    g.DisablePin(OUTPUT_PIN)
-    g.DisablePin(INPUT_PIN)
+    DisablePin(OUTPUT_PIN)
+    DisablePin(INPUT_PIN)
     return released_worked and pressed_worked
 
 @testing.automatic
 def button_invalid_pin():
     passed = False
     try:
-        g.Button(5)
+        Button(5)
     except ValueError:
         passed = True
     return passed
@@ -291,7 +293,7 @@ def button_wait(b, o, press, push_time, timeout_time):
     if timeout_time:
         kwargs['timeout'] = timeout_time
     if press:
-        kwargs['change'] = g.Button.RELEASE
+        kwargs['change'] = Button.RELEASE
 
     o.on()
     # clear queue
@@ -305,7 +307,7 @@ def button_wait(b, o, press, push_time, timeout_time):
         t = Timer(push_time, push)
         t.start()
         if isinstance(b, list):
-            wait_ret = g.Button.wait_many(b, **kwargs)
+            wait_ret = Button.wait_many(b, **kwargs)
         else:
             wait_ret = b.wait(**kwargs)
     finally:
