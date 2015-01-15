@@ -23,7 +23,7 @@ from queue import Queue, Empty
 
 PINS = [2, 3, 4, 14, 15, 17, 18, 22, 23, 24, 25, 27]
 
-button_threads = {}
+active_pins = {}
 
 class Pin:
     _ARG_PULL_DISABLE = 0
@@ -40,6 +40,11 @@ class Pin:
         else:
             raise ValueError("Invalid GPIO pin")
 
+        global active_pins
+        if pin in active_pins:
+            active_pins[pin]._deactivate()
+        active_pins[pin] = self
+
     def _pullup(self, pin, enable):
         os.system("pullup.sbin %d %d" % (pin, enable))
 
@@ -55,14 +60,8 @@ class Pin:
     def _disable_pulldown(self, pin):
         self._pullup(pin, self._ARG_PULL_DISABLE)
 
-    def _end_thread(self):
-        global button_threads
-        if self.pin in button_threads:
-            poll_thread, poll_thread_stop = button_threads[self.pin]
-            if poll_thread:
-                poll_thread_stop.set()
-                poll_thread.join()
-            del button_threads[self.pin]
+    def _deactivate(self):
+        del active_pins[self.pin]
 
 
 class Output(Pin):
@@ -120,8 +119,6 @@ class Button(Pin):
 
         super().__init__(pin)
 
-        global button_threads
-
         with open(self.gpio_dir + "/direction", "w") as fdirection:
             fdirection.write("in")
 
@@ -129,21 +126,18 @@ class Button(Pin):
 
         self._fvalue = open(self.gpio_dir + "/value", "r")
 
-        self._end_thread()  # end any previous callback functions
-
         self._button_queue = Queue()
-        poll_thread_stop = Event()
-        poll_thread = Thread(target=self.__button_poll_thread, args=(poll_thread_stop,))
-        button_threads[self.pin] = poll_thread, poll_thread_stop
-        poll_thread.daemon = True
-        poll_thread.start()
+        self._poll_thread_stop = Event()
+        self._poll_thread = Thread(target=self.__button_poll_thread, args=())
+        self._poll_thread.daemon = True
+        self._poll_thread.start()
 
-    def __button_poll_thread(self, poll_thread_stop):
-        """Run function used in poll_thread"""
+    def __button_poll_thread(self):
+        """Run function used in self._poll_thread"""
         previous = -1
 
         bounce_time = 0.030
-        while not poll_thread_stop.wait(bounce_time):
+        while not self._poll_thread_stop.wait(bounce_time):
             self._fvalue.seek(0)
             read = self._fvalue.read().strip()
             if len(read):
@@ -193,6 +187,12 @@ class Button(Pin):
         self._fvalue.seek(0)
         return int(self._fvalue.read())
 
+    def _deactivate(self):
+        if self._poll_thread:
+            self._poll_thread_stop.set()
+            self._poll_thread.join()
+        super()._deactivate()
+
     def is_pressed(self, change=PRESS):
         pressed = not bool(self._get()) 
         return pressed if change == self.PRESS else not pressed
@@ -227,11 +227,10 @@ class Button(Pin):
     """
 
 class DisablePin(Pin):
-    def __init__(self, pin):
-        super().__init__(pin)
+    def _deactivate(self):
         with open(self.gpio_dir + "/direction", "w") as fdirection:
-            self._end_thread()  # end any previous callback functions
             fdirection.write("in")
+        super()._deactivate()
 
 __all__ = ['Button', 'Output', 'DisablePin']
 
