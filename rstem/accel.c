@@ -60,7 +60,7 @@
 /*
     Module Data ==========================================
 */
-int adapter_number = 0;
+int adapter_number = 1;
 int addr = 0x1D;
 unsigned char rawData[7];
 unsigned char prescale = 0x01;
@@ -100,7 +100,14 @@ int set_slave(void)
 //Write command "value" to "reg"
 int write_command(char reg, char value)
 {
+#if 1
+    char buf[2];
+    buf[0] = reg;
+    buf[1] = value;
+    return write(file, buf, 2);
+#else
     return i2c_smbus_write_byte_data(file, reg, value);
+#endif
 }
 
 int init_accel(void)
@@ -314,14 +321,29 @@ static PyObject * update_data(PyObject *self, PyObject *args)
     double x = ((double) accelData[0])/(512.0/range);
     double y = ((double) accelData[1])/(512.0/range);
     double z = ((double) accelData[2])/(512.0/range);
-    return Py_BuildValue("ddd", -x, -y, z);
+    return Py_BuildValue("ddd", -x, -y, (double)1234);
 }
 
 
 //Grab new angles and give it to python
 static PyObject * angles(PyObject *self, PyObject *args)
 {
+    init_i2c();
+    set_slave();
+    write_command(CTRL_REG1, 0x00);
+    write_command(XYZ_DATA_CFG, 0x01);
+    write_command(CTRL_REG2, (1 << 4) | (1 << 3) | (1 << 1) | 1);
+    write_command(CTRL_REG1, prescale);
     int ret = i2c_smbus_read_i2c_block_data(file, 0x00, 7, rawData);
+    printf("%02X %02X %02X %02X %02X %02X %02X \n", 
+        rawData[0],
+        rawData[1],
+        rawData[2],
+        rawData[3],
+        rawData[4],
+        rawData[5],
+        rawData[6]
+        );
     if(ret < 0){
         PyErr_SetString(PyExc_IOError, "Could not update data!");
         return NULL;
@@ -333,18 +355,10 @@ static PyObject * angles(PyObject *self, PyObject *args)
                accelData[i] -= 1025;
         }
     }
-    double x = ((double) accelData[0])/(512.0/range);
-    double y = ((double) accelData[1])/(512.0/range);
-    double z = ((double) accelData[2])/(512.0/range);
-    double elevation = atan2(z, sqrt(x*x + y*y));
-    double roll = -atan2(x, sqrt(z*z + y*y));
-    double pitch = atan2(y, sqrt(z*z + x*x));
-    if(rad == 0){
-        elevation = rad2deg(elevation);
-        roll = rad2deg(roll);
-        pitch = rad2deg(pitch);
-    }
-    return Py_BuildValue("ddd", roll, pitch, elevation);
+    double x = accelData[0];
+    double y = accelData[1];
+    double z = accelData[2];
+    return Py_BuildValue("ddd", x, y, z);
 }
 
 //Enable data ready intterupt on given pin
