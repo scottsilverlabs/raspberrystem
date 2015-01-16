@@ -253,7 +253,6 @@ pi-setup:
 	$(RUNONPI) sudo sed -i '/XKBLAYOUT/s/\".*\"/\"us\"/' /etc/default/keyboard
 	$(RUNONPI) sudo apt-get update -y
 	$(RUNONPI) sudo apt-get install -y python3-pip
-	# Should this be a dependency?
 	$(RUNONPI) sudo apt-get install -y libi2c-dev
 	$(RUNONPI) sudo $(PIP) install pdoc
 
