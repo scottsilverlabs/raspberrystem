@@ -253,6 +253,23 @@ def button_5_half_presses_get_one(b, o):
     try_n_half_presses(5, b, o)
     return [b.one_press(), b.one_press(), b.one_press(), b.one_press()] == [1, 1, 1, 0]
 
+def _output_defaults():
+    b = Button(INPUT_PIN)
+    o = Output(OUTPUT_PIN) # default is active low!
+
+    o.off() # HIGH
+    released_worked = b.is_released() # Released button is HIGH
+    o.on() # LOW
+    pressed_worked = b.is_pressed() # PRESSED button is LOW
+
+    DisablePin(OUTPUT_PIN)
+    DisablePin(INPUT_PIN)
+    return released_worked and pressed_worked
+
+@testing.automatic
+def output_defaults():
+    return _output_defaults()
+
 @testing.automatic
 def button_recreation():
     # Recreate button pin serval times and verify
@@ -262,17 +279,7 @@ def button_recreation():
         DisablePin(INPUT_PIN)
         DisablePin(OUTPUT_PIN)
 
-    b = Button(INPUT_PIN)
-    o = Output(OUTPUT_PIN)
-
-    o.on()
-    released_worked = b.is_released()
-    o.off()
-    pressed_worked = b.is_pressed()
-
-    DisablePin(OUTPUT_PIN)
-    DisablePin(INPUT_PIN)
-    return released_worked and pressed_worked
+    return _output_defaults()
 
 @testing.automatic
 def button_invalid_pin():

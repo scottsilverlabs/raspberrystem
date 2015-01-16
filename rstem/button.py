@@ -19,46 +19,46 @@ import time
 from rstem.gpio import Pin
 
 class Button(Pin):
-    """ A button from a GPIO port"""
+    """A button from a GPIO port.
+
+    A `rstem.button.Button` configures a physical button hooked up to a GPIO
+    pins.  The button should be connected from the GPIO pin to ground.
+
+    `rstem.button.Button` provides a set of functions that make it easy to test
+    if and when a button is pressed.  The `rstem.button.Button`
+    object reads button presses in the background so that the calling program
+    won't lose presses.  Presses and releases are kept in a queue so that the
+    caller can get at any time.
+
+    More details: The GPIO is configured with an internal pullup so that when
+    the button NOT pressed, the GPIO input is high, but when the button is
+    pressed, the input is low (shorted to ground).  Additionaly, The
+    `rstem.button.Button` object handles button debouncing.
+    """
 
     A = 4
     """GPIO number of the 'A' button on the GAMER keypad"""
-
     B = 17
+    """GPIO number of the 'B' button on the GAMER keypad"""
     UP = 25
+    """GPIO number of the 'UP' button on the GAMER keypad"""
     DOWN = 24
+    """GPIO number of the 'DOWN' button on the GAMER keypad"""
     LEFT = 23
+    """GPIO number of the 'LEFT' button on the GAMER keypad"""
     RIGHT = 18
+    """GPIO number of the 'RIGHT' button on the GAMER keypad"""
     START = 27
+    """GPIO number of the 'START' button on the GAMER keypad"""
     SELECT = 22
+    """GPIO number of the 'SELECT' button on the GAMER keypad"""
 
     def __init__(self, pin):
-        """Hey dude
+        """Create a new `Button`
 
-        **test** *itails*
-        This is `self`.
-
-        `pin`
-
-        `is_pressed`
-
-
-        `is_pressed()`
-
-        `Button.is_pressed()`
-
-        `gpio.Button.is_pressed()`
-
-        `rstem.gpio.Button.is_pressed()`
-
-        `is_pressed`
-
-        `Button.is_pressed`
-
-        `gpio.Button.is_pressed`
-
-        `rstem.gpio.Button.is_pressed`
-
+        `pin` is the number of the GPIO as labeled on the RaspberrySTEM
+        connector.  It is the GPIO number of used by the Broadcom processor on
+        the Raspberry Pi.
         """
 
         super().__init__(pin)
@@ -77,7 +77,6 @@ class Button(Pin):
         self._poll_thread.start()
 
     def __button_poll_thread(self):
-        """Run function used in self._poll_thread"""
         previous = -1
 
         bounce_time = 0.030
@@ -138,24 +137,85 @@ class Button(Pin):
         super()._deactivate()
 
     def is_pressed(self, press=True):
-        pressed = not bool(self._get()) 
+        """Reports if the button is pressed.
+
+        Returns `True` if the button is pressed, otherwise False.  If `press`
+        is `False`, then it does exactly the opposite - that is, it reports if
+        the button released instead of pressed.
+        """
+        pressed = not bool(self._get())
         return pressed if press else not pressed
 
     def is_released(self):
+        """Reports if the button is pressed.
+
+        Equivalent to `not self.is_pressed()`.
+        """
         return not self.is_pressed()
 
     def presses(self, press=True):
+        """Returns the number of presses since this function was last called.
+
+        Button presses and releases are queued up - this function reads all
+        the presses/releases from the queue and returns the total number of
+        presses.  Reading the full queue effectively resets the number of
+        presses and releases to zero.
+
+        Alternatively, if `press` is `False`, this function returns the number
+        of releases since this function was last called.
+        """
         _releases, _presses = self._edges()
         return _presses if press else _releases
 
     def one_press(self, press=True):
+        """Reports if a single press has occured.
+
+        Button presses and releases are queued up - this function reads the
+        next press from the queue, and returns 1.  If no presses are queued, it
+        returns 0.
+
+        For example, if the button was pressed 2 times, and this function was
+        called 3 times, the result would be:
+            >>> print(button.one_press())
+            1
+            >>> print(button.one_press())
+            1
+            >>> print(button.one_press())
+            0
+
+        Alternatively, if `press` is `False`, this function returns releases
+        instead of presses.
+        """
         return self._one_edge(0 if press else 1)
 
     def wait(self, press=True, timeout=None):
+        """Wait until a press occurs.
+
+        This function blocks until a press occurs and (by default) returns
+        `True`.  Because button presses and releases are queued up, it will
+        return immediately if a press is already available before the function
+        was called.
+
+        If `timeout=None` (the default), the function will block forever until
+        a press occurs.  If the `timeout` is a number 0 or greater, the
+        function will block for up to `timeout` time in seconds (floats
+        allowed).  If the `timeout` time expires before the button is pressed,
+        the function returns `False`.
+
+        Alternatively, if `press` is `False`, this function waits for releases
+        instead of presses.
+        """
         return self._wait(0 if press else 1, timeout=timeout)
 
     @classmethod
     def wait_many(cls, buttons, press=True, timeout=None):
+        """Calls `rstem.button.Button.wait` on a list of buttons.
+
+        Given a list of `buttons` this function will wait for any of them to be
+        pressed, and return the index into the `buttons` list of the button
+        that was pressed.  The `press` and `timeout` arguments are the same as
+        for the `rstem.button.Button.wait` function.
+        """
         # Python does not provide a way to wait on multiple Queues.  Big bummer.
         # To avoid overcomplicating this, we'll simply poll the queues.
         start = time.time()

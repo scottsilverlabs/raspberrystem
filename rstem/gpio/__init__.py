@@ -61,7 +61,23 @@ class Pin(object):
 
 
 class Output(Pin):
-    def __init__(self, pin, active_low=False):
+    """A GPIO output.
+
+    A `rstem.gpio.Output` configures a GPIO pin as an output.  The pin can then used as a
+    programmable switch to drive LEDs, motor drivers, relays and other devices.
+    """
+    def __init__(self, pin, active_low=True):
+        """Create a new `Output`
+
+        `pin` is the number of the GPIO as labeled on the RaspberrySTEM
+        connector.  It is the GPIO number of used by the Broadcom processor on
+        the Raspberry Pi.
+
+        If `active_low=True` (the default), then the output will be set LOW
+        (grounded, i.e. 0 volts) when the output is turned `on`.  If
+        `active_low=False`, then the output will be set HIGH (the supply
+        voltage, i.e. 3.3 volts) when the output is turned `on`.
+        """
         super().__init__(pin)
         self._active_low = active_low
         with open(self.gpio_dir + "/direction", "w") as fdirection:
@@ -74,12 +90,23 @@ class Output(Pin):
         self._fvalue.flush()
 
     def on(self):
+        """Turn the GPIO output on (repects `active_low` setting)."""
         self._set(not self._active_low)
 
     def off(self):
+        """Turn the GPIO output off (repects `active_low` setting)."""
         self._set(self._active_low)
 
 class DisablePin(Pin):
+    def __init__(self, *args, **kwargs):
+        """Disable a previously used GPIO pin.
+
+        `pin` is the number of the GPIO as labeled on the RaspberrySTEM
+        connector.  It is the GPIO number of used by the Broadcom processor on
+        the Raspberry Pi.
+        """
+        super().__init__(*args, **kwargs)
+
     def _deactivate(self):
         with open(self.gpio_dir + "/direction", "w") as fdirection:
             fdirection.write("in")
