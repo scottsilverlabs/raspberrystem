@@ -22,16 +22,16 @@ class Button(Pin):
     """A button from a GPIO port.
 
     A `rstem.button.Button` configures a physical button hooked up to a GPIO
-    pins.  The button should be connected from the GPIO pin to ground.
+    pin.  The physical button should be connected from the GPIO pin to ground.
 
-    `rstem.button.Button` provides a set of functions that make it easy to test
+    `rstem.button.Button` provides a set of functions that make it easy to check
     if and when a button is pressed.  The `rstem.button.Button`
     object reads button presses in the background so that the calling program
-    won't lose presses.  Presses and releases are kept in a queue so that the
-    caller can get at any time.
+    won't lose presses.  Presses and releases are kept in a queue that the
+    caller can read at any time.
 
     More details: The GPIO is configured with an internal pullup so that when
-    the button NOT pressed, the GPIO input is high, but when the button is
+    the button is NOT pressed, the GPIO input is high, and when the button is
     pressed, the input is low (shorted to ground).  Additionaly, The
     `rstem.button.Button` object handles button debouncing.
     """
@@ -56,8 +56,8 @@ class Button(Pin):
     def __init__(self, pin):
         """Create a new `Button`
 
-        `pin` is the number of the GPIO as labeled on the RaspberrySTEM
-        connector.  It is the GPIO number of used by the Broadcom processor on
+        `pin` is the number of the GPIO as labeled on the RaspberrySTEM Lid
+        connector.  It is the GPIO number used by the Broadcom processor on
         the Raspberry Pi.
         """
 
@@ -139,15 +139,15 @@ class Button(Pin):
     def is_pressed(self, press=True):
         """Reports if the button is pressed.
 
-        Returns `True` if the button is pressed, otherwise False.  If `press`
-        is `False`, then it does exactly the opposite - that is, it reports if
-        the button released instead of pressed.
+        Returns `True` if the button is pressed, otherwise `False`.  If `press`
+        is `False`, then the function returns the opposite - that is, it
+        reports if the button released instead of pressed.
         """
         pressed = not bool(self._get())
         return pressed if press else not pressed
 
     def is_released(self):
-        """Reports if the button is pressed.
+        """Reports if the button is released.
 
         Equivalent to `not self.is_pressed()`.
         """
@@ -174,16 +174,17 @@ class Button(Pin):
         next press from the queue, and returns 1.  If no presses are queued, it
         returns 0.
 
-        For example, if the button was pressed 2 times, and this function was
-        called 3 times, the result would be:
-            >>> print(button.one_press())
+        For example, if the button was pressed 2 times, and then this function
+        was called 3 times, the result would be:
+
+            >>> button.one_press()
             1
-            >>> print(button.one_press())
+            >>> button.one_press()
             1
-            >>> print(button.one_press())
+            >>> button.one_press()
             0
 
-        Alternatively, if `press` is `False`, this function returns releases
+        Alternatively, if `press` is `False`, this function reports releases
         instead of presses.
         """
         return self._one_edge(0 if press else 1)
@@ -207,14 +208,19 @@ class Button(Pin):
         """
         return self._wait(0 if press else 1, timeout=timeout)
 
-    @classmethod
-    def wait_many(cls, buttons, press=True, timeout=None):
+    # NOTE: Fake instancemethod as pdoc workaround.  See NOTE in docstring.
+    def staticmethod_wait_many(buttons, press=True, timeout=None):
         """Calls `rstem.button.Button.wait` on a list of buttons.
 
         Given a list of `buttons` this function will wait for any of them to be
         pressed, and return the index into the `buttons` list of the button
         that was pressed.  The `press` and `timeout` arguments are the same as
         for the `rstem.button.Button.wait` function.
+
+        **NOTE**: This is a `staticmethod` not an `instancemethod`, and the
+        actual name does not include the prefix `staticmethod_`.  It is only
+        shown with that prefix to allow it to be documented here.
+
         """
         # Python does not provide a way to wait on multiple Queues.  Big bummer.
         # To avoid overcomplicating this, we'll simply poll the queues.
@@ -225,6 +231,10 @@ class Button(Pin):
                 if button_found:
                     return i
         return None
+
+    @staticmethod
+    def wait_many(*args, **kwargs):
+        return Button.staticmethod_wait_many(*args, **kwargs)
 
     """ TBD:
     def callback(self): callback if press, release, or either
