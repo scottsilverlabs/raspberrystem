@@ -13,6 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+"""
+This module provides interfaces to the buttons and switches in the Button RaspberrySTEM Cell.
+"""
+
 from threading import Thread, Event
 from queue import Queue, Empty
 import time
@@ -37,24 +41,24 @@ class Button(Pin):
     """
 
     A = 4
-    """GPIO number of the 'A' button on the GAMER keypad"""
+    """GPIO number of the 'A' button on the GAMER keypad."""
     B = 17
-    """GPIO number of the 'B' button on the GAMER keypad"""
+    """GPIO number of the 'B' button on the GAMER keypad."""
     UP = 25
-    """GPIO number of the 'UP' button on the GAMER keypad"""
+    """GPIO number of the 'UP' button on the GAMER keypad."""
     DOWN = 24
-    """GPIO number of the 'DOWN' button on the GAMER keypad"""
+    """GPIO number of the 'DOWN' button on the GAMER keypad."""
     LEFT = 23
-    """GPIO number of the 'LEFT' button on the GAMER keypad"""
+    """GPIO number of the 'LEFT' button on the GAMER keypad."""
     RIGHT = 18
-    """GPIO number of the 'RIGHT' button on the GAMER keypad"""
+    """GPIO number of the 'RIGHT' button on the GAMER keypad."""
     START = 27
-    """GPIO number of the 'START' button on the GAMER keypad"""
+    """GPIO number of the 'START' button on the GAMER keypad."""
     SELECT = 22
-    """GPIO number of the 'SELECT' button on the GAMER keypad"""
+    """GPIO number of the 'SELECT' button on the GAMER keypad."""
 
     def __init__(self, pin):
-        """Create a new `Button`
+        """Create a new `Button`.
 
         `pin` is the number of the GPIO as labeled on the RaspberrySTEM Lid
         connector.  It is the GPIO number used by the Broadcom processor on

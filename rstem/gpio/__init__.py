@@ -14,6 +14,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+"""
+This module provides interfaces to GPIOs - useful for the lighting LEDs in the LED RaspberrySTEM
+Cell, and other RaspberrySTEM Cells.
+"""
 
 import os
 
@@ -63,14 +67,14 @@ class Pin(object):
 class Output(Pin):
     """A GPIO output.
 
-    A `rstem.gpio.Output` configures a GPIO pin as an output.  The pin can then used as a
+    An `rstem.gpio.Output` configures a GPIO pin as an output.  The pin can then used as a
     programmable switch to drive LEDs, motor drivers, relays and other devices.
     """
     def __init__(self, pin, active_low=True):
-        """Create a new `Output`
+        """Create a new `Output`.
 
-        `pin` is the number of the GPIO as labeled on the RaspberrySTEM
-        connector.  It is the GPIO number of used by the Broadcom processor on
+        `pin` is the number of the GPIO as labeled on the RaspberrySTEM Lid
+        connector.  It is the GPIO number used by the Broadcom processor on
         the Raspberry Pi.
 
         If `active_low=True` (the default), then the output will be set LOW
@@ -98,11 +102,13 @@ class Output(Pin):
         self._set(self._active_low)
 
 class DisablePin(Pin):
+    """Disable a previously used GPIO pin."""
+
     def __init__(self, *args, **kwargs):
         """Disable a previously used GPIO pin.
 
-        `pin` is the number of the GPIO as labeled on the RaspberrySTEM
-        connector.  It is the GPIO number of used by the Broadcom processor on
+        `pin` is the number of the GPIO as labeled on the RaspberrySTEM Lid
+        connector.  It is the GPIO number used by the Broadcom processor on
         the Raspberry Pi.
         """
         super().__init__(*args, **kwargs)
