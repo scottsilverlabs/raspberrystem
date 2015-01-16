@@ -14,9 +14,9 @@ my_text_sprite = led_matrix.LEDText("Hello World")
 # A while loop that keeps looping forever
 while True:  # by making the conditional True, the while loop will never break because True is always True!
    
-   display_width = led_matrix.width()   # this is the number of LEDs wide the display is.
+    display_width = led_matrix.width()   # this is the number of LEDs wide the display is.
    
-   text_width = my_text_sprite.width   # this is the number of LEDs wide our my_text_sprite is.
+    text_width = my_text_sprite.width   # this is the number of LEDs wide our my_text_sprite is.
    
     # Set the x position to be originally all the way to the right of the screen, by using the text_width variable we made.
     x = text_width

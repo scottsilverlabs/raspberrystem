@@ -14,256 +14,109 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+"""
+This module provides interfaces to GPIOs - useful for the lighting LEDs in the LED RaspberrySTEM
+Cell, and other RaspberrySTEM Cells.
+"""
 
 import os
-import select
-import time
-from threading import Thread, Lock, Event
 
 PINS = [2, 3, 4, 14, 15, 17, 18, 22, 23, 24, 25, 27]
 
-# Directions
-OUTPUT = 1
-INPUT = 2
-DISABLED = 3
+active_pins = {}
 
-# Edge Detection
-NONE = "none"
-RISING = "rising"
-FALLING = "falling"
-BOTH = "both"
+class Pin(object):
+    _ARG_PULL_DISABLE = 0
+    _ARG_PULL_DOWN = 1
+    _ARG_PULL_UP = 2
 
-ARG_PULL_DISABLE = 0
-ARG_PULL_DOWN = 1
-ARG_PULL_UP = 2
-
-HIGH = 1
-LOW = 0
-
-
-class Pin:
     def __init__(self, pin):
         self.gpio_dir = "/sys/class/gpio/gpio%d" % pin
         self.pin = pin
-        self.direction = DISABLED
-        self.edge = NONE
-        self.last = 1
-        self.mutex = Lock()
-        self.poll_thread = None
-        self.poll_thread_stop = None
         if pin in PINS:
             if not os.path.exists(self.gpio_dir):
                 with open("/sys/class/gpio/export", "w") as f:
                     f.write("%d\n" % pin)
+        else:
+            raise ValueError("Invalid GPIO pin")
 
-    def __pullup(self, pin, enable):
-        here = os.path.dirname(os.path.realpath(__file__))
-        os.system(here + "/pullup.sbin %d %d" % (pin, enable))
+        global active_pins
+        if pin in active_pins:
+            active_pins[pin]._deactivate()
+        active_pins[pin] = self
 
-    def __enable_pullup(self, pin):
-        self.__pullup(pin, ARG_PULL_UP)
+    def _pullup(self, pin, enable):
+        os.system("pullup.sbin %d %d" % (pin, enable))
 
-    def __disable_pullup(self, pin):
-        self.__pullup(pin, ARG_PULL_DISABLE)
+    def _enable_pullup(self, pin):
+        self._pullup(pin, self._ARG_PULL_UP)
 
-    def __enable_pulldown(self, pin):
-        self.__pullup(pin, ARG_PULL_DOWN)
+    def _disable_pullup(self, pin):
+        self._pullup(pin, self._ARG_PULL_DISABLE)
 
-    def __disable_pulldown(self, pin):
-        self.__pullup(pin, ARG_PULL_DISABLE)
+    def _enable_pulldown(self, pin):
+        self._pullup(pin, self._ARG_PULL_DOWN)
 
-    def __poll_thread_run(self, callback, bouncetime):
-        """Run function used in poll_thread"""
-        # NOTE: self will not change once this is called
-        po = select.epoll()
-        po.register(self.fvalue, select.POLLIN | select.EPOLLPRI | select.EPOLLET)
-        last_time = 0
-        first_time = True  # used to ignore first trigger
-        # TODO: ignore second trigger too if edge = rising/falling?
+    def _disable_pulldown(self, pin):
+        self._pullup(pin, self._ARG_PULL_DISABLE)
 
-        while not self.poll_thread_stop.is_set():
-            event = po.poll(1)
-            if len(event) == 0:
-                # timeout
-                continue
-            self.fvalue.seek(0)
-            if not first_time:
-                timenow = time.time()
-                if (timenow - last_time) > (bouncetime/1000) or last_time == 0:
-                    callback(self.pin)
-                    last_time = timenow
-            else:
-                first_time = False
+    def _deactivate(self):
+        del active_pins[self.pin]
 
-    def __set_edge(self, edge):
-        with self.mutex:
-            with open(self.gpio_dir + "/edge", "w") as fedge:
-                self.edge = edge
-                fedge.write(edge)
 
-    def __end_thread(self):
-        if self.poll_thread and self.poll_thread.isAlive():
-            # self.poll_thread_running = False
-            self.poll_thread_stop.set()
+class Output(Pin):
+    """A GPIO output.
 
-            while self.poll_thread.isAlive():
-                self.poll_thread.join(1)
+    An `rstem.gpio.Output` configures a GPIO pin as an output.  The pin can then used as a
+    programmable switch to drive LEDs, motor drivers, relays and other devices.
+    """
+    def __init__(self, pin, active_low=True):
+        """Create a new `Output`.
 
-    def remove_edge_detect(self):
-        """Removes edge detect interrupt"""
-        self.__set_edge(NONE)
-        self.__end_thread()
+        `pin` is the number of the GPIO as labeled on the RaspberrySTEM Lid
+        connector.  It is the GPIO number used by the Broadcom processor on
+        the Raspberry Pi.
 
-    def wait_for_edge(self, edge):
-        """Blocks until the given edge has happened
-        @param edge: Either gpio.FALLING, gpio.RISING, gpio.BOTH
-        @type edge: string
-        @throws: ValueError
+        If `active_low=True` (the default), then the output will be set LOW
+        (grounded, i.e. 0 volts) when the output is turned `on`.  If
+        `active_low=False`, then the output will be set HIGH (the supply
+        voltage, i.e. 3.3 volts) when the output is turned `on`.
         """
-        if self.direction != INPUT:
-            raise ValueError("GPIO must be configured to be an input first.")
-        if edge not in [RISING, FALLING, BOTH]:
-            raise ValueError("Invalid edge!")
-        self.__set_edge(edge)
+        super().__init__(pin)
+        self._active_low = active_low
+        with open(self.gpio_dir + "/direction", "w") as fdirection:
+            fdirection.write("out")
+            self._fvalue = open(self.gpio_dir + "/value", "w")
 
-        # wait for edge
-        po = select.epoll()
-        po.register(self.fvalue, select.POLLIN | select.EPOLLPRI | select.EPOLLET)
-        # last_time = 0
-        first_time = True  # used to ignore first trigger
+    def _set(self, level):
+        self._fvalue.seek(0)
+        self._fvalue.write('1' if level else '0')
+        self._fvalue.flush()
 
-        while True:
-            event = po.poll(60)
-            if len(event) == 0:
-                # timeout to see if edge has changed
-                if self.edge == NONE:
-                    break
-                else:
-                    continue
-            self.fvalue.seek(0)
-            if not first_time:
-                break
-            else:
-                first_time = False
+    def on(self):
+        """Turn the GPIO output on (repects `active_low` setting)."""
+        self._set(not self._active_low)
 
-    def edge_detect(self, edge, callback=None, bouncetime=200):
-        """Sets up edge detection interrupt.
-        @param edge: either gpio.NONE, gpio.RISING, gpio.FALLING, or gpio.BOTH
-        @type edge: int
-        @param callback: Function to call when given edge has been detected.
-        @type callback: function
-        @param bouncetime: Debounce time in milliseconds.
-        @type bouncetime: int
-        @note: First parameter of callback function will be the pin number of gpio that called it.
+    def off(self):
+        """Turn the GPIO output off (repects `active_low` setting)."""
+        self._set(self._active_low)
+
+class DisablePin(Pin):
+    """Disable a previously used GPIO pin."""
+
+    def __init__(self, *args, **kwargs):
+        """Disable a previously used GPIO pin.
+
+        `pin` is the number of the GPIO as labeled on the RaspberrySTEM Lid
+        connector.  It is the GPIO number used by the Broadcom processor on
+        the Raspberry Pi.
         """
-        if self.direction != INPUT:
-            raise ValueError("GPIO must be configured to be an input first.")
-        if callback is None and edge != NONE:
-            raise ValueError("Callback function must be given if edge is not NONE")
-        if edge not in [NONE, RISING, FALLING, BOTH]:
-            raise ValueError("Edge must be NONE, RISING, FALLING, or BOTH")
+        super().__init__(*args, **kwargs)
 
-        self.__set_edge(edge)
+    def _deactivate(self):
+        with open(self.gpio_dir + "/direction", "w") as fdirection:
+            fdirection.write("in")
+        super()._deactivate()
 
-        if edge != NONE:
-            self.__end_thread()  # end any previous callback functions
-            self.poll_thread_stop = Event()
-            self.poll_thread = Thread(target=Pin.__poll_thread_run, args=(self, callback, bouncetime))
-            self.poll_thread.start()
+__all__ = ['Output', 'DisablePin']
 
-
-    def configure(self, direction):
-        """Configure the GPIO pin to either be an input, output or disabled.
-        @param direction: Either gpio.INPUT, gpio.OUTPUT, or gpio.DISABLED
-        @type direction: int
-        """
-        if direction not in [INPUT, OUTPUT, DISABLED]:
-            raise ValueError("Direction must be INPUT, OUTPUT or DISABLED")
-
-        with self.mutex:
-            with open(self.gpio_dir + "/direction", "w") as fdirection:
-                self.direction = direction
-                if direction == OUTPUT:
-                    # For future use
-                    fdirection.write("out")
-                    self.fvalue = open(self.gpio_dir + "/value", "w")
-                elif direction == INPUT:
-                    self.__enable_pullup(self.pin)
-                    fdirection.write("in")
-                    self.fvalue = open(self.gpio_dir + "/value", "r")
-                elif direction == DISABLED:
-                    fdirection.write("in")
-                    self.fvalue.close()
-
-    def was_clicked(self):
-        # TODO: make work for any type of edge change and rename function
-        """Detects whether the GPIO has been clicked or on since the pin has been initialized or
-        since the last time was_clicked() has been called.
-        @returns: boolean
-        """
-        level = self.get_level()
-        clicked = level == 1 and self.last == 0
-        self.last = level
-        return clicked
-
-    def get_level(self):
-        """Returns the current level of the GPIO pin.
-        @returns: int (1 for HIGH, 0 for LOW)
-        @note: The GPIO pins are active low.
-        """
-        if self.direction != INPUT:
-            raise ValueError("GPIO must be configured to be an INPUT!")
-        with self.mutex:
-            self.fvalue.seek(0)
-            return int(self.fvalue.read())
-
-    def set_level(self, level):
-        """Sets the level of the GPIO port.
-        @param level: Level to set. Must be either HIGH or LOW.
-        @param level: int
-        """
-        if self.direction != OUTPUT:
-            raise ValueError("GPIO must be configured to be an OUTPUT!")
-        if level != 0 and level != 1:
-            raise ValueError("Level must be either 1 or 0.")
-        with self.mutex:
-            # write value wasn't working for some reason...
-            os.system("echo %s > %s/value" % (str(level), self.gpio_dir))
-            # self.fvalue.seek(0)
-            # self.fvalue.write(str(level))
-
-
-class Pins:
-    def __init__(self):
-        self.gpios = [Pin(i) for i in range(max(PINS) + 1)]
-
-    def __validate_gpio(self, pin, direction):
-        class UninitializedError(Exception):
-            pass
-
-        if not pin in PINS:
-            raise ValueError("Invalid GPIO")
-        if self.gpios[pin].direction != direction:
-            raise UninitializedError()
-
-    def configure(self, pin, direction):
-        if not pin in PINS:
-            raise ValueError("Invalid GPIO")
-        self.gpios[pin].configure(direction)
-
-    def was_clicked(self):
-        inputs = [g for g in self.gpios if g.direction == INPUT]
-        return [g.pin for g in inputs if g.was_clicked()]
-
-    def get_level(self, pin):
-        self.__validate_gpio(pin, INPUT)
-        return self.gpios[pin].get_level()
-
-    def set_level(self, pin, level):
-        self.__validate_gpio(pin, OUTPUT)
-        self.gpios[pin].set_level(level)
-
-# Export functions in this module
-g = Pins()
-for name in ['configure', 'get_level', 'set_level', 'was_clicked']:
-    globals()[name] = getattr(g, name)

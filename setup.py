@@ -35,10 +35,7 @@ def read(fname):
 
 def _post_install(dir):
     from subprocess import call
-    if os.system("grep 'BCM2708' /proc/cpuinfo > /dev/null") == 0:
-        call("bash ./pkg/postinstall", shell=True)
-    else:
-        print("WARNING: GPIO, I2C, and SPI are unsupported on this non-RaspberryPi!")
+    call("bash ./pkg/postinstall %s rstem" % dir, shell=True)
 
 # Post installation task to setup raspberry pi
 class install(_install):

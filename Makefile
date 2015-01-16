@@ -6,6 +6,7 @@ PIP=pip-3.2
 PROJECTSDIR=$$HOME/rstem
 CELLSDIR=$$HOME/rstem
 
+SSHFLAGS=
 PI=pi@raspberrypi
 RUNONPI=ssh $(SSHFLAGS) -q -t $(PI) "mkdir -p rsinstall; cd rsinstall;"
 
@@ -37,6 +38,7 @@ help:
 	@echo "    rstem             setup.py sdist - Create a pip installable source distribution"
 	@echo "    rstem-dev       * setup.py develop - Build/install on target for (fast) development"
 	@echo "    rstem-undev     * setup.py develop --uninstall - Reverse of make rstem-dev"
+	@echo "    rstem-pydoc       Extract the pydocs into the rstem package"
 	@echo "    rstem-register    setup.py register - One-time user register/login on Cheeseshop"
 	@echo "    rstem-upload      setup.py upload - Upload source distribution to Cheeseshop"
 	@echo "    rstem-install   * pip install <tar.gz> - Install from source distribution"
@@ -56,6 +58,7 @@ help:
 	@echo "    ide               Build IDE."
 	@echo "    ide-upload      * Upload IDE."
 	@echo "    ide-install     * Install IDE."
+	@echo "    ide-run         * Start IDE server."
 	@echo "    ide-clean       * Clean IDE."
 	@echo ""
 	@echo "Top-level commands:"
@@ -73,16 +76,16 @@ help:
 	@echo ""
 	@echo "Use cases:"
 	@echo "    For rstem development"
-	@echo "        Either (fast way):"
-	@echo "            make rstem-dev"
+	@echo "        make rstem-dev"
+	@echo "        <repeat>:"
 	@echo "            <edit files>"
-	@echo "            make push"
-	@echo "            <test & repeat>"
-	@echo "            make rstem-undev"
-	@echo "        Or (normal way):"
-	@echo "            <edit files>"
-	@echo "            make rstem && make rstem-install"
-	@echo "            <test & repeat>"
+	@echo "            make test-<test_suite>"
+	@echo "        make rstem-undev"
+	@echo "    Make, install and run IDE remotely:"
+	@echo "        make ide"
+	@echo "        make ide-install"
+	@echo "        make ide-run"
+	@echo "        <On host, open browser and point to raspberrypi>"
 	@echo "    X development (where X is in [ide, doc, rstem]:"
 	@echo "        <edit files>"
 	@echo "        make X && make X-install"
@@ -108,13 +111,6 @@ help:
 	@echo "    Docs (PDF):                      *_VERSION.pdf"
 	@echo "Note: sdist is a pip installable tarball creates via setuptools."
 
-./rstem/gpio/pullup.sbin: ./rstem/gpio/pullup.sbin.c
-	# compile pullup.sbin
-	gcc ./rstem/gpio/pullup.sbin.c -o ./rstem/gpio/pullup.sbin
-	# set pullup.sbin as a root program
-	sudo chown 0:0 ./rstem/gpio/pullup.sbin
-	sudo chmod u+s ./rstem/gpio/pullup.sbin
-
 $(OUT):
 	mkdir -p $(OUT)
 
@@ -122,14 +118,21 @@ $(OUT):
 # rstem commands
 #
 
+rstem-util:
+	$(MAKE) -C util
+
 rstem: $(RSTEM_TAR)
-$(RSTEM_TAR): $(GIT_FILES) $(PYDOC_TAR) | $(OUT)
+$(RSTEM_TAR): $(GIT_FILES) rstem-pydoc rstem-util | $(OUT)
 	@# If there's any files that are untracked in git but that would end up being in
 	@# the MANIFEST (via graft of a whole directory) then interactively clean them.
-	git clean -i $(shell awk '/^graft/{print $2}' MANIFEST.in)
-	tar xf $(PYDOC_TAR) -C rstem
+	@# EXCEPT: util/bin includes specific externally built binaries.
+	git clean -i $(shell awk '/^graft/{print $$2}' MANIFEST.in | grep -v util/bin)
 	$(SETUP) sdist
 	mv dist/$(notdir $@) $@
+
+rstem-pydoc: $(PYDOC_TAR)
+	rm -rf rstem/api
+	tar xf $(PYDOC_TAR) -C rstem
 
 rstem-dev: push
 	$(RUNONPI) sudo $(SETUP) develop
@@ -172,6 +175,16 @@ pydoc-upload:
 	mkdir -p build/docs
 	cd build/docs && tar xvf $(PYDOC_TAR)
 	$(SETUP) upload_docs --upload-dir=build/docs/api/rstem
+
+# ##################################################
+# Host commands
+#
+# Targets that can run on the host without needing the target Pi.
+#
+host-clean:
+	rm NAME VERSION
+	rm -rf *.egg-info
+	rm -rf $(OUT)
 
 # ##################################################
 # External Repo commands
@@ -242,18 +255,13 @@ pi-setup:
 	$(RUNONPI) sudo apt-get install -y python3-pip
 	# Should this be a dependency?
 	$(RUNONPI) sudo apt-get install -y libi2c-dev
-	# pytest no longer required?
-	$(RUNONPI) sudo $(PIP) install pytest
 	$(RUNONPI) sudo $(PIP) install pdoc
 
-CLEAN_TARGETS=rstem pydoc ide doc
+CLEAN_TARGETS=rstem pydoc ide doc host
 INSTALL_TARGETS=rstem ide doc
 UPLOAD_TARGETS=rstem pydoc ide
 
 clean: $(addsuffix -clean,$(CLEAN_TARGETS))
-	rm NAME VERSION
-	rm -rf *.egg-info
-	rm -rf $(OUT)
 	$(RUNONPI) "cd ~; sudo rm -rf ~/rsinstall"
 
 install: $(addsuffix -install,$(INSTALL_TARGETS))
@@ -272,4 +280,16 @@ test:
 	done
 
 test-%: push
+	# Oy.  For some reason, we get permission errors when using /sys/class/gpio
+	# when running via the test framework.  I don't expect this because
+	# /sys/class/gpio/* has group as "gpio" and "pi" is in that group.  If we
+	# try to use a GPIO (say, via Button()), WITHOUT using the test framework,
+	# it works fine - so its related to the testing.py framework.
+	#
+	# Additionally, we have had a udev rule that should convert all of
+	# /sys/class/gpio to user/group pi:pi.  However, this rule doesn't work on
+	# boot, it only works when run manually.
+	#
+	# So, our fix: force the udev rule to get permissions working.
+	$(RUNONPI) "sudo udevadm test --action=add /class/gpio"
 	$(RUNONPI) "cd rstem/tests; $(PYTHON) -m testing $*"

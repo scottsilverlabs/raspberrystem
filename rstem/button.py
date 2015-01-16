@@ -13,71 +13,235 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+"""
+This module provides interfaces to the buttons and switches in the Button RaspberrySTEM Cell.
+"""
 
-from rstem import gpio
+from threading import Thread, Event
+from queue import Queue, Empty
+import time
+from rstem.gpio import Pin
 
+class Button(Pin):
+    """A button from a GPIO port.
 
-PRESSED = gpio.FALLING
-RELEASED = gpio.RISING
-BOTH = gpio.BOTH
+    A `rstem.button.Button` configures a physical button hooked up to a GPIO
+    pin.  The physical button should be connected from the GPIO pin to ground.
 
-A = 4
-B = 17
-UP = 25
-DOWN = 24
-LEFT = 23
-RIGHT = 18
-START = 27
-SELECT = 22
+    `rstem.button.Button` provides a set of functions that make it easy to check
+    if and when a button is pressed.  The `rstem.button.Button`
+    object reads button presses in the background so that the calling program
+    won't lose presses.  Presses and releases are kept in a queue that the
+    caller can read at any time.
 
+    More details: The GPIO is configured with an internal pullup so that when
+    the button is NOT pressed, the GPIO input is high, and when the button is
+    pressed, the input is low (shorted to ground).  Additionaly, The
+    `rstem.button.Button` object handles button debouncing.
+    """
 
-class Button(object):
-    """ A button from a GPIO port"""
+    A = 4
+    """GPIO number of the 'A' button on the GAMER keypad."""
+    B = 17
+    """GPIO number of the 'B' button on the GAMER keypad."""
+    UP = 25
+    """GPIO number of the 'UP' button on the GAMER keypad."""
+    DOWN = 24
+    """GPIO number of the 'DOWN' button on the GAMER keypad."""
+    LEFT = 23
+    """GPIO number of the 'LEFT' button on the GAMER keypad."""
+    RIGHT = 18
+    """GPIO number of the 'RIGHT' button on the GAMER keypad."""
+    START = 27
+    """GPIO number of the 'START' button on the GAMER keypad."""
+    SELECT = 22
+    """GPIO number of the 'SELECT' button on the GAMER keypad."""
 
-    def __init__(self, port):
+    def __init__(self, pin):
+        """Create a new `Button`.
+
+        `pin` is the number of the GPIO as labeled on the RaspberrySTEM Lid
+        connector.  It is the GPIO number used by the Broadcom processor on
+        the Raspberry Pi.
         """
-        @param port: GPIO number (BCM mode) that button is plugged into
-        @type port: int
+
+        super().__init__(pin)
+
+        with open(self.gpio_dir + "/direction", "w") as fdirection:
+            fdirection.write("in")
+
+        self._enable_pullup(self.pin)
+
+        self._fvalue = open(self.gpio_dir + "/value", "r")
+
+        self._button_queue = Queue()
+        self._poll_thread_stop = Event()
+        self._poll_thread = Thread(target=self.__button_poll_thread, args=())
+        self._poll_thread.daemon = True
+        self._poll_thread.start()
+
+    def __button_poll_thread(self):
+        previous = -1
+
+        bounce_time = 0.030
+        while not self._poll_thread_stop.wait(bounce_time):
+            self._fvalue.seek(0)
+            read = self._fvalue.read().strip()
+            if len(read):
+                current = 1 if read == '1' else 0
+                if previous >= 0 and current != previous:
+                    self._button_queue.put(current)
+                previous = current
+
+    def _edges(self):
+        try:
+            releases, presses = 0, 0
+            while True:
+                level = self._button_queue.get_nowait()
+                if level:
+                    releases += 1
+                else:
+                    presses += 1
+        except Empty:
+            pass
+        return releases, presses
+
+    def _one_edge(self, level_wanted):
+        try:
+            while True:
+                level = self._button_queue.get_nowait()
+                if level == level_wanted:
+                    return 1
+        except Empty:
+            pass
+        return 0
+
+    def _wait(self, level_wanted, timeout=None):
+        try:
+            start = time.time()
+            while True:
+                if timeout != None:
+                    remaining = max(0, timeout - (time.time() - start))
+                    level = self._button_queue.get(timeout=remaining)
+                else:
+                    level = self._button_queue.get()
+                if level == level_wanted:
+                    return True
+        except Empty:
+            return False
+
+    def _get(self):
+        self._fvalue.seek(0)
+        return int(self._fvalue.read())
+
+    def _deactivate(self):
+        if self._poll_thread:
+            self._poll_thread_stop.set()
+            self._poll_thread.join()
+        super()._deactivate()
+
+    def is_pressed(self, press=True):
+        """Reports if the button is pressed.
+
+        Returns `True` if the button is pressed, otherwise `False`.  If `press`
+        is `False`, then the function returns the opposite - that is, it
+        reports if the button released instead of pressed.
         """
-        self.port = port
-        self.gpio = gpio.Pin(port)
-        self.gpio.configure(gpio.INPUT)
+        pressed = not bool(self._get())
+        return pressed if press else not pressed
 
-    def is_pressed(self):
-        """@returns: True if button is pressed"""
-        return not bool(self.gpio.get_level())
+    def is_released(self):
+        """Reports if the button is released.
 
-    def was_clicked(self):
-        return self.gpio.was_clicked()
-
-    def _verify_change_value(change):
-        if change not in [PRESSED, RELEASED, BOTH]:
-            raise ValueError("Invalid change")
-
-    def call_on_change(self, event_callback, change=PRESSED, bouncetime=300):
-        """Calls given event_callback function when button changes state (example pressed).
-
-        @param event_callback: function to call when button changes state
-        @type event_callback: function
-        @param change: type of event to watch for (either button.PRESSED, button.RELEASED, or button.BOTH)
-        @param bouncetime: msec to debounce button
-        @type bouncetime: int8
-
-        @warning: Function must have the first argument be the port number
+        Equivalent to `not self.is_pressed()`.
         """
-        Button._verify_change_value(change)
-        self.gpio.edge_detect(change, event_callback, bouncetime)
+        return not self.is_pressed()
 
-    def remove_call_on_change(self):
-        """Removes the callback function set for this button.
-        Does nothing if no callback function is set
+    def presses(self, press=True):
+        """Returns the number of presses since this function was last called.
+
+        Button presses and releases are queued up - this function reads all
+        the presses/releases from the queue and returns the total number of
+        presses.  Reading the full queue effectively resets the number of
+        presses and releases to zero.
+
+        Alternatively, if `press` is `False`, this function returns the number
+        of releases since this function was last called.
         """
-        self.gpio.remove_edge_detect()
+        _releases, _presses = self._edges()
+        return _presses if press else _releases
 
-    def wait_for_change(self, change=PRESSED):
-        """Blocks until given change event happens
+    def one_press(self, press=True):
+        """Reports if a single press has occured.
 
-        @param change: type of event to watch for (either button.PRESSED, button.RELEASED, or button.BOTH)
+        Button presses and releases are queued up - this function reads the
+        next press from the queue, and returns 1.  If no presses are queued, it
+        returns 0.
+
+        For example, if the button was pressed 2 times, and then this function
+        was called 3 times, the result would be:
+
+            >>> button.one_press()
+            1
+            >>> button.one_press()
+            1
+            >>> button.one_press()
+            0
+
+        Alternatively, if `press` is `False`, this function reports releases
+        instead of presses.
         """
-        Button._verify_change_value(change)
-        self.gpio.wait_for_edge(change)
+        return self._one_edge(0 if press else 1)
+
+    def wait(self, press=True, timeout=None):
+        """Wait until a press occurs.
+
+        This function blocks until a press occurs and (by default) returns
+        `True`.  Because button presses and releases are queued up, it will
+        return immediately if a press is already available before the function
+        was called.
+
+        If `timeout=None` (the default), the function will block forever until
+        a press occurs.  If the `timeout` is a number 0 or greater, the
+        function will block for up to `timeout` time in seconds (floats
+        allowed).  If the `timeout` time expires before the button is pressed,
+        the function returns `False`.
+
+        Alternatively, if `press` is `False`, this function waits for releases
+        instead of presses.
+        """
+        return self._wait(0 if press else 1, timeout=timeout)
+
+    # NOTE: Fake instancemethod as pdoc workaround.  See NOTE in docstring.
+    def staticmethod_wait_many(buttons, press=True, timeout=None):
+        """Calls `rstem.button.Button.wait` on a list of buttons.
+
+        Given a list of `buttons` this function will wait for any of them to be
+        pressed, and return the index into the `buttons` list of the button
+        that was pressed.  The `press` and `timeout` arguments are the same as
+        for the `rstem.button.Button.wait` function.
+
+        **NOTE**: This is a `staticmethod` not an `instancemethod`, and the
+        actual name does not include the prefix `staticmethod_`.  It is only
+        shown with that prefix to allow it to be documented here.
+
+        """
+        # Python does not provide a way to wait on multiple Queues.  Big bummer.
+        # To avoid overcomplicating this, we'll simply poll the queues.
+        start = time.time()
+        while timeout == None or timeout - (time.time() - start) < 0:
+            for i, button in enumerate(buttons):
+                button_found = button.wait(press=press, timeout=0)
+                if button_found:
+                    return i
+        return None
+
+    @staticmethod
+    def wait_many(*args, **kwargs):
+        return Button.staticmethod_wait_many(*args, **kwargs)
+
+    """ TBD:
+    def callback(self): callback if press, release, or either
+    """
+
+__all__ = ['Button']
