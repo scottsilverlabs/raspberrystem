@@ -263,7 +263,7 @@ pi-setup:
 	$(RUNONPI) sudo apt-get install -y libi2c-dev
 	$(RUNONPI) sudo $(PIP) install pdoc
 
-CLEAN_TARGETS=rstem pydoc ide doc host
+CLEAN_TARGETS=rstem pydoc ide doc host test
 INSTALL_TARGETS=rstem ide doc
 UPLOAD_TARGETS=rstem pydoc ide
 
@@ -299,3 +299,6 @@ test-%: push
 	# So, our fix: force the udev rule to get permissions working.
 	$(RUNONPI) "sudo udevadm test --action=add /class/gpio"
 	$(RUNONPI) "cd rstem/tests; $(PYTHON) -m testing $*"
+
+test-clean:
+	$(RUNONPI) rm -rf "~/rstem_logs"
