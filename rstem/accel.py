@@ -89,17 +89,23 @@ class Accel(object):
         os.write(self.fd, pack('bb', XYZ_DATA_CFG, 0x01))
         os.write(self.fd, pack('bb', CTRL_REG2, (1 << 4) | (1 << 3) | (1 << 1) | 1))
         os.write(self.fd, pack('bb', CTRL_REG1, 0x01))
-        print(hex(self._read(WHO_AM_I)[0]))
-
+        id = self._read(WHO_AM_I)[0]
+        if id != 0x5A:
+            raise IOError("MMA8653 Accelerometer is not returning correct ID ({})".format(id))
 
     def _read(self, command, bytes_to_read=1):
-        buf = create_string_buffer(bytes((command,)))
+        if bytes_to_read > 8:
+            raise ValueError("MMA8653 Accelerometer does not (seem) to allow consectutive reads > 8")
+        # Create C-based I2C write message struct (1 byte command)
+        buf = create_string_buffer(bytes((command,)), 1)
         write_msg = i2c_msg(
             addr=MMA8653_DEVICE_ADDR,
             flags=0,
             len=sizeof(buf),
             buf=buf
             )
+
+        # Create C-based I2C read message struct (bytes_to_read bytes)
         buf = create_string_buffer(bytes_to_read)
         read_msg = i2c_msg(
             addr=MMA8653_DEVICE_ADDR,
@@ -107,6 +113,8 @@ class Accel(object):
             len=sizeof(buf),
             buf=buf
             )
+
+        # Create C-based I2C struct to pass as ioctl() arg
         nmsgs = 2
         msgs = (i2c_msg * 2)(write_msg, read_msg)
         ioctl_arg = i2c_rdwr_ioctl_data(
@@ -114,6 +122,7 @@ class Accel(object):
             nmsgs=nmsgs
             )
 
+        # ioctl() to do the I2C READ/WRITE
         ret = ioctl(self.fd, I2C_RDWR, ioctl_arg)
         if ret != 2:
             raise IOError("ioctl() failed to send to I2C messages ({})".format(ret))
@@ -140,9 +149,9 @@ class Accel(object):
             raise IOError("Acceleromter data is not available")
 
         data = self._read(OUT_X_MSB, 6)
-        _forces = unpack("hhh", data)
-        _forces = [force ]
-        return (0, 0, 0)
+        _forces = unpack(">hhh", data)
+        _forces = [(force>>6)/128.0 for force in _forces]
+        return _forces
 
     def __del__(self):
         os.close(self.fd)

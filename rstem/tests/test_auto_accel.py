@@ -31,8 +31,9 @@ def io_setup(output_active_low=False, pull=None):
 @io_setup()
 def accel_get_pos(a):
     x, y, z = a.forces()
-    x_good = abs(0.0 - x) < 3.0
-    y_good = abs(0.0 - y) < 3.0
-    z_good = abs(90.0 - z) < 3.0
+    print("x, y, z = ", (x, y, z))
+    x_good = abs(0.0 - x) < 0.05
+    y_good = abs(0.0 - y) < 0.05
+    z_good = abs(1.0 - z) < 0.05
     return x_good and y_good and z_good
 
