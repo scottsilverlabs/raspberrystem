@@ -18,8 +18,32 @@ This module provides interfaces to the buttons and switches in the Button Raspbe
 """
 
 import os
-from struct import pack
+import time
+from struct import pack, unpack
 from fcntl import ioctl
+from ctypes import create_string_buffer, sizeof, string_at
+from ctypes import c_int, c_uint16, c_ushort, c_short, c_char, POINTER, Structure
+
+#
+# Required defs from <linux/i2c.h>
+#
+class i2c_msg(Structure):
+    _fields_ = [
+        ('addr', c_uint16),
+        ('flags', c_ushort),
+        ('len', c_short),
+        ('buf', POINTER(c_char))
+        ]
+
+class i2c_rdwr_ioctl_data(Structure):
+    _fields_ = [
+        ('msgs', POINTER(i2c_msg)),
+        ('nmsgs', c_int)
+        ]
+
+I2C_SLAVE   = 0x0703
+I2C_RDWR    = 0x0707
+I2C_M_RD    = 0x0001
 
 #
 # MMA8653 Register Map
@@ -55,28 +79,70 @@ OFF_Y =         0x30
 OFF_Z =         0x31
 
 MMA8653_DEVICE_ADDR = 0x1D
-
-#
-# I2C_SLAVE from header <linux/i2c-dev.h>
-#
-I2C_SLAVE = 0x0703
-
+I2C_BUS = 1
 
 class Accel(object):
-    def __init__(self, bus=1):
-        self.fd = os.open("/dev/i2c-{}".format(bus), os.O_RDWR)
+    def __init__(self):
+        self.fd = os.open("/dev/i2c-{}".format(I2C_BUS), os.O_RDWR)
         ioctl(self.fd, I2C_SLAVE, MMA8653_DEVICE_ADDR)
         os.write(self.fd, pack('bb', CTRL_REG1, 0x00))
         os.write(self.fd, pack('bb', XYZ_DATA_CFG, 0x01))
         os.write(self.fd, pack('bb', CTRL_REG2, (1 << 4) | (1 << 3) | (1 << 1) | 1))
         os.write(self.fd, pack('bb', CTRL_REG1, 0x01))
+        print(hex(self._read(WHO_AM_I)[0]))
 
-    def angles(self):
-        os.write(self.fd, pack('b', 0x00))
-        x = os.read(self.fd, 7)
-        print(x)
-        x, y, z = (1, 2, 3)
-        return (x, y, z)
+
+    def _read(self, command, bytes_to_read=1):
+        buf = create_string_buffer(bytes((command,)))
+        write_msg = i2c_msg(
+            addr=MMA8653_DEVICE_ADDR,
+            flags=0,
+            len=sizeof(buf),
+            buf=buf
+            )
+        buf = create_string_buffer(bytes_to_read)
+        read_msg = i2c_msg(
+            addr=MMA8653_DEVICE_ADDR,
+            flags=I2C_M_RD,
+            len=sizeof(buf),
+            buf=buf
+            )
+        nmsgs = 2
+        msgs = (i2c_msg * 2)(write_msg, read_msg)
+        ioctl_arg = i2c_rdwr_ioctl_data(
+            msgs=msgs,
+            nmsgs=nmsgs
+            )
+
+        ret = ioctl(self.fd, I2C_RDWR, ioctl_arg)
+        if ret != 2:
+            raise IOError("ioctl() failed to send to I2C messages ({})".format(ret))
+
+        return string_at(read_msg.buf, read_msg.len)
+
+    def forces(self):
+        """Returns a tuple of X, Y and Z forces.
+
+        Forces are floats in units of `g` (for g-force), where the g-force is
+        the gravitational force of the Earth.  An object in free-fall will
+        measure 0 `g` in the direction that it is falling.  An object resting
+        on a table will measure 1 `g` in the downward direction.  Thus, if the
+        RaspberrySTEM is sitting flat and upright on a table, the return value
+        should be close to (0.0, 0.0, 1.0).
+        """
+        # Verify data is ready
+        TRIES = 5
+        for i in range(TRIES):
+            if self._read(STATUS, 1)[0] & 0x0F == 0xF:
+                break
+            time.sleep(0.001)
+        if i + 1 == TRIES:
+            raise IOError("Acceleromter data is not available")
+
+        data = self._read(OUT_X_MSB, 6)
+        _forces = unpack("hhh", data)
+        _forces = [force ]
+        return (0, 0, 0)
 
     def __del__(self):
         os.close(self.fd)

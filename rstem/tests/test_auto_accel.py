@@ -30,7 +30,7 @@ def io_setup(output_active_low=False, pull=None):
 @testing.automatic
 @io_setup()
 def accel_get_pos(a):
-    x, y, z = a.angles()
+    x, y, z = a.forces()
     x_good = abs(0.0 - x) < 3.0
     y_good = abs(0.0 - y) < 3.0
     z_good = abs(90.0 - z) < 3.0
