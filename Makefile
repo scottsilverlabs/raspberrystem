@@ -161,10 +161,17 @@ rstem-clean:
 
 pydoc: $(PYDOC_TAR)
 $(PYDOC_TAR): $(GIT_FILES) | $(OUT)
-	$(MAKE) push
+	@# A bit circuitous: pydoc is a requirement of rstem (the API docs get
+	@# bundled into the package).  However, because pdoc runs on the target only,
+	@# we need to have an installed version of rstem on the target.  This a
+	@# catch-22.  So, we push a development version of the source to the target
+	@# (which doesn't require the API docs in the build via rstem-dev, and we
+	@# undev it at the end.
+	$(MAKE) rstem-dev
 	$(RUNONPI) pdoc --overwrite --html --html-dir $(PI_API_NAME) rstem
 	$(RUNONPI) tar czf $(PI_API_NAME).tar.gz $(PI_API_NAME)
 	scp $(PI):~/rsinstall/$(PI_API_NAME).tar.gz $@
+	$(MAKE) rstem-undev
 
 pydoc-clean:
 	$(RUNONPI) rm -rf $(PI_API_NAME).tar.gz $(PI_API_NAME)
