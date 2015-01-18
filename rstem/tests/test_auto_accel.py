@@ -28,14 +28,24 @@ def io_setup(output_active_low=False, pull=None):
 
 @testing.automatic
 @io_setup()
-def accel_get_pos(a):
-    start = 0
-    for i in range(1000):
-        x, y, z = a.forces()
-        print("x, y, z = {:6.2f}, {:6.2f}, {:6.2f}".format(x, y, z))
-        time.sleep(0.1)
+def accel_forces(a):
+    x, y, z = a.forces()
     x_good = abs(0.0 - x) < 0.05
     y_good = abs(0.0 - y) < 0.05
     z_good = abs(1.0 - z) < 0.05
     return x_good and y_good and z_good
 
+@testing.automatic
+@io_setup()
+def accel_time_forces(a):
+    TRIES = 100
+    start = time.time()
+    for n in range(TRIES):
+        x, y, z = a.forces()
+    end = time.time()
+    rate = float(TRIES)/(end-start)
+    # We expect this to run at least MINIMUM_RATE in Hz.  Arbitrary, just to
+    # keep it reasonable (testing shows it runs at ~300Hz).
+    MINIMUM_RATE = 100
+    print("Output test running at: {:.2f}Hz (MINIMUM_RATE: {}Hz)".format(rate, MINIMUM_RATE))
+    return rate > MINIMUM_RATE
