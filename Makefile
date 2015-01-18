@@ -254,9 +254,21 @@ pull:
 
 pi-setup:
 	@echo "Required for this setup sequence to work:"
-	@echo "		- Base NOOBS install"
-	@echo "		- Wifi or ethernet setup (/etc/network/interface)"
-	@echo "		- ssh setup for user 'pi'"
+	@echo "    - Base NOOBS install"
+	@echo "        - Format SD"
+	@echo "            - See also: https://github.com/raspberrypi/noobs"
+	@echo "            - For Mac: Use SDFormmatter."
+	@echo "        - NOOBS install (tested with v1.3.11):"
+	@echo "            - Extract zip file, copy all to SD card"
+	@echo "            - Boot target with SD card"
+	@echo "            - Install Raspbian (i) - takes a while"
+	@echo "    - Wifi or ethernet setup (/etc/network/interface)"
+	@echo "         - Use startx, Wifi Config (from menu)"
+	@echo "         - Or use wpa_supplicant commands to edit conf file."
+	@echo "    - Note: first few ssh commands will request password"
+	@read -p "Ready?  Enter to continue, Ctrl-C to cancel> "
+	$(RUNONPI) "mkdir -p ~/.ssh"
+	scp ~/.ssh/id_rsa.pub  $(PI):.ssh/authorized_keys
 	$(RUNONPI) sudo sed -i '/XKBLAYOUT/s/\".*\"/\"us\"/' /etc/default/keyboard
 	$(RUNONPI) sudo apt-get update -y
 	$(RUNONPI) sudo apt-get install -y python3-pip
