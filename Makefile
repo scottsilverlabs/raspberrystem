@@ -298,18 +298,6 @@ test:
 	done
 
 test-%: push
-	# Oy.  For some reason, we get permission errors when using /sys/class/gpio
-	# when running via the test framework.  I don't expect this because
-	# /sys/class/gpio/* has group as "gpio" and "pi" is in that group.  If we
-	# try to use a GPIO (say, via Button()), WITHOUT using the test framework,
-	# it works fine - so its related to the testing.py framework.
-	#
-	# Additionally, we have had a udev rule that should convert all of
-	# /sys/class/gpio to user/group pi:pi.  However, this rule doesn't work on
-	# boot, it only works when run manually.
-	#
-	# So, our fix: force the udev rule to get permissions working.
-	$(RUNONPI) "sudo udevadm test --action=add /class/gpio"
 	$(RUNONPI) "cd rstem/tests; $(PYTHON) -m testing $*"
 
 test-clean:
