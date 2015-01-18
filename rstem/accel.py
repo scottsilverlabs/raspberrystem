@@ -13,9 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-"""
+'''
 This module provides interfaces to the buttons and switches in the Button RaspberrySTEM Cell.
-"""
+'''
 
 import os
 import time
@@ -81,21 +81,41 @@ OFF_Z =         0x31
 MMA8653_DEVICE_ADDR = 0x1D
 I2C_BUS = 1
 
+# Allowed full scale settings: 2, 4, 8 (in 'g')
+FULL_SCALE = 4
+
 class Accel(object):
     def __init__(self):
-        self.fd = os.open("/dev/i2c-{}".format(I2C_BUS), os.O_RDWR)
+        # i2c_bcm2708 driver only support repeated-start transactions (which
+        # the MMA8653 requires) if the 'combined' parameter is set.
+        with  open('/sys/module/i2c_bcm2708/parameters/combined', 'w') as f:
+            f.write('1\n')
+
+        # Open I2C bus device, and set Accelerometer device address.
+        self.fd = os.open('/dev/i2c-{}'.format(I2C_BUS), os.O_RDWR)
         ioctl(self.fd, I2C_SLAVE, MMA8653_DEVICE_ADDR)
+
+        # Configure all device registers while in standby mode (see app note AN4083)
         os.write(self.fd, pack('bb', CTRL_REG1, 0x00))
-        os.write(self.fd, pack('bb', XYZ_DATA_CFG, 0x01))
-        os.write(self.fd, pack('bb', CTRL_REG2, (1 << 4) | (1 << 3) | (1 << 1) | 1))
+
+        full_scale_setting = { 2 : 0x00, 4 : 0x01, 8 : 0x02 }[FULL_SCALE]
+        os.write(self.fd, pack('bb', XYZ_DATA_CFG, full_scale_setting))
+        self.resolution = { 2 : 256, 4 : 128, 8 : 64 }[FULL_SCALE]
+
+        # All other regs use defaults.  Sleep mode is a don't care, as max
+        # power consumption is minimal (< 1mw).
+
+        # Set ACTIVE.  All other bits default (Data rate 800Hz, normal mode)
         os.write(self.fd, pack('bb', CTRL_REG1, 0x01))
+
+        # Verify device is who we think it is
         id = self._read(WHO_AM_I)[0]
         if id != 0x5A:
-            raise IOError("MMA8653 Accelerometer is not returning correct ID ({})".format(id))
+            raise IOError('MMA8653 Accelerometer is not returning correct ID ({})'.format(id))
 
     def _read(self, command, bytes_to_read=1):
         if bytes_to_read > 8:
-            raise ValueError("MMA8653 Accelerometer does not (seem) to allow consectutive reads > 8")
+            raise ValueError('MMA8653 Accelerometer does not (seem) to allow consectutive reads > 8')
         # Create C-based I2C write message struct (1 byte command)
         buf = create_string_buffer(bytes((command,)), 1)
         write_msg = i2c_msg(
@@ -125,12 +145,12 @@ class Accel(object):
         # ioctl() to do the I2C READ/WRITE
         ret = ioctl(self.fd, I2C_RDWR, ioctl_arg)
         if ret != 2:
-            raise IOError("ioctl() failed to send to I2C messages ({})".format(ret))
+            raise IOError('ioctl() failed to send to I2C messages ({})'.format(ret))
 
         return string_at(read_msg.buf, read_msg.len)
 
     def forces(self):
-        """Returns a tuple of X, Y and Z forces.
+        '''Returns a tuple of X, Y and Z forces.
 
         Forces are floats in units of `g` (for g-force), where the g-force is
         the gravitational force of the Earth.  An object in free-fall will
@@ -138,7 +158,7 @@ class Accel(object):
         on a table will measure 1 `g` in the downward direction.  Thus, if the
         RaspberrySTEM is sitting flat and upright on a table, the return value
         should be close to (0.0, 0.0, 1.0).
-        """
+        '''
         # Verify data is ready
         TRIES = 5
         for i in range(TRIES):
@@ -146,12 +166,16 @@ class Accel(object):
                 break
             time.sleep(0.001)
         if i + 1 == TRIES:
-            raise IOError("Acceleromter data is not available")
+            raise IOError('Accelerometer data is not available')
 
         data = self._read(OUT_X_MSB, 6)
-        _forces = unpack(">hhh", data)
-        _forces = [(force>>6)/128.0 for force in _forces]
-        return _forces
+        raw_forces = unpack('>hhh', data)
+
+        # Convert raw forces (10-bit left aligned 2's complement data in an
+        # unsigned short) to floats in units of 'g'.
+        g_forces = [(raw_force>>6)/self.resolution for raw_force in raw_forces]
+
+        return g_forces
 
     def __del__(self):
         os.close(self.fd)
