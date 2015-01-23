@@ -45,7 +45,6 @@ class install(_install):
 
 # C extension wrappers
 led_driver =  Extension('rstem.led_matrix.led_driver', sources = ['rstem/led_matrix/led_driver.c'])
-accel = Extension('rstem.accel', sources = ['rstem/accel.c'])
 
 setup(
     name = read('NAME').strip(),
@@ -64,11 +63,10 @@ setup(
         "Development Status :: 2 - Pre-Alpha",
         "Topic :: Education",
         "License :: OSI Approved :: Apache Software License",
-        "Programming Language :: Python :: 2.7",
         "Programming Language :: Python :: 3.2",
         "Programming Language :: Python :: 3.3",
     ],
     cmdclass={'install': install},  # overload install command
-    ext_modules = [led_driver, accel]  # c extensions defined above
+    ext_modules = [led_driver]  # c extensions defined above
 
 )

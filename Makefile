@@ -76,8 +76,8 @@ help:
 	@echo ""
 	@echo "Use cases:"
 	@echo "    For rstem development"
-	@echo "        make rstem-dev"
 	@echo "        <repeat>:"
+	@echo "            make rstem-dev (only required once at start if not editing C files)"
 	@echo "            <edit files>"
 	@echo "            make test-<test_suite>"
 	@echo "        make rstem-undev"
@@ -161,10 +161,17 @@ rstem-clean:
 
 pydoc: $(PYDOC_TAR)
 $(PYDOC_TAR): $(GIT_FILES) | $(OUT)
-	$(MAKE) push
+	@# A bit circuitous: pydoc is a requirement of rstem (the API docs get
+	@# bundled into the package).  However, because pdoc runs on the target only,
+	@# we need to have an installed version of rstem on the target.  This a
+	@# catch-22.  So, we push a development version of the source to the target
+	@# (which doesn't require the API docs in the build via rstem-dev, and we
+	@# undev it at the end.
+	$(MAKE) rstem-dev
 	$(RUNONPI) pdoc --overwrite --html --html-dir $(PI_API_NAME) rstem
 	$(RUNONPI) tar czf $(PI_API_NAME).tar.gz $(PI_API_NAME)
 	scp $(PI):~/rsinstall/$(PI_API_NAME).tar.gz $@
+	$(MAKE) rstem-undev
 
 pydoc-clean:
 	$(RUNONPI) rm -rf $(PI_API_NAME).tar.gz $(PI_API_NAME)
@@ -247,17 +254,29 @@ pull:
 
 pi-setup:
 	@echo "Required for this setup sequence to work:"
-	@echo "		- Base NOOBS install"
-	@echo "		- Wifi or ethernet setup (/etc/network/interface)"
-	@echo "		- ssh setup for user 'pi'"
+	@echo "    - Base NOOBS install"
+	@echo "        - Format SD"
+	@echo "            - See also: https://github.com/raspberrypi/noobs"
+	@echo "            - For Mac: Use SDFormmatter."
+	@echo "        - NOOBS install (tested with v1.3.11):"
+	@echo "            - Extract zip file, copy all to SD card"
+	@echo "            - Boot target with SD card"
+	@echo "            - Install Raspbian (i) - takes a while"
+	@echo "    - Wifi setup"
+	@echo "         - Use startx, Wifi Config (from menu)"
+	@echo "         - Or use wpa_supplicant commands to edit conf file (untested)."
+	@echo "             sudo sh -c 'wpa_passphrase jandt thisisjedsnet69 >> /etc/wpa_supplicant/wpa_supplicant.conf'"
+	@echo "    - Note: first few ssh commands will request password"
+	@read -p "Ready?  Enter to continue, Ctrl-C to cancel> "
+	$(RUNONPI) "mkdir -p ~/.ssh"
+	scp ~/.ssh/id_rsa.pub  $(PI):.ssh/authorized_keys
 	$(RUNONPI) sudo sed -i '/XKBLAYOUT/s/\".*\"/\"us\"/' /etc/default/keyboard
 	$(RUNONPI) sudo apt-get update -y
 	$(RUNONPI) sudo apt-get install -y python3-pip
-	# Should this be a dependency?
 	$(RUNONPI) sudo apt-get install -y libi2c-dev
 	$(RUNONPI) sudo $(PIP) install pdoc
 
-CLEAN_TARGETS=rstem pydoc ide doc host
+CLEAN_TARGETS=rstem pydoc ide doc host test
 INSTALL_TARGETS=rstem ide doc
 UPLOAD_TARGETS=rstem pydoc ide
 
@@ -280,16 +299,7 @@ test:
 	done
 
 test-%: push
-	# Oy.  For some reason, we get permission errors when using /sys/class/gpio
-	# when running via the test framework.  I don't expect this because
-	# /sys/class/gpio/* has group as "gpio" and "pi" is in that group.  If we
-	# try to use a GPIO (say, via Button()), WITHOUT using the test framework,
-	# it works fine - so its related to the testing.py framework.
-	#
-	# Additionally, we have had a udev rule that should convert all of
-	# /sys/class/gpio to user/group pi:pi.  However, this rule doesn't work on
-	# boot, it only works when run manually.
-	#
-	# So, our fix: force the udev rule to get permissions working.
-	$(RUNONPI) "sudo udevadm test --action=add /class/gpio"
 	$(RUNONPI) "cd rstem/tests; $(PYTHON) -m testing $*"
+
+test-clean:
+	$(RUNONPI) rm -rf "~/rstem_logs"
