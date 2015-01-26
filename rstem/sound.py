@@ -20,9 +20,10 @@ This module provides interfaces to the buttons and switches in the Button Raspbe
 import os
 import time
 import re
+from threading import Lock
 from subprocess import Popen, PIPE
 
-class Sox(object):
+class Sox(Popen):
     def __init__(self, *args, play=False):
         fullcmd = ['play' if play else 'sox']
         # split args by whitespace and flatten.
@@ -31,21 +32,14 @@ class Sox(object):
                 fullcmd += arg.split()
             else:
                 fullcmd += arg
-        self.proc = Popen(fullcmd, stdout=PIPE, stderr=PIPE)
+        super().__init__(fullcmd, stdout=PIPE, stderr=PIPE)
 
-    def wait(self):
-        '''Wait for the sox command to complete
-
-        Returns the output of the sox command.
-        '''
-        return self.proc.communicate()
-    
-    def kill(self):
-        '''Kill a running sox process.'''
-        self.proc.kill()
-    
 class Sound(object):
     def __init__(self, filename):
+        '''A playable sound backed by the sound file `filename` on disk.
+        
+        Throws `IOError` if the sound file cannot be read.
+        '''
         self.filename = filename
 
         # Is it a file?  Not a definitive test here, but used as a cuortesy to
@@ -53,7 +47,7 @@ class Sound(object):
         if not os.path.isfile(filename):
             raise IOError("Sound file '{}' cannot be found".format(filename))
 
-        out, err = Sox([filename], '-n stat').wait()
+        out, err = Sox([filename], '-n stat').communicate()
         matches = (re.search('^Length.*?([^ ]+)$', line) for line in err.decode().splitlines())
         try:
             firstmatch = [match for match in matches if match][0]
@@ -61,7 +55,26 @@ class Sound(object):
         except IndexError:
             raise IOError("Sox could not get sound file's length")
 
+        self.mutex = Lock()
+        self.sox = None
+
     def length(self):
+        '''Returns the length in seconds of the Sound'''
         return self._length
+
+    def play(self, loop=1, duration=None):
+        args = ['-q', [self.filename], 'repeat {}'.format(loop-1)]
+        if duration != None:
+            args += 'trim {}'.format(duration)
+        self.sox = Sox(*args, play=True)
+
+    def is_playing(self):
+        with self.mutex:
+            if not self.sox:
+                return False
+            _is_playing = self.sox.poll() == None
+            if not _is_playing:
+                self.sox = None
+            return _is_playing
 
 __all__ = ['Sound']

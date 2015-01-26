@@ -16,7 +16,6 @@ speaker amplifier).
 
 '''
     class Sound(object):
-        def __init__(self, filename):
         def play(self, loop=1, duration=None):
             - play when already playing kills and restarts
             - postive duration ralative to current seek, negative duration relative to end of clip
@@ -26,7 +25,6 @@ speaker amplifier).
             - absolute percentage
             - returns previous position, in seconds
         def stop(self):
-        def length(self)
         volume attribute
         def wait(self):
         def is_playing(self):
@@ -65,6 +63,31 @@ def sound_init_bad_filename_2():
     except TypeError:
         return True
     return False
+
+@testing.automatic
+def sound_not_is_playing_before_play():
+    s = Sound(TEST_SOUND)
+    return not s.is_playing()
+
+@testing.automatic
+def sound_not_is_playing_after_play():
+    s = Sound(TEST_SOUND)
+    s.play()
+    time.sleep(TEST_SOUND_LENGTH + 0.5)
+    return not s.is_playing()
+
+@testing.automatic
+def sound_is_playing_at_play_start():
+    s = Sound(TEST_SOUND)
+    s.play()
+    return s.is_playing()
+
+@testing.automatic
+def sound_is_playing_at_play_middle():
+    s = Sound(TEST_SOUND)
+    s.play()
+    time.sleep(TEST_SOUND_LENGTH/2)
+    return s.is_playing()
 
 @testing.manual_output
 def sound_play_test_sound():
