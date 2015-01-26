@@ -120,11 +120,15 @@ def manual_input(func):
     return wrapper
 
 if __name__ == '__main__':
-    module_name = 'test_' + sys.argv[1]
+    user_test_type = sys.argv[1]
+    module_name = 'test_' + sys.argv[2]
     module = importlib.import_module(module_name)
     funcs = [getattr(module, func) for func in dir(module)]
     tests = [func for func in funcs if hasattr(func, 'test_type')]
-    test_types = set([test.test_type for test in tests])
+    if user_test_type == 'auto':
+        test_types = [AUTOMATIC_TEST]
+    else:
+        test_types = set([test.test_type for test in tests])
 
     # For each test type, in the defined order, run the tests
     testing_log.create()

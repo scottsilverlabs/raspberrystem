@@ -305,9 +305,13 @@ test:
 		TESTNAME="$${WITHOUT_EXTENSION##test_}"; \
 		echo "    make test-$$TESTNAME"; \
 	done
+	@echo "Or, replace 'test-' with 'auto-' to run only automatic tests"
 
 test-%: push
-	$(RUNONPI) "cd rstem/tests; $(PYTHON) -m testing $*"
+	$(RUNONPI) "cd rstem/tests; $(PYTHON) -m testing all $*"
+
+auto-%: push
+	$(RUNONPI) "cd rstem/tests; $(PYTHON) -m testing auto $*"
 
 test-clean:
 	$(RUNONPI) rm -rf "~/rstem_logs"
