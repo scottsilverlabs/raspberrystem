@@ -1,4 +1,5 @@
 import testing_log
+import traceback
 import importlib
 from functools import wraps
 import os
@@ -46,7 +47,8 @@ def automatic(func):
                 print('--> FAILED')
                 exc = TestFailureException()
         except Exception as e:
-            print('--> FAILED BY EXCEPTION:' + str(e))
+            print('--> FAILED BY EXCEPTION')
+            print(traceback.format_exc())
             exc = e
         testing_log.write(func, ordered_test_types[wrapper.test_type], exc)
     wrapper.test_type = AUTOMATIC_TEST
@@ -71,8 +73,9 @@ def manual_output(func):
                 try:
                     func()
                 except Exception as e:
+                    print('--> FAILED BY EXCEPTION')
+                    print(traceback.format_exc())
                     exc = e
-                    print('--> FAILED BY EXCEPTION:' + str(e))
                     break
                 chosen = False
                 while not chosen:
