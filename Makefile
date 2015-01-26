@@ -70,7 +70,8 @@ help:
 	@echo "    upload            make *-upload, and upload final binaries to <TBD>"
 	@echo "    install         * make *-install"
 	@echo "    clean           * make *-clean"
-	@echo "    run             * Run IDE"
+	@echo "    run             * make ide-run"
+	@echo "    dev             * make rstem-dev"
 	@echo ""
 	@echo " * Requires access to target Raspberry Pi"
 	@echo ""
@@ -265,8 +266,13 @@ pi-setup:
 	@echo "    - Wifi setup"
 	@echo "         - Use startx, Wifi Config (from menu)"
 	@echo "         - Or use wpa_supplicant commands to edit conf file (untested)."
-	@echo "             sudo sh -c 'wpa_passphrase jandt thisisjedsnet69 >> /etc/wpa_supplicant/wpa_supplicant.conf'"
+	@echo "             sudo sh -c 'wpa_passphrase SSID PASS >> /etc/wpa_supplicant/wpa_supplicant.conf'"
+	@echo "                 where SSID/PASS are the actual SSID and password of the Wifi network."
+	@echo "             sudo reboot"
+	@echo "             Use ifconfig to show IP."
 	@echo "    - Note: first few ssh commands will request password"
+	@echo "    - Note: if first ssh fails, its likely because of a strict key checking "
+	@echo "        issue.  Run 'ssh-keygen -R <IP>' to remove the offending key."
 	@read -p "Ready?  Enter to continue, Ctrl-C to cancel> "
 	$(RUNONPI) "mkdir -p ~/.ssh"
 	scp ~/.ssh/id_rsa.pub  $(PI):.ssh/authorized_keys
@@ -288,6 +294,8 @@ install: $(addsuffix -install,$(INSTALL_TARGETS))
 upload: $(addsuffix -upload,$(UPLOAD_TARGETS))
 
 run: ide-run
+
+dev: rstem-dev
 
 test:
 	@echo "What do you want to test?"
