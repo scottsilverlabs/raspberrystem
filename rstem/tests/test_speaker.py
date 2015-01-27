@@ -24,10 +24,7 @@ speaker amplifier).
             - absolute +/- seconds (-negative seconds from end)
             - absolute percentage
             - returns previous position, in seconds
-        def stop(self):
         volume attribute
-        def wait(self):
-        def is_playing(self):
         staticmethod:
             master volume
     class Speech(Sound):
@@ -88,6 +85,20 @@ def sound_is_playing_at_play_middle():
     s.play()
     time.sleep(TEST_SOUND_LENGTH/2)
     return s.is_playing()
+
+@testing.automatic
+def sound_wait():
+    s = Sound(TEST_SOUND)
+    s.play()
+    s.wait()
+    return not s.is_playing()
+
+@testing.automatic
+def sound_stop():
+    s = Sound(TEST_SOUND)
+    s.play()
+    s.stop()
+    return not s.is_playing()
 
 @testing.manual_output
 def sound_play_test_sound():

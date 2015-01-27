@@ -63,18 +63,37 @@ class Sound(object):
         return self._length
 
     def play(self, loop=1, duration=None):
-        args = ['-q', [self.filename], 'repeat {}'.format(loop-1)]
-        if duration != None:
-            args += 'trim {}'.format(duration)
-        self.sox = Sox(*args, play=True)
+        with self.mutex:
+            self._stop()
+            args = ['-q', [self.filename], 'repeat {}'.format(loop-1)]
+            if duration != None:
+                args += 'trim {}'.format(duration)
+            self.sox = Sox(*args, play=True)
 
     def is_playing(self):
         with self.mutex:
             if not self.sox:
                 return False
-            _is_playing = self.sox.poll() == None
-            if not _is_playing:
+            playing = self.sox.poll() == None
+            if not playing:
                 self.sox = None
-            return _is_playing
+            return playing
+
+    def wait(self):
+        '''Wait until the sound has finished playing.'''
+        with self.mutex:
+            _sox = self.sox
+            self.sox = None
+        if _sox:
+            _sox.wait()
+
+    def _stop(self):
+        if self.sox:
+            self.sox.kill()
+        self.sox = None
+
+    def stop(self):
+        with self.mutex:
+            self._stop()
 
 __all__ = ['Sound']
