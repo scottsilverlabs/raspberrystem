@@ -165,7 +165,20 @@ def sound_not_playing_after_end_of_2_loops_of_fixed_duration():
 
 @testing.automatic
 def sound_play_then_replay():
-    return False
+    s = Sound(TEST_SOUND_LONG)
+    s.play()
+    time.sleep(0.5)
+    playing_firsttime = s.is_playing()
+    s.play(duration=1.0)
+    time.sleep(0.5)
+    playing_secondtime_before_end = s.is_playing()
+    time.sleep(1.0)
+    playing_secondtime_after_end = s.is_playing()
+    s.stop()
+    print('playing_firsttime: ', playing_firsttime)
+    print('playing_secondtime_before_end: ', playing_secondtime_before_end)
+    print('playing_secondtime_after_end: ', playing_secondtime_after_end)
+    return playing_firsttime and playing_secondtime_before_end and not playing_secondtime_after_end
 
 @testing.automatic
 def sound_get_set_volume():
