@@ -38,45 +38,15 @@ class SoxPlay(Sox):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, play=True, **kwargs)
 
-class Sound(object):
-    def __init__(self, filename):
-        '''A playable sound backed by the sound file `filename` on disk.
-        
-        Throws `IOError` if the sound file cannot be read.
-        '''
-        self.filename = filename
-
-        # Is it a file?  Not a definitive test here, but used as a cuortesy to
-        # give a better error when the filename is wrong.
-        if not os.path.isfile(filename):
-            raise IOError("Sound file '{}' cannot be found".format(filename))
-
-        out, err = Sox([filename], '-n stat').communicate()
-        matches = (re.search('^Length.*?([^ ]+)$', line) for line in err.decode().splitlines())
-        try:
-            firstmatch = [match for match in matches if match][0]
-            self._length = float(firstmatch.group(1))
-        except IndexError:
-            raise IOError("Sox could not get sound file's length")
-
+class BaseSound(object):
+    def __init__(self):
+        self._length = 0
         self.mutex = Lock()
         self.sox = None
 
     def length(self):
-        '''Returns the length in seconds of the Sound'''
+        '''Returns the length in seconds of the sound'''
         return self._length
-
-    def play(self, loops=1, duration=None):
-        with self.mutex:
-            self._stop()
-            args = ['-q', [self.filename]]
-            if duration != None:
-                if duration < 0:
-                    duration = self._length + duration
-                if duration >= 0 and duration <= self._length:
-                    args += ['trim 0 {}'.format(duration)]
-            args += ['repeat {}'.format(loops-1)]
-            self.sox = SoxPlay(*args)
 
     def is_playing(self):
         with self.mutex:
@@ -103,5 +73,74 @@ class Sound(object):
     def stop(self):
         with self.mutex:
             self._stop()
+
+class Sound(BaseSound):
+    def __init__(self, filename):
+        '''A playable sound backed by the sound file `filename` on disk.
+        
+        Throws `IOError` if the sound file cannot be read.
+        '''
+        super().__init__()
+
+        self.filename = filename
+
+        # Is it a file?  Not a definitive test here, but used as a cuortesy to
+        # give a better error when the filename is wrong.
+        if not os.path.isfile(filename):
+            raise IOError("Sound file '{}' cannot be found".format(filename))
+
+        out, err = Sox([filename], '-n stat').communicate()
+        matches = (re.search('^Length.*?([^ ]+)$', line) for line in err.decode().splitlines())
+        try:
+            firstmatch = [match for match in matches if match][0]
+            self._length = float(firstmatch.group(1))
+        except IndexError:
+            raise IOError("Sox could not get sound file's length")
+
+    def play(self, loops=1, duration=None):
+        with self.mutex:
+            self._stop()
+            args = ['-q', [self.filename]]
+            if duration != None:
+                if duration < 0:
+                    duration = self._length + duration
+                if duration >= 0 and duration <= self._length:
+                    args += ['trim 0 {}'.format(duration)]
+            args += ['repeat {}'.format(loops-1)]
+            self.sox = SoxPlay(*args)
+
+class Note(BaseSound):
+    def __init__(self, pitch):
+        '''
+        '''
+        super().__init__()
+
+        self.filename = filename
+
+        # Is it a file?  Not a definitive test here, but used as a cuortesy to
+        # give a better error when the filename is wrong.
+        if not os.path.isfile(filename):
+            raise IOError("Sound file '{}' cannot be found".format(filename))
+
+        out, err = Sox([filename], '-n stat').communicate()
+        matches = (re.search('^Length.*?([^ ]+)$', line) for line in err.decode().splitlines())
+        try:
+            firstmatch = [match for match in matches if match][0]
+            self._length = float(firstmatch.group(1))
+        except IndexError:
+            raise IOError("Sox could not get sound file's length")
+
+    def play(self, loops=1, duration=None):
+        with self.mutex:
+            self._stop()
+            args = ['-q', [self.filename]]
+            if duration != None:
+                if duration < 0:
+                    duration = self._length + duration
+                if duration >= 0 and duration <= self._length:
+                    args += ['trim 0 {}'.format(duration)]
+            args += ['repeat {}'.format(loops-1)]
+            self.sox = SoxPlay(*args)
+
 
 __all__ = ['Sound']
