@@ -5,26 +5,13 @@ import time
 from threading import Timer
 from functools import wraps
 
-from rstem.sound import Sound, Note
+from rstem.sound import Sound, Note, Speech
 
 '''
 Tests of sound module
 
 Manual tests require a speaker attached to the the audio jack (with or without
 speaker amplifier).
-'''
-
-'''
-    class Sound(object):
-        def seek(self, position, absolute=False, percentage=False)
-            - relative +/- seconds
-            - absolute +/- seconds (-negative seconds from end)
-            - absolute percentage
-            - returns previous position, in seconds
-    class Speech(Sound):
-        def __init__(self, text):
-    class Note(Sound):
-        def __init__(self, pitch):
 '''
 
 TEST_SOUND='/home/pi/python_games/match1.wav'
@@ -365,15 +352,33 @@ def note_freq_162():
 def note_freq_163():
     return _note_freq('B8', 7902.13)
 
+@testing.automatic
+def speech_play():
+    s = Speech("Test")
+    s.play()
+    s.wait()
+    return True
+
+@testing.manual_output
+def speech_manual_play():
+    '''The text "These aren't the droids you're looking for." will play on the speaker.'''
+    s = Speech("These aren't the droids you're looking for.")
+    s.play()
+    s.wait()
+
 @testing.manual_output
 def sound_play_test_sound():
     '''The sound match1.wav will play on the speaker (about 0.5 seconds).'''
-    Sound(TEST_SOUND).play()
+    s = Sound(TEST_SOUND).play()
+    s.play()
+    s.wait()
 
 @testing.manual_output
 def sound_play_test_sound_loop_2():
     '''The sound match1.wav will play TWO TIMES on the speaker (about 0.5 seconds each).'''
-    Sound(TEST_SOUND).play(loops=2)
+    s = Sound(TEST_SOUND)
+    s.play(loops=2)
+    s.wait()
 
 @testing.manual_output
 def sound_master_volume():

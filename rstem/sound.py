@@ -14,14 +14,26 @@
 # limitations under the License.
 #
 '''
-This module provides interfaces to the buttons and switches in the Button RaspberrySTEM Cell.
+This module provides interfaces to the Speaker RaspberrySTEM Cell.
+
+Additionally, it can be used for any audio out over the analog audio jack.
 '''
 
 import os
 import time
 import re
+import tempfile
 from threading import Lock
 from subprocess import Popen, PIPE
+
+'''
+    Future Sound class member function:
+        def seek(self, position, absolute=False, percentage=False)
+            - relative +/- seconds
+            - absolute +/- seconds (-negative seconds from end)
+            - absolute percentage
+            - returns previous position, in seconds
+'''
 
 class Sox(Popen):
     def __init__(self, *args, play=False):
@@ -150,5 +162,17 @@ class Note(BaseSound):
             args = ['-q -n synth {} sine {}'.format(duration, self.frequency)]
             self.sox = SoxPlay(*args)
 
+class Speech(Sound):
+    def __init__(self, text, espeak_options=''):
+        '''
+        '''
+        wav_fd, wav_name = tempfile.mkstemp(suffix='.wav')
+        os.system('espeak {} -w {} "{}"'.format(espeak_options, wav_name, text))
+        os.close(wav_fd)
+        self.wav_name = wav_name
+        super().__init__(wav_name)
 
-__all__ = ['Sound', 'Note']
+    def __del__(self):
+        os.remove(self.wav_name)
+        
+__all__ = ['Sound', 'Note', 'Speech']
