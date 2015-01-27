@@ -34,6 +34,10 @@ class Sox(Popen):
                 fullcmd += arg
         super().__init__(fullcmd, stdout=PIPE, stderr=PIPE)
 
+class SoxPlay(Sox):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, play=True, **kwargs)
+
 class Sound(object):
     def __init__(self, filename):
         '''A playable sound backed by the sound file `filename` on disk.
@@ -62,13 +66,17 @@ class Sound(object):
         '''Returns the length in seconds of the Sound'''
         return self._length
 
-    def play(self, loop=1, duration=None):
+    def play(self, loops=1, duration=None):
         with self.mutex:
             self._stop()
-            args = ['-q', [self.filename], 'repeat {}'.format(loop-1)]
+            args = ['-q', [self.filename]]
             if duration != None:
-                args += 'trim {}'.format(duration)
-            self.sox = Sox(*args, play=True)
+                if duration < 0:
+                    duration = self._length + duration
+                if duration >= 0 and duration <= self._length:
+                    args += ['trim 0 {}'.format(duration)]
+            args += ['repeat {}'.format(loops-1)]
+            self.sox = SoxPlay(*args)
 
     def is_playing(self):
         with self.mutex:
