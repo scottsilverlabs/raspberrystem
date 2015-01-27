@@ -5,7 +5,7 @@ import time
 from threading import Timer
 from functools import wraps
 
-from rstem.sound import Sound, Sox
+from rstem.sound import Sound, Note
 
 '''
 Tests of sound module
@@ -184,6 +184,186 @@ def sound_play_then_replay():
 def sound_get_set_volume():
     # Verify Sound volume attribute can be get/set.
     return False
+
+def _note_freq(note, expected_freq):
+    # Frequencies from: http://www.phy.mtu.edu/~suits/notefreqs.html
+    n = Note(note)
+    actual_freq = n.frequency
+    n = None
+    print('Note: {}, expected frequency: {}'.format(note, expected_freq))
+    print('Acutal frequency: {}'.format(actual_freq))
+    return abs(expected_freq - actual_freq) < 0.1
+    
+@testing.automatic
+def note_play():
+    n = Note('A')
+    n.play()
+    n.wait()
+    return True
+
+@testing.automatic
+def note_playing_before_end_of_duration_play():
+    s = Note('A')
+    s.play(duration=1.0)
+    time.sleep(0.5)
+    playing = s.is_playing()
+    s.stop()
+    return playing
+
+@testing.automatic
+def note_not_playing_after_end_of_duration_play():
+    s = Note('A')
+    s.play(duration=1.0)
+    time.sleep(1.5)
+    return not s.is_playing()
+
+@testing.automatic
+def note_bad_note():
+    try:
+        Note('cnasdj')
+    except ValueError:
+        return True
+    return False
+
+@testing.automatic
+def note_freq_numeric():
+    return _note_freq(123, 123)
+
+@testing.automatic
+def note_freq_a():
+    return _note_freq('A', 440)
+
+@testing.automatic
+def note_freq_aflat():
+    return _note_freq('Ab', 415.30)
+
+@testing.automatic
+def note_freq_asharp():
+    return _note_freq('A#', 466.16)
+
+@testing.automatic
+def note_freq_1():
+    return _note_freq('C0', 16.35)
+
+@testing.automatic
+def note_freq_2():
+    return _note_freq('C#0', 17.32)
+
+@testing.automatic
+def note_freq_3():
+    return _note_freq('Db0', 17.32)
+
+@testing.automatic
+def note_freq_4():
+    return _note_freq('D0', 18.35)
+
+@testing.automatic
+def note_freq_5():
+    return _note_freq('D#0', 19.45)
+
+@testing.automatic
+def note_freq_23():
+    return _note_freq('Eb1', 38.89)
+
+@testing.automatic
+def note_freq_24():
+    return _note_freq('E1', 41.20)
+
+@testing.automatic
+def note_freq_65():
+    return _note_freq('A3', 220.00)
+
+@testing.automatic
+def note_freq_66():
+    return _note_freq('A#3', 233.08)
+
+@testing.automatic
+def note_freq_67():
+    return _note_freq('Bb3', 233.08)
+
+@testing.automatic
+def note_freq_68():
+    return _note_freq('B3', 246.94)
+
+@testing.automatic
+def note_freq_69():
+    return _note_freq('C4', 261.63)
+
+@testing.automatic
+def note_freq_70():
+    return _note_freq('C#4', 277.18)
+
+@testing.automatic
+def note_freq_71():
+    return _note_freq('Db4', 277.18)
+
+@testing.automatic
+def note_freq_72():
+    return _note_freq('D4', 293.66)
+
+@testing.automatic
+def note_freq_73():
+    return _note_freq('D#4', 311.13)
+
+@testing.automatic
+def note_freq_74():
+    return _note_freq('Eb4', 311.13)
+
+@testing.automatic
+def note_freq_75():
+    return _note_freq('E4', 329.63)
+
+@testing.automatic
+def note_freq_76():
+    return _note_freq('F4', 349.23)
+
+@testing.automatic
+def note_freq_77():
+    return _note_freq('F#4', 369.99)
+
+@testing.automatic
+def note_freq_78():
+    return _note_freq('Gb4', 369.99)
+
+@testing.automatic
+def note_freq_79():
+    return _note_freq('G4', 392.00)
+
+@testing.automatic
+def note_freq_80():
+    return _note_freq('G#4', 415.30)
+
+@testing.automatic
+def note_freq_81():
+    return _note_freq('Ab4', 415.30)
+
+@testing.automatic
+def note_freq_82():
+    return _note_freq('A4', 440.00)
+
+@testing.automatic
+def note_freq_83():
+    return _note_freq('A#4', 466.16)
+
+@testing.automatic
+def note_freq_84():
+    return _note_freq('Bb4', 466.16)
+
+@testing.automatic
+def note_freq_85():
+    return _note_freq('B4', 493.88)
+
+@testing.automatic
+def note_freq_86():
+    return _note_freq('C5', 523.25)
+
+@testing.automatic
+def note_freq_162():
+    return _note_freq('Bb8', 7458.62)
+
+@testing.automatic
+def note_freq_163():
+    return _note_freq('B8', 7902.13)
 
 @testing.manual_output
 def sound_play_test_sound():

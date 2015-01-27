@@ -115,32 +115,40 @@ class Note(BaseSound):
         '''
         super().__init__()
 
-        self.filename = filename
-
-        # Is it a file?  Not a definitive test here, but used as a cuortesy to
-        # give a better error when the filename is wrong.
-        if not os.path.isfile(filename):
-            raise IOError("Sound file '{}' cannot be found".format(filename))
-
-        out, err = Sox([filename], '-n stat').communicate()
-        matches = (re.search('^Length.*?([^ ]+)$', line) for line in err.decode().splitlines())
         try:
-            firstmatch = [match for match in matches if match][0]
-            self._length = float(firstmatch.group(1))
-        except IndexError:
-            raise IOError("Sox could not get sound file's length")
+            self.frequency = float(pitch)
+        except ValueError:
+            match = re.search("^([A-G])([b#]?)([0-9]?)$", pitch)
+            if not match:
+                raise ValueError("pitch parameter must be a frequency or note (e.g. 'A', 'B#', or 'Cb4'")
+            note, semitone, octave = match.groups()
 
-    def play(self, loops=1, duration=None):
+            if not semitone:
+                semitone_adjust = 0
+            elif semitone == 'b':
+                semitone_adjust = -1
+            else:
+                semitone_adjust = 1
+
+            if not octave:
+                octave = 4
+            octave = int(octave)
+
+            half_step_map = {'C' : 0, 'D' : 2, 'E' : 4, 'F' : 5, 'G' : 7, 'A' : 9, 'B' : 11}
+            half_steps = octave * 12 + half_step_map[note]
+
+            half_steps += semitone_adjust
+
+            # Adjust half steps relative to A4 440Hz
+            half_steps -= 4 * 12 + 9
+
+            self.frequency = 2 ** (half_steps / 12.0) * 440.0
+
+    def play(self, duration=1):
         with self.mutex:
             self._stop()
-            args = ['-q', [self.filename]]
-            if duration != None:
-                if duration < 0:
-                    duration = self._length + duration
-                if duration >= 0 and duration <= self._length:
-                    args += ['trim 0 {}'.format(duration)]
-            args += ['repeat {}'.format(loops-1)]
+            args = ['-q -n synth {} sine {}'.format(duration, self.frequency)]
             self.sox = SoxPlay(*args)
 
 
-__all__ = ['Sound']
+__all__ = ['Sound', 'Note']
