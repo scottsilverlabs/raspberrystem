@@ -18,3 +18,4 @@ from . import button
 from . import gpio
 from . import led_matrix
 from . import accel
+from . import sound

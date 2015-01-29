@@ -280,6 +280,9 @@ pi-setup:
 	$(RUNONPI) sudo apt-get update -y
 	$(RUNONPI) sudo apt-get install -y python3-pip
 	$(RUNONPI) sudo apt-get install -y libi2c-dev
+	$(RUNONPI) sudo apt-get install -y sox
+	$(RUNONPI) sudo apt-get install -y libsox-fmt-mp3
+	$(RUNONPI) sudo apt-get install -y espeak
 	$(RUNONPI) sudo $(PIP) install pdoc
 
 CLEAN_TARGETS=rstem pydoc ide doc host test
