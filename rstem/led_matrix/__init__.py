@@ -21,6 +21,7 @@ import time
 from . import led_driver     # c extension that controls led matrices and contains framebuffer
 import copy
 import subprocess
+from itertools import islice
 
 # global variables for use
 BITS_PER_PIXEL = 4     # 4 bits to represent color
@@ -31,6 +32,7 @@ width = 0    #: The width of the LED matrix grid
 height = 0   #: The height of the LED matrix grid
 container_math_coords = True
 
+fb = [[0]*8]*8
 
 def _init_check():
     """Checks that init_matrices has been called and throws an error if not
@@ -242,6 +244,17 @@ def show():
     """
     _init_check()
     return led_driver.flush()
+
+def show2():
+    """Shows the current framebuffer on the display.
+    Tells the led_driver to send framebuffer to SPI port.    
+    Refreshes the display using current framebuffer.
+    
+    @rtype: int
+    @returns: 1 on success
+    """
+    _init_check()
+    return led_driver.flush2()
 
 def cleanup():
     """Unintializes matrices and frees all memory. 
@@ -828,30 +841,38 @@ class FrameBuffer(object):
         return [list(i) for i in zip(*transposed_array)]
 
     def point(self, x, y=None, color=0xF):
-        """Sends point to the framebuffer.
-        @note: Will not display the point until show() is called.
-        
-        @param x, y: Coordinates to place point
-        @type x, y: (int, int)
-        @param color: Color to display at point
-        @type color: int or string (0-F or 16 or '-' for transparent)
-        
-        @rtype: int
-        @returns: 1 on success
-        """
-        _init_check()
-        color = _convert_color(color)
-        if color < 16:   # don't do anything if transparent
-            global width
-            global height
-            # If y is not given, then x is a tuple of the point
-            if y is None and type(x) is tuple:
-                x, y = x
-            if x < 0 or x >= width or y < 0 or y >= height:
-                return
-            if container_math_coords:
-                x, y = _convert_to_std_coords(x, y)
-            return led_driver.point(int(x), int(y), color)
+        point(x, y, color)
+
+    def point2(self, x, y=None, color=0xF):
+        try:
+            fb[x][y] = color
+        except IndexError:
+            pass
+
+    def erase(self, color=0):
+        fill(color)
+
+    def rect(self, origin, dimensions, fill=True, color=0xF):
+        rect(origin, dimensions, fill, color)
+
+    def line(self, point_a, point_b, color=0xF):
+        line(self, point_a, point_b, color)
+
+    def show(self):
+        show()
+
+    def show2_only(self):
+        show2()
+
+    def newshow(self):
+        flat = (pixel for col in fb for pixel in col)
+        even = islice(flat, 0, None, 2)
+        odd = islice(flat, 0, None, 2)
+        return bytes(b[0] | (b[1] << 4) for b in zip(even, odd))
+
+    def show2(self):
+        self.newshow()
+        show2()
 
     @property
     def width(self):

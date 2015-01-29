@@ -1,4 +1,6 @@
 import testing
+import time
+from functools import partial
 from rstem.led_matrix import FrameBuffer
 
 '''
@@ -112,4 +114,49 @@ def out_of_bounds_point4():
     fb = FrameBuffer(matrix_list=[(0,0)])
     fb.point(0, fb.height)
     return fb._framebuffer() == erased_fb()
+
+def timeit(f, loops=10000):
+    start = time.time()
+    for i in range(loops):
+        f()
+    period = (time.time() - start) / loops
+    freq = 1.0 / period
+    print("Time per call: {:.2f} usecs".format(period * 1000000))
+    print("Freq : {:.0f} Hz".format(freq))
+    return freq
+    
+@testing.automatic
+def time_point():
+    fb = FrameBuffer(matrix_list=[(0,0)])
+    return timeit(partial(fb.point, 0, 0)) > 8000
+
+@testing.automatic
+def time_point2():
+    fb = FrameBuffer(matrix_list=[(0,0)])
+    timeit(partial(fb.point2, 0, 0))
+    return False
+
+@testing.automatic
+def time_show():
+    fb = FrameBuffer(matrix_list=[(0,0)])
+    timeit(partial(fb.show), loops=1000)
+    return False
+
+@testing.automatic
+def time_newshow():
+    fb = FrameBuffer(matrix_list=[(0,0)])
+    timeit(partial(fb.newshow), loops=1000)
+    return False
+
+@testing.automatic
+def time_show2():
+    fb = FrameBuffer(matrix_list=[(0,0)])
+    timeit(partial(fb.show2), loops=1000)
+    return False
+
+@testing.automatic
+def time_show2_only():
+    fb = FrameBuffer(matrix_list=[(0,0)])
+    timeit(partial(fb.show2_only), loops=1000)
+    return False
 

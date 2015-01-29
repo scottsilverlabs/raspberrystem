@@ -492,6 +492,15 @@ static PyObject *py_flush(PyObject *self, PyObject *args){
     return Py_BuildValue("i", write_bytes(spi, bitstream, bitstream_SIZE));
 }
 
+static PyObject *py_flush2(PyObject *self, PyObject *args){
+    // show on terminal if flag enabled
+    if (display_on_terminal){
+        print_framebuffer();
+    }
+    //update_bitstream();
+    return Py_BuildValue("i", write_bytes(spi, bitstream, bitstream_SIZE));
+}
+
 static PyObject *py_shutdown_matrices(PyObject *self, PyObject *args){
 	return Py_BuildValue("i", close_and_free());
 }
@@ -548,6 +557,7 @@ static PyMethodDef led_driver_methods[] = {
 	{"init_SPI", py_init_SPI, METH_VARARGS, "Initialize the SPI with given speed and port."},
 	{"init_matrices", py_init_matrices, METH_VARARGS, "Initializes the give LED matrices in the list."},
 	{"flush", py_flush, METH_NOARGS, "Converts current frame buffer to a bistream and then sends it to SPI port."},
+	{"flush2", py_flush2, METH_NOARGS, "Converts current frame buffer to a bistream and then sends it to SPI port."},
 	{"shutdown_matrices", py_shutdown_matrices, METH_NOARGS, "Closes the SPI and frees all memory."},
 	{"point", py_point, METH_VARARGS, "Sets a point in the frame buffer."},
 	{"line", py_line, METH_VARARGS, "Sets a line from given source to destination."},
