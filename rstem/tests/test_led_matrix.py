@@ -36,7 +36,7 @@ def init_matrices():
     return True
 
 @testing.automatic
-def erased_fb():
+def test_erased_fb():
     led.init_matrices()
     return erased_fb(led._framebuffer())
 
@@ -62,8 +62,8 @@ def point_out_of_bounds2():
 
 @testing.automatic
 def point_out_of_bounds3():
-    return out_of_bounds_point_test(led.width(), 0)
+    return out_of_bounds_point_test(led.width, 0)
 
 @testing.automatic
-def point_out_of_bounds3():
-    return out_of_bounds_point_test(0, led.height())
+def point_out_of_bounds4():
+    return out_of_bounds_point_test(0, led.height)
