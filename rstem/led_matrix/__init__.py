@@ -815,18 +815,54 @@ class LEDText(LEDSprite):
 
         self.bitmap = init_sprite.bitmap
         
+class FrameBuffer(object):
+    def __init__(self, num_rows=None, matrix_list=None, spi_port=0):
+        init_matrices()
+
+    def _framebuffer(self):
+        global width
+        global height
+
+        flat_fb = led_driver.framebuffer()
+        transposed_array = reversed([flat_fb[i*height:i*height+height] for i in range(width)])
+        return [list(i) for i in zip(*transposed_array)]
+
+    def point(self, x, y=None, color=0xF):
+        """Sends point to the framebuffer.
+        @note: Will not display the point until show() is called.
         
-# run demo program if run by itself
-def _main():
-    init_matrices()
-    while 1:
-        for x in range(8):
-            for y in range(8):
-                point(x, y)
-                show()
-                time.sleep(0.5);
-                erase()
+        @param x, y: Coordinates to place point
+        @type x, y: (int, int)
+        @param color: Color to display at point
+        @type color: int or string (0-F or 16 or '-' for transparent)
+        
+        @rtype: int
+        @returns: 1 on success
+        """
+        _init_check()
+        color = _convert_color(color)
+        if color < 16:   # don't do anything if transparent
+            global width
+            global height
+            # If y is not given, then x is a tuple of the point
+            if y is None and type(x) is tuple:
+                x, y = x
+            if x < 0 or x >= width or y < 0 or y >= height:
+                return
+            if container_math_coords:
+                x, y = _convert_to_std_coords(x, y)
+            return led_driver.point(int(x), int(y), color)
 
-if __name__ == "__main__":
-    _main()
+    @property
+    def width(self):
+        global width
+        return width
 
+    @property
+    def height(self):
+        global height
+        return height
+
+
+__all__ = ['FrameBuffer']
+        

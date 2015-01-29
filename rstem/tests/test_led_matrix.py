@@ -1,5 +1,5 @@
 import testing
-import rstem.led_matrix as led
+from rstem.led_matrix import FrameBuffer
 
 '''
 Automatic API tests for LED Matrix.
@@ -12,73 +12,104 @@ def makefb(lines):
             continue
         cols = [int(col, 16) for col in line.strip()]
         rows += [cols]
-    rows = list(reversed(rows))
-    return rows
+    fb_transposed = list(reversed(rows))
+    fb = [list(z) for z in zip(*fb_transposed)]
+    return fb
 
-def erased_fb(fb):
+
+def erased_fb():
     return makefb('00000000\n' * 8)
     
-def point_test(x, y, color):
-    led.init_matrices()
-
-    led.point(x, y, color)
-    fb = led._framebuffer()
-    goodpoint = fb[x][y] == color
-
-    # set point to 0, and verify all points are 0.
-    fb[x][y] = 0
-    erased = erased_fb(fb)
-
-    return goodpoint and erased
-
-def out_of_bounds_point_test(x, y):
-    led.init_matrices()
-    led.point(x, y, 1)
-    return erased_fb(led._framebuffer())
+@testing.automatic
+def default_erased():
+    fb = FrameBuffer(matrix_list=[(0,0)])
+    return fb._framebuffer() == erased_fb()
 
 @testing.automatic
-def __old__init_matrices():
-    led.init_matrices()
-    makefb('''
-        12345678
-        22223456
-        33334567
-        44445678
-        55556789
-        6666789a
-        777789ab
-        88889abc''')
-    return True
+def point1():
+    fb = FrameBuffer(matrix_list=[(0,0)])
+    fb.point(0,0)
+    expected_fb = makefb('''
+        00000000
+        00000000
+        00000000
+        00000000
+        00000000
+        00000000
+        00000000
+        F0000000
+        ''')
+    return fb._framebuffer() == expected_fb
 
 @testing.automatic
-def __old__test_erased_fb():
-    led.init_matrices()
-    return erased_fb(led._framebuffer())
+def point2():
+    fb = FrameBuffer(matrix_list=[(0,0)])
+    fb.point((0,0), color=1)
+    expected_fb = makefb('''
+        00000000
+        00000000
+        00000000
+        00000000
+        00000000
+        00000000
+        00000000
+        10000000
+        ''')
+    return fb._framebuffer() == expected_fb
 
 @testing.automatic
-def __old__point1():
-    return point_test(0, 0, 1)
+def point3():
+    fb = FrameBuffer(matrix_list=[(0,0)])
+    fb.point(1,2,color=3)
+    expected_fb = makefb('''
+        00000000
+        00000000
+        00000000
+        00000000
+        00000000
+        03000000
+        00000000
+        00000000
+        ''')
+    return fb._framebuffer() == expected_fb
 
 @testing.automatic
-def __old__point2():
-    return point_test(1, 2, 3)
+def point4():
+    fb = FrameBuffer(matrix_list=[(0,0)])
+    fb.point(7,7,color=10)
+    expected_fb = makefb('''
+        0000000A
+        00000000
+        00000000
+        00000000
+        00000000
+        00000000
+        00000000
+        00000000
+        ''')
+    return fb._framebuffer() == expected_fb
 
 @testing.automatic
-def __old__point3():
-    return point_test(7, 7, 10)
+def out_of_bounds_point1():
+    fb = FrameBuffer(matrix_list=[(0,0)])
+    fb.point(-1, 0)
+    return fb._framebuffer() == erased_fb()
 
 @testing.automatic
-def __old__point_out_of_bounds1():
-    return out_of_bounds_point_test(-1, 0)
+def out_of_bounds_point2():
+    fb = FrameBuffer(matrix_list=[(0,0)])
+    fb.point(0, -1)
+    return fb._framebuffer() == erased_fb()
 
 @testing.automatic
-def __old__point_out_of_bounds2():
-    return out_of_bounds_point_test(0, -1)
+def out_of_bounds_point3():
+    fb = FrameBuffer(matrix_list=[(0,0)])
+    fb.point(fb.width, 0)
+    return fb._framebuffer() == erased_fb()
 
 @testing.automatic
-def __old__point_out_of_bounds3():
-    return out_of_bounds_point_test(led.width, 0)
+def out_of_bounds_point4():
+    fb = FrameBuffer(matrix_list=[(0,0)])
+    fb.point(0, fb.height)
+    return fb._framebuffer() == erased_fb()
 
-@testing.automatic
-def __old__point_out_of_bounds4():
-    return out_of_bounds_point_test(0, led.height)
