@@ -96,11 +96,6 @@ def _framebuffer():
     return [list(i) for i in zip(*transposed_array)]
 
     
-def display_on_terminal():
-    """Toggles on and off the terminal display of the led matrix on show()"""
-    led_driver.display_on_terminal()
-
-
 def init_matrices(mat_list=[(0, 0, 0)], math_coords=True, spi_speed=125000, spi_port=0):
     """Creates a chain of led matrices set at particular offsets into the frame buffer
     The order of the led matrices in the list indicate the order they are
@@ -117,8 +112,6 @@ def init_matrices(mat_list=[(0, 0, 0)], math_coords=True, spi_speed=125000, spi_
     global width
     global height
     global container_math_coords
-    if initialized: # free previous memory before attempting to do it again
-        cleanup()
                 
     width = max([matrix[0] for matrix in mat_list]) + DIM_OF_MATRIX
     height = max([matrix[1] for matrix in mat_list]) + DIM_OF_MATRIX
@@ -253,20 +246,6 @@ def show2():
     """
     _init_check()
     return led_driver.flush2()
-
-def cleanup():
-    """Unintializes matrices and frees all memory. 
-    Should be called at the end of a program to avoid memory leaks.
-    Also, clears the display.
-    """
-    global initialized
-    global spi_initialized
-    if initialized:
-        led_driver.fill(0x0)
-        led_driver.flush()
-        led_driver.shutdown_matrices()
-        initialized = False
-        spi_initialized = False
 
 def fill(color=0xF):
     """Fills the framebuffer with the given color.
@@ -755,7 +734,9 @@ class FrameBuffer(object):
             pass
 
     def erase(self, color=0):
-        fill(color)
+        for x in range(self.width):
+            for y in range(self.height):
+                self.fb[x][y] = color
 
     def line(self, point_a, point_b, color=0xF):
         """Create a line from point_a to point_b.

@@ -7,6 +7,65 @@ from rstem.led_matrix import FrameBuffer
 Automatic API tests for LED Matrix.
 '''
 
+'''
+- displays tests
+- drawing tests
+- speed tests
+    - functions -> FrameBuffer class
+        - Remove
+            def frame()
+            def sprite(sprite, origin=(0, 0), crop_origin=(0, 0), crop_dimensions=None)
+            def text(text, origin=(0, 0), crop_origin=(0, 0), 
+                crop_dimensions=None, font_name='small', font_path=None)
+        - Keep
+            __init__(merge of init_grid and init_matrices)
+                - new:
+                    def __init__(num_rows=None, matrix_list=None, spi_port=0)
+                        - num_rows=None favor minimal
+                          rectangle, landscape before
+                          portrait
+                        - matrix_list:
+                            list of either:
+                                - relative corridinates (i.e. (-8,0))
+                                - int angle
+                - old:
+                    def init_grid(num_rows=1, num_cols=None, angle=0, spi_port=0)
+                    def init_matrices(mat_list=[(0, 0, 0)], spi_port=0)
+                        - removed math_coords
+                        - removed spi_speed
+                        - return the number of matrices
+            def draw(sprite, origin)
+            def show()
+            def detect()
+        - Add
+            - test reliability of SPI chain
+- Classes
+    - class LEDSprite rename Sprite
+        - Remove
+            def flipped_horizontal(self)
+            def flipped_vertical(self)
+            def inverted(self)
+            def rotated(self, angle=90)
+            def save_to_file(self, filename)
+            def copy(self)
+        - Keep
+            def __init__(self, filename=None, height=0, width=0, color=0)
+            def __add__(self, sprite)
+            def add(self, sprite, offset, corner)
+            def flip_horizontal(self)
+            def flip_vertical(self)
+            def invert(self)
+            def rotate(self, angle=90)
+            def get_pixel(self, x, y)
+            def set_pixel(self, point, color=15)
+                set via get/setitem?
+        - Add
+            def crop(origin=(0, 0), dimensions=None)
+    - LEDText rename Text
+        def __init__(self, message, char_spacing=1, font_name='small', font_path=None)
+        All inherited function from Sprite
+'''
+
 def makefb(lines):
     rows = []
     for line in lines.splitlines():
@@ -26,6 +85,29 @@ def erased_fb():
 def default_erased():
     fb = FrameBuffer(matrix_list=[(0,0)])
     return fb._framebuffer() == erased_fb()
+
+#########################################################################
+# erase() tests
+#
+
+@testing.automatic
+def erase1():
+    fb = FrameBuffer(matrix_list=[(0,0)])
+    fb.erase(0xf)
+    fb.erase()
+    return fb._framebuffer() == makefb('00000000\n' * 8)
+
+@testing.automatic
+def erase2():
+    fb = FrameBuffer(matrix_list=[(0,0)])
+    fb.erase(3)
+    return fb._framebuffer() == makefb('33333333\n' * 8)
+
+@testing.automatic
+def erase3():
+    fb = FrameBuffer(matrix_list=[(0,0)])
+    fb.erase(7)
+    return fb._framebuffer() == makefb('77777777\n' * 8)
 
 #########################################################################
 # point() tests
@@ -296,11 +378,6 @@ def rect4():
         10010333
         11110000
         ''')
-    z = fb._framebuffer()
-    for y in reversed(range(8)):
-        for x in range(8):
-            print('{:X}'.format(z[x][y]), end="")
-        print()
     return fb._framebuffer() == expected_fb
 
 #########################################################################
