@@ -27,6 +27,10 @@ def default_erased():
     fb = FrameBuffer(matrix_list=[(0,0)])
     return fb._framebuffer() == erased_fb()
 
+#########################################################################
+# point() tests
+#
+
 @testing.automatic
 def point1():
     fb = FrameBuffer(matrix_list=[(0,0)])
@@ -92,6 +96,26 @@ def point4():
     return fb._framebuffer() == expected_fb
 
 @testing.automatic
+def point5():
+    fb = FrameBuffer(matrix_list=[(0,0)])
+    fb.point(7,7,color=10)
+    expected_fb = makefb('''
+        0000000A
+        00000000
+        00000000
+        00000000
+        00000000
+        00000000
+        00000000
+        00000000
+        ''')
+    return fb._framebuffer() == expected_fb
+
+    fb.point(0,0,1)
+    fb.point(0,7,2)
+    fb.point(7,0,3)
+    fb.point(7,7,4)
+@testing.automatic
 def out_of_bounds_point1():
     fb = FrameBuffer(matrix_list=[(0,0)])
     fb.point(-1, 0)
@@ -115,6 +139,103 @@ def out_of_bounds_point4():
     fb.point(0, fb.height)
     return fb._framebuffer() == erased_fb()
 
+#########################################################################
+# line() tests
+#
+
+@testing.automatic
+def line1():
+    fb = FrameBuffer(matrix_list=[(0,0)])
+    fb.line((0,7),(7,7))
+    expected_fb = makefb('''
+        ffffffff
+        00000000
+        00000000
+        00000000
+        00000000
+        00000000
+        00000000
+        00000000
+        ''')
+    return fb._framebuffer() == expected_fb
+
+@testing.automatic
+def line2():
+    fb = FrameBuffer(matrix_list=[(0,0)])
+    fb.line((0,0),(0,7))
+    expected_fb = makefb('''
+        f0000000
+        f0000000
+        f0000000
+        f0000000
+        f0000000
+        f0000000
+        f0000000
+        f0000000
+        ''')
+    return fb._framebuffer() == expected_fb
+
+@testing.automatic
+def line3():
+    fb = FrameBuffer(matrix_list=[(0,0)])
+    fb.line((0,0),(7,7))
+    expected_fb = makefb('''
+        0000000f
+        000000f0
+        00000f00
+        0000f000
+        000f0000
+        00f00000
+        0f000000
+        f0000000
+        ''')
+    return fb._framebuffer() == expected_fb
+
+@testing.automatic
+def line4():
+    fb = FrameBuffer(matrix_list=[(0,0)])
+    fb.line((0,0),(7,7))
+    fb.line((7,0),(0,7), color=1)
+    fb.line((2,0),(2,7), color=2)
+    fb.line((0,2),(7,2), color=3)
+    expected_fb = makefb('''
+        1020000f
+        012000f0
+        00200f00
+        0021f000
+        002f1000
+        33333333
+        0f200010
+        f0200001
+        ''')
+    return fb._framebuffer() == expected_fb
+
+@testing.automatic
+def line5():
+    fb = FrameBuffer(matrix_list=[(0,0)])
+    fb.line((1,3),(6,5))
+    expected_fb = makefb('''
+        00000000
+        00000000
+        00000ff0
+        000ff000
+        0ff00000
+        00000000
+        00000000
+        00000000
+        ''')
+    z = fb._framebuffer()
+    for y in reversed(range(8)):
+        for x in range(8):
+            print('{:X}'.format(z[x][y]), end="")
+        print()
+    return fb._framebuffer() == expected_fb
+
+
+#########################################################################
+# Timing functions
+#
+
 def timeit(f, loops=10000):
     start = time.time()
     for i in range(loops):
@@ -128,35 +249,10 @@ def timeit(f, loops=10000):
 @testing.automatic
 def time_point():
     fb = FrameBuffer(matrix_list=[(0,0)])
-    return timeit(partial(fb.point, 0, 0)) > 8000
-
-@testing.automatic
-def time_point2():
-    fb = FrameBuffer(matrix_list=[(0,0)])
-    timeit(partial(fb.point2, 0, 0))
-    return False
+    return timeit(partial(fb.point, 0, 0)) > 40000
 
 @testing.automatic
 def time_show():
     fb = FrameBuffer(matrix_list=[(0,0)])
-    timeit(partial(fb.show), loops=1000)
-    return False
-
-@testing.automatic
-def time_newshow():
-    fb = FrameBuffer(matrix_list=[(0,0)])
-    timeit(partial(fb.newshow), loops=1000)
-    return False
-
-@testing.automatic
-def time_show2():
-    fb = FrameBuffer(matrix_list=[(0,0)])
-    timeit(partial(fb.show2), loops=1000)
-    return False
-
-@testing.automatic
-def time_show2_only():
-    fb = FrameBuffer(matrix_list=[(0,0)])
-    timeit(partial(fb.show2_only), loops=1000)
-    return False
+    return timeit(partial(fb.show), loops=200) > 300
 

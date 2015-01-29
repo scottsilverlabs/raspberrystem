@@ -32,8 +32,6 @@ width = 0    #: The width of the LED matrix grid
 height = 0   #: The height of the LED matrix grid
 container_math_coords = True
 
-fb = [[0]*8]*8
-
 def _init_check():
     """Checks that init_matrices has been called and throws an error if not
     @raise RuntimeError: If matrices have not been initialized."""
@@ -830,22 +828,19 @@ class LEDText(LEDSprite):
         
 class FrameBuffer(object):
     def __init__(self, num_rows=None, matrix_list=None, spi_port=0):
+        self.fb = [[0]*8 for i in range(8)]
         init_matrices()
 
     def _framebuffer(self):
-        global width
-        global height
-
-        flat_fb = led_driver.framebuffer()
-        transposed_array = reversed([flat_fb[i*height:i*height+height] for i in range(width)])
-        return [list(i) for i in zip(*transposed_array)]
+        return self.fb
 
     def point(self, x, y=None, color=0xF):
-        point(x, y, color)
-
-    def point2(self, x, y=None, color=0xF):
         try:
-            fb[x][y] = color
+            if y == None:
+                x, y = x
+            if x < 0 or y < 0:
+                raise IndexError
+            self.fb[x][y] = color
         except IndexError:
             pass
 
@@ -856,23 +851,39 @@ class FrameBuffer(object):
         rect(origin, dimensions, fill, color)
 
     def line(self, point_a, point_b, color=0xF):
-        line(self, point_a, point_b, color)
+        """Create a line from point_a to point_b.
+        Uses Bresenham's Line Algorithm U{http://en.wikipedia.org/wiki/Bresenham's_line_algorithm}
+        @type point_a, point_b: (x,y) tuple
+        @param color: Color to display at point
+        @type color: int or string (0-F or 16 or '-' for transparent)
+        """
+        x1, y1 = point_a
+        x2, y2 = point_b
+        dx = abs(x2 - x1)
+        dy = abs(y2 - y1)
+        sx = 1 if x1 < x2 else -1
+        sy = 1 if y1 < y2 else -1
+        err = dx - dy
+        while True:
+            self.point(x1, y1, color)
+            if (x1 == x2 and y1 == y2) or x1 >= width or y1 >= height:
+                break
+            e2 = 2*err
+            if e2 > -dy:
+                err -= dy
+                x1 += sx
+            if e2 < dx:
+                err += dx
+                y1 += sy
 
     def show(self):
         show()
-
-    def show2_only(self):
-        show2()
-
-    def newshow(self):
-        flat = (pixel for col in fb for pixel in col)
+        '''
+        flat = (pixel for col in self.fb for pixel in col)
         even = islice(flat, 0, None, 2)
         odd = islice(flat, 0, None, 2)
         return bytes(b[0] | (b[1] << 4) for b in zip(even, odd))
-
-    def show2(self):
-        self.newshow()
-        show2()
+        '''
 
     @property
     def width(self):
