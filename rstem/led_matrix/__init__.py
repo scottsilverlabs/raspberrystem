@@ -281,96 +281,6 @@ def erase():
     """Clears display"""
     fill(0)
 
-def point(x, y=None, color=0xF):
-    """Sends point to the framebuffer.
-    @note: Will not display the point until show() is called.
-    
-    @param x, y: Coordinates to place point
-    @type x, y: (int, int)
-    @param color: Color to display at point
-    @type color: int or string (0-F or 16 or '-' for transparent)
-    
-    @rtype: int
-    @returns: 1 on success
-    """
-    _init_check()
-    color = _convert_color(color)
-    if color < 16:   # don't do anything if transparent
-        global width
-        global height
-        # If y is not given, then x is a tuple of the point
-        if y is None and type(x) is tuple:
-            x, y = x
-        if x < 0 or x >= width or y < 0 or y >= height:
-            return
-        if container_math_coords:
-            x, y = _convert_to_std_coords(x, y)
-        return led_driver.point(int(x), int(y), color)
-
-def rect(origin, dimensions, fill=True, color=0xF):
-    """Creates a rectangle from start point using given dimensions
-    
-    @param origin: The bottom left corner of rectange (if math_coords == True).
-        The top left corner of rectangle (if math_coords == False)
-    @type origin: (x,y) tuple
-    @param dimensions: width and height of rectangle
-    @type dimensions: (width, height) tuple
-    @param fill: Whether to fill the rectangle or make it hollow
-    @type fill: boolean
-    @param color: Color to display at point
-    @type color: int or string (0-F or 16 or '-' for transparent)
-    """
-    x, y = origin
-    width, height = dimensions
-
-    if fill:
-        for x_offset in range(width):
-            line((x + x_offset, y), (x + x_offset, y + height - 1), color)
-    else:
-        line((x, y), (x, y + height - 1), color)
-        line((x, y + height - 1), (x + width - 1, y + height - 1), color)
-        line((x + width - 1, y + height - 1), (x + width - 1, y), color)
-        line((x + width - 1, y), (x, y), color)
-    
-
-
-def _sign(n):
-    return 1 if n >= 0 else -1
-
-def line(point_a, point_b, color=0xF):
-    """Create a line from point_a to point_b.
-    Uses Bresenham's Line Algorithm U{http://en.wikipedia.org/wiki/Bresenham's_line_algorithm}
-    @type point_a, point_b: (x,y) tuple
-    @param color: Color to display at point
-    @type color: int or string (0-F or 16 or '-' for transparent)
-    """
-    x1, y1 = point_a
-    x2, y2 = point_b
-    dx = abs(x2 - x1)
-    dy = abs(y2 - y1)
-    sx = 1 if x1 < x2 else -1
-    sy = 1 if y1 < y2 else -1
-    err = dx - dy
-    while True:
-        point(x1, y1, color)
-        if (x1 == x2 and y1 == y2) or x1 >= width or y1 >= height:
-            break
-        e2 = 2*err
-        if e2 > -dy:
-            err -= dy
-            x1 += sx
-        if e2 < dx:
-            err += dx
-            y1 += sy
-            
-def _line_fast(point_a, point_b, color=0xF):
-    """A faster c implementation of line. Use if you need the speed."""
-    if container_math_coords:
-        point_a = _convert_to_std_coords(*point_a)
-        point_b = _convert_to_std_coords(*point_b)
-    led_driver.line(point_a[0], point_a[1], point_b[0], point_b[1], _convert_color(color))
-
-
 def text(text, origin=(0, 0), crop_origin=(0, 0), crop_dimensions=None, font_name="small", font_path=None):
     """Sets given string to be displayed on the led matrix
         
@@ -847,9 +757,6 @@ class FrameBuffer(object):
     def erase(self, color=0):
         fill(color)
 
-    def rect(self, origin, dimensions, fill=True, color=0xF):
-        rect(origin, dimensions, fill, color)
-
     def line(self, point_a, point_b, color=0xF):
         """Create a line from point_a to point_b.
         Uses Bresenham's Line Algorithm U{http://en.wikipedia.org/wiki/Bresenham's_line_algorithm}
@@ -876,6 +783,31 @@ class FrameBuffer(object):
                 err += dx
                 y1 += sy
 
+    def rect(self, origin, dimensions, fill=False, color=0xF):
+        """Creates a rectangle from start point using given dimensions
+        
+        @param origin: The bottom left corner of rectange (if math_coords == True).
+            The top left corner of rectangle (if math_coords == False)
+        @type origin: (x,y) tuple
+        @param dimensions: width and height of rectangle
+        @type dimensions: (width, height) tuple
+        @param fill: Whether to fill the rectangle or make it hollow
+        @type fill: boolean
+        @param color: Color to display at point
+        @type color: int or string (0-F or 16 or '-' for transparent)
+        """
+        x, y = origin
+        width, height = dimensions
+
+        if fill:
+            for x_offset in range(width):
+                self.line((x + x_offset, y), (x + x_offset, y + height - 1), color)
+        else:
+            self.line((x, y), (x, y + height - 1), color)
+            self.line((x, y + height - 1), (x + width - 1, y + height - 1), color)
+            self.line((x + width - 1, y + height - 1), (x + width - 1, y), color)
+            self.line((x + width - 1, y), (x, y), color)
+        
     def show(self):
         show()
         '''

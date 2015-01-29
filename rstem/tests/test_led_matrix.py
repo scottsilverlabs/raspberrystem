@@ -224,13 +224,84 @@ def line5():
         00000000
         00000000
         ''')
+    return fb._framebuffer() == expected_fb
+
+
+#########################################################################
+# rect() tests
+#
+
+@testing.automatic
+def rect1():
+    fb = FrameBuffer(matrix_list=[(0,0)])
+    fb.rect((0,0),(8,8))
+    expected_fb = makefb('''
+        ffffffff
+        f000000f
+        f000000f
+        f000000f
+        f000000f
+        f000000f
+        f000000f
+        ffffffff
+        ''')
+    return fb._framebuffer() == expected_fb
+
+@testing.automatic
+def rect2():
+    fb = FrameBuffer(matrix_list=[(0,0)])
+    fb.rect((0,0),(8,8), fill=True)
+    expected_fb = makefb('''
+        ffffffff
+        ffffffff
+        ffffffff
+        ffffffff
+        ffffffff
+        ffffffff
+        ffffffff
+        ffffffff
+        ''')
+    return fb._framebuffer() == expected_fb
+
+@testing.automatic
+def rect3():
+    fb = FrameBuffer(matrix_list=[(0,0)])
+    fb.rect((2,1),(3,5), fill=True)
+    expected_fb = makefb('''
+        00000000
+        00000000
+        00fff000
+        00fff000
+        00fff000
+        00fff000
+        00fff000
+        00000000
+        ''')
+    return fb._framebuffer() == expected_fb
+
+@testing.automatic
+def rect4():
+    fb = FrameBuffer(matrix_list=[(0,0)])
+    fb.rect((0,0),(4,5), color=1)
+    fb.rect((2,2),(6,6), color=2)
+    fb.rect((5,1),(3,3), color=3)
+    fb.rect((1,5),(4,2), color=4)
+    expected_fb = makefb('''
+        00222222
+        04444002
+        04444002
+        11210002
+        10210333
+        10222323
+        10010333
+        11110000
+        ''')
     z = fb._framebuffer()
     for y in reversed(range(8)):
         for x in range(8):
             print('{:X}'.format(z[x][y]), end="")
         print()
     return fb._framebuffer() == expected_fb
-
 
 #########################################################################
 # Timing functions
