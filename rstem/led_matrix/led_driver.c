@@ -125,11 +125,6 @@ static PyObject *py_flush2(PyObject *self, PyObject *args){
         PyErr_SetString(PyExc_TypeError, "Not an unsigned int!");
         return NULL;
     }
-    int i;
-    for (i = 0; i < len; i++) {
-        printf("%02X ", s[i]);
-    }
-    printf("\n");
     return Py_BuildValue("i", write_bytes(spi, s, len));
 }
 

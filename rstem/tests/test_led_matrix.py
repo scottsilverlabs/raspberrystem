@@ -13,7 +13,6 @@ Automatic API tests for LED Matrix.
 - speed tests
     - functions -> FrameBuffer class
         - Remove
-            def frame()
             def sprite(sprite, origin=(0, 0), crop_origin=(0, 0), crop_dimensions=None)
             def text(text, origin=(0, 0), crop_origin=(0, 0), 
                 crop_dimensions=None, font_name='small', font_path=None)
@@ -101,7 +100,6 @@ def erase1():
 def erase2():
     fb = FrameBuffer(matrix_list=[(0,0)])
     fb.erase(3)
-    print(fb._framebuffer())
     return fb._framebuffer() == makefb('33333333\n' * 8)
 
 @testing.automatic
@@ -403,10 +401,5 @@ def time_point():
 @testing.automatic
 def time_show():
     fb = FrameBuffer(matrix_list=[(0,0)])
-    fb.rect((0,0),(4,5), color=1)
-    fb.rect((2,2),(6,6), color=2)
-    fb.rect((5,1),(3,3), color=3)
-    fb.rect((1,5),(4,2), color=4)
-    fb.show()
-    #return timeit(partial(fb.show), loops=200) > 300
+    return timeit(partial(fb.show), loops=200) > 300
 
