@@ -35,9 +35,9 @@ unsigned char bits_per_trans;
 unsigned int spi_speed;
 
 
-// SPI Stuff  =============================================
+// SPI  =============================================
 
-int start_SPI(unsigned long speed, int mode){
+int start_spi(unsigned long speed, int mode){
     char *sMode;
     if(mode == 0){
         sMode = "/dev/spidev0.0";
@@ -48,31 +48,19 @@ int start_SPI(unsigned long speed, int mode){
     spi_mode = SPI_MODE_0;
     bits_per_trans = 8;
     spi_speed = speed;
-    spi = open(sMode,O_RDWR);
-    /*
-    * spi mode
-    */
+    spi = open(sMode, O_RDWR);
+
     err = ioctl(spi, SPI_IOC_WR_MODE, &spi_mode);
-    if (err < 0)
-        goto out;
+    if (err < 0) goto out;
 
     err = ioctl(spi, SPI_IOC_RD_MODE, &spi_mode);
-    if (err < 0)
-        goto out;
+    if (err < 0) goto out;
 
-    /*
-    * bits per word
-    */
     err = ioctl(spi, SPI_IOC_WR_BITS_PER_WORD, &bits_per_trans);
-    if (err < 0)
-        goto out;
+    if (err < 0) goto out;
 
-    /*
-    * max speed hz
-    */
     err = ioctl(spi, SPI_IOC_WR_MAX_SPEED_HZ, &spi_speed);
-    if (err < 0)
-        goto out;
+    if (err < 0) goto out;
 
 out:
     if (err < 0 && spi > 0)
@@ -84,13 +72,10 @@ int write_bytes(int dev, unsigned char* val, int len) {
     struct spi_ioc_transfer tr = {
         .tx_buf = (unsigned long)val,
         .len = len,
-//      .delay_usecs = 100,
     };
     int ret = ioctl(dev, SPI_IOC_MESSAGE(1), &tr);
     return ret;
 }
-
-// memory commands ===========================================
 
 int rw_bytes(int dev, unsigned char* val, unsigned char* buff, int len){
     struct spi_ioc_transfer tr = {
@@ -102,23 +87,20 @@ int rw_bytes(int dev, unsigned char* val, unsigned char* buff, int len){
     return ret;
 }
 
-// led_driver commands =======================================
-
-
 // Python Wrappers =================================================
 
 
-static PyObject *py_init_SPI(PyObject *self, PyObject *args){
+static PyObject *py_init_spi(PyObject *self, PyObject *args){
     unsigned int speed;
     int mode;
     if(!PyArg_ParseTuple(args, "ki", &speed, &mode)){
         PyErr_SetString(PyExc_TypeError, "Not an unsigned long and int!");
         return NULL;
     }
-    return Py_BuildValue("i", start_SPI(speed, mode));
+    return Py_BuildValue("i", start_spi(speed, mode));
 }   
 
-static PyObject *py_flush2(PyObject *self, PyObject *args){
+static PyObject *py_flush(PyObject *self, PyObject *args){
     const char *s;
     int len;
     if(!PyArg_ParseTuple(args, "s#", &s, &len)){
@@ -129,8 +111,8 @@ static PyObject *py_flush2(PyObject *self, PyObject *args){
 }
 
 static PyMethodDef led_driver_methods[] = {
-    {"init_SPI", py_init_SPI, METH_VARARGS, "Initialize the SPI with given speed and port."},
-    {"flush2", py_flush2, METH_VARARGS, "Converts current frame buffer to a bistream and then sends it to SPI port."},
+    {"init_spi", py_init_spi, METH_VARARGS, "Initialize the SPI with given speed and port."},
+    {"flush", py_flush, METH_VARARGS, "Converts current frame buffer to a bistream and then sends it to SPI port."},
     {NULL, NULL, 0, NULL}  /* Sentinal */
 };
 

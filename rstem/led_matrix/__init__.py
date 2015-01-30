@@ -23,33 +23,6 @@ import copy
 import subprocess
 from itertools import islice
 
-from struct import pack, unpack
-from fcntl import ioctl
-import ctypes
-from ctypes import create_string_buffer, sizeof, string_at
-from ctypes import c_int, c_uint16, c_ushort, c_short, c_char, POINTER, Structure
-
-class spi_ioc_transfer(ctypes.Structure):
-    """<linux/spi/spidev.h> struct spi_ioc_transfer"""
-
-    _fields_ = [
-        ("tx_buf", ctypes.c_uint64),
-        ("rx_buf", ctypes.c_uint64),
-        ("len", ctypes.c_uint32),
-        ("speed_hz", ctypes.c_uint32),
-        ("delay_usecs", ctypes.c_uint16),
-        ("bits_per_word", ctypes.c_uint8),
-        ("cs_change", ctypes.c_uint8),
-        ("pad", ctypes.c_uint32)]
-
-SPI_MODE_0 =                0x00000000
-SPI_IOC_WR_MODE =           0x40016B01
-SPI_IOC_RD_MODE =           0x80016B01
-SPI_IOC_WR_BITS_PER_WORD =  0x40016B03
-SPI_IOC_WR_MAX_SPEED_HZ =   0x40046B04
-
-SPI_IOC_MESSAGE_1 =         0x40206B00
-
 # global variables for use
 BITS_PER_PIXEL = 4     # 4 bits to represent color
 DIM_OF_MATRIX = 8     # 8x8 led matrix elements
@@ -548,19 +521,7 @@ class LEDText(LEDSprite):
 class FrameBuffer(object):
     def __init__(self, num_rows=None, matrix_list=None, spi_port=0):
         self.fb = [[0]*8 for i in range(8)]
-        if False:
-            led_driver.init_SPI(250000, spi_port)
-        else:
-            spi_device = "/dev/spidev0.0"
-            self.fd = os.open(spi_device, os.O_RDWR)
-
-            spi_mode = SPI_MODE_0;
-            bits_per_trans = 8;
-            spi_speed = 250000;
-            ioctl(self.fd, SPI_IOC_WR_MODE, ctypes.c_ubyte(spi_mode));
-            ioctl(self.fd, SPI_IOC_RD_MODE, ctypes.c_ubyte(spi_mode));
-            ioctl(self.fd, SPI_IOC_WR_BITS_PER_WORD, ctypes.c_ubyte(bits_per_trans));
-            ioctl(self.fd, SPI_IOC_WR_MAX_SPEED_HZ, ctypes.c_uint(spi_speed));
+        led_driver.init_spi(250000, spi_port)
 
     def _framebuffer(self):
         return self.fb
@@ -636,31 +597,7 @@ class FrameBuffer(object):
         even = flat[::2]
         odd = flat[1::2]
         bitstream = bytes(b[0] | (b[1] << 4) for b in zip(even, odd))
-
-        if False:
-            led_driver.flush2(bitstream)
-        else:
-            wbuffer = create_string_buffer(bitstream, len(bitstream))
-            transfer = spi_ioc_transfer(
-                tx_buf=ctypes.addressof(wbuffer),
-                len=ctypes.sizeof(wbuffer)
-            )
-            ioctl(self.fd, SPI_IOC_MESSAGE_1, transfer)
-
-    def _spi_rw(self, bitstream):
-        wbuffer = ctypes.create_string_buffer(bitstream, len(bitstream))
-        rbuffer = ctypes.create_string_buffer(len(bitstream))
-
-        # create the spi transfer struct
-        transfer = spi_ioc_transfer(
-            tx_buf=ctypes.addressof(wbuffer),
-            rx_buf=ctypes.addressof(rbuffer),
-            len=ctypes.sizeof(wbuffer)
-        )
-
-        # send the spi command
-        ioctl(self.fd, SPI_IOC_MESSAGE_1, transfer)
-        return ctypes.string_at(rbuffer, ctypes.sizeof(rbuffer))
+        led_driver.flush(bitstream)
 
     @property
     def width(self):
