@@ -115,80 +115,9 @@ int rw_bytes(int dev, unsigned char* val, unsigned char* buff, int len){
 
 // led_driver commands =======================================
 
-int num_of_matrices(void){
-    // spam display with zeros to ensure its empty
-	unsigned char* rx = (unsigned char*) malloc(32);
-	unsigned char* tran = (unsigned char*) malloc(32);
-	memset(rx, 0, 32);
-	memset(tran, 0, 32);
-	int i = 0;
-	for(i = 0; i < MAX_MATRICES; i++){
-		write_bytes(spi, tran, 32);
-	}
-	// send a high through and wait for response
-	tran[0] = 0xFF;
-	int count = 0;
-	int ret = 0;
-	while(rx[0] != 0xFF && count < 10){
-		ret = rw_bytes(spi, tran, rx, 32);
-		count++;
-	}
-	free(rx);
-	free(tran);
-	if(ret < 0 || count > 9){
-		return -1;
-	} else {
-		tran = (unsigned char*) malloc(32*(count-1));
-		memset(tran, 0, 32*(count - 1));
-		ret = write_bytes(spi, tran, 32*(count - 1));
-		free(tran);
-		return count - 1;
-	}
-}
-
 
 // Python Wrappers =================================================
 
-static PyObject *py_num_of_matrices(PyObject *self, PyObject *args){
-	int ret = num_of_matrices();
-	if(ret < 0){
-		PyErr_SetString(PyExc_IOError, "Number of matrices out of valid range (Valid: 1-8)");
-		return NULL;
-	}
-	return Py_BuildValue("i", ret);
-}
-
-static PyObject *py_init_matrices(PyObject *self, PyObject *args){
-    PyObject *mat_list;  // the list object
-    // grab mat_list and global variables
-    if (!PyArg_ParseTuple(args, "O!iii", &PyList_Type, &mat_list, &num_matrices,
-        &container_width, &container_height)){
-        PyErr_SetString(PyExc_TypeError, "Invalid arguments.");
-        return NULL;
-    }
-    // get led_list ready
-    led_list = (struct Matrix *) malloc((num_matrices)*sizeof(struct Matrix));
-    if (led_list == 0){
-        PyErr_NoMemory();
-        return NULL;
-    }
-    memset(led_list, '\0', (num_matrices)*sizeof(struct Matrix));
-    // iterate through list object and place items in led_list
-    int i;
-    for (i = 0; i < num_matrices; i++){
-        int x_offset, y_offset;
-        int angle = 0;  // set angle to be 0 by default if not changed in tuple
-        if (!PyArg_ParseTuple(PyList_GetItem(mat_list, i), "ii|i", &x_offset, &y_offset, &angle)){
-            PyErr_SetString(PyExc_TypeError, "Tuple not correct.");
-            return NULL;
-        }
-        led_list[i].x_offset = x_offset;
-        led_list[i].y_offset = y_offset;
-        led_list[i].angle = angle;
-    }
-    // initialize the framebuffer and bitstream
-    return Py_BuildValue("i", 0);
-}
 
 static PyObject *py_init_SPI(PyObject *self, PyObject *args){
 	unsigned int speed;
@@ -197,7 +126,6 @@ static PyObject *py_init_SPI(PyObject *self, PyObject *args){
 		PyErr_SetString(PyExc_TypeError, "Not an unsigned long and int!");
 		return NULL;
 	}
-	import_array();
 	return Py_BuildValue("i", start_SPI(speed, mode));
 }   
 
@@ -218,9 +146,7 @@ static PyObject *py_flush2(PyObject *self, PyObject *args){
 
 static PyMethodDef led_driver_methods[] = {
 	{"init_SPI", py_init_SPI, METH_VARARGS, "Initialize the SPI with given speed and port."},
-	{"init_matrices", py_init_matrices, METH_VARARGS, "Initializes the give LED matrices in the list."},
 	{"flush2", py_flush2, METH_VARARGS, "Converts current frame buffer to a bistream and then sends it to SPI port."},
-	{"detect", py_num_of_matrices, METH_NOARGS, "Returns the number of matrices connected"},
 	{NULL, NULL, 0, NULL}  /* Sentinal */
 };
 

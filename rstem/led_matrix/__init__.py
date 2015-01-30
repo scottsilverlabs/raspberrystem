@@ -115,7 +115,7 @@ def init_matrices(mat_list=[(0, 0, 0)], math_coords=True, spi_speed=125000, spi_
                 mat_list[i] = (mat_list[i][0], (height-1 - mat_list[i][1]) - (DIM_OF_MATRIX-1), mat_list[i][2])
             else:
                 mat_list[i] = (mat_list[i][0], (height-1 - mat_list[i][1]) - (DIM_OF_MATRIX-1))
-    led_driver.init_matrices(mat_list, len(mat_list), width, height) # flatten out tuple
+    #led_driver.init_matrices(mat_list, len(mat_list), width, height) # flatten out tuple
         
     # initialize spi bus
     global spi_initialized
