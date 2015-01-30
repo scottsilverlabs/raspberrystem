@@ -26,7 +26,6 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <linux/spi/spidev.h>
-#include <numpy/arrayobject.h>
 
 #define MAX_MATRICES 50
 
@@ -36,81 +35,71 @@ unsigned char bits_per_trans;
 unsigned int spi_speed;
 
 
-struct Matrix {
-    int x_offset;
-    int y_offset;
-    int angle;
-};
-
-struct Matrix *led_list;       // information on led matrix elements
-PyObject *numpy_array = NULL;  // if null we are using original framebuffer
-int num_matrices, container_width, container_height;
-
 // SPI Stuff  =============================================
 
 int start_SPI(unsigned long speed, int mode){
-	char *sMode;
-	if(mode == 0){
-		sMode = "/dev/spidev0.0";
-	} else {
-		sMode = "/dev/spidev0.1";
-	}
-	int err;
-	spi_mode = SPI_MODE_0;
-	bits_per_trans = 8;
-	spi_speed = speed;
-	spi = open(sMode,O_RDWR);
-	/*
-	* spi mode
-	*/
-	err = ioctl(spi, SPI_IOC_WR_MODE, &spi_mode);
-	if (err < 0)
-		goto out;
+    char *sMode;
+    if(mode == 0){
+        sMode = "/dev/spidev0.0";
+    } else {
+        sMode = "/dev/spidev0.1";
+    }
+    int err;
+    spi_mode = SPI_MODE_0;
+    bits_per_trans = 8;
+    spi_speed = speed;
+    spi = open(sMode,O_RDWR);
+    /*
+    * spi mode
+    */
+    err = ioctl(spi, SPI_IOC_WR_MODE, &spi_mode);
+    if (err < 0)
+        goto out;
 
-	err = ioctl(spi, SPI_IOC_RD_MODE, &spi_mode);
-	if (err < 0)
-		goto out;
+    err = ioctl(spi, SPI_IOC_RD_MODE, &spi_mode);
+    if (err < 0)
+        goto out;
 
-	/*
-	* bits per word
-	*/
-	err = ioctl(spi, SPI_IOC_WR_BITS_PER_WORD, &bits_per_trans);
-	if (err < 0)
-		goto out;
+    /*
+    * bits per word
+    */
+    err = ioctl(spi, SPI_IOC_WR_BITS_PER_WORD, &bits_per_trans);
+    if (err < 0)
+        goto out;
 
-	/*
-	* max speed hz
-	*/
-	err = ioctl(spi, SPI_IOC_WR_MAX_SPEED_HZ, &spi_speed);
-	if (err < 0)
-		goto out;
+    /*
+    * max speed hz
+    */
+    err = ioctl(spi, SPI_IOC_WR_MAX_SPEED_HZ, &spi_speed);
+    if (err < 0)
+        goto out;
 
-	out:
-	    if (err < 0 && spi > 0)
-	        close(spi);
-        return spi;
+out:
+    if (err < 0 && spi > 0)
+        close(spi);
+    return spi;
 }
 
 int write_bytes(int dev, unsigned char* val, int len) {
-	struct spi_ioc_transfer tr = {
-		.tx_buf = (unsigned long)val,
-		.len = len,
-//		.delay_usecs = 100,
-	};
-	int ret = ioctl(dev, SPI_IOC_MESSAGE(1), &tr);
-	return ret;
+    struct spi_ioc_transfer tr = {
+        .tx_buf = (unsigned long)val,
+        .len = len,
+//      .delay_usecs = 100,
+    };
+    int ret = ioctl(dev, SPI_IOC_MESSAGE(1), &tr);
+    return ret;
 }
 
 // memory commands ===========================================
 
 int rw_bytes(int dev, unsigned char* val, unsigned char* buff, int len){
-	struct spi_ioc_transfer tr = {
-		.tx_buf = (unsigned long)val,
-		.rx_buf = (unsigned long)buff,
-		.len = len
-	};
-	int ret = ioctl(dev, SPI_IOC_MESSAGE(1), &tr);
-	return ret;
+    struct spi_ioc_transfer tr = {
+        .tx_buf = (unsigned long)val,
+        .rx_buf = (unsigned long)buff,
+        .len = len
+    };
+    int ret = ioctl(dev, SPI_IOC_MESSAGE(1), &tr);
+    return ret;
 }
 
 // led_driver commands =======================================
@@ -120,13 +109,13 @@ int rw_bytes(int dev, unsigned char* val, unsigned char* buff, int len){
 
 
 static PyObject *py_init_SPI(PyObject *self, PyObject *args){
-	unsigned int speed;
-	int mode;
-	if(!PyArg_ParseTuple(args, "ki", &speed, &mode)){
-		PyErr_SetString(PyExc_TypeError, "Not an unsigned long and int!");
-		return NULL;
-	}
-	return Py_BuildValue("i", start_SPI(speed, mode));
+    unsigned int speed;
+    int mode;
+    if(!PyArg_ParseTuple(args, "ki", &speed, &mode)){
+        PyErr_SetString(PyExc_TypeError, "Not an unsigned long and int!");
+        return NULL;
+    }
+    return Py_BuildValue("i", start_SPI(speed, mode));
 }   
 
 static PyObject *py_flush2(PyObject *self, PyObject *args){
@@ -145,9 +134,9 @@ static PyObject *py_flush2(PyObject *self, PyObject *args){
 }
 
 static PyMethodDef led_driver_methods[] = {
-	{"init_SPI", py_init_SPI, METH_VARARGS, "Initialize the SPI with given speed and port."},
-	{"flush2", py_flush2, METH_VARARGS, "Converts current frame buffer to a bistream and then sends it to SPI port."},
-	{NULL, NULL, 0, NULL}  /* Sentinal */
+    {"init_SPI", py_init_SPI, METH_VARARGS, "Initialize the SPI with given speed and port."},
+    {"flush2", py_flush2, METH_VARARGS, "Converts current frame buffer to a bistream and then sends it to SPI port."},
+    {NULL, NULL, 0, NULL}  /* Sentinal */
 };
 
 

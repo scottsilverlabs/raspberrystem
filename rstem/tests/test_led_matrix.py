@@ -101,6 +101,7 @@ def erase1():
 def erase2():
     fb = FrameBuffer(matrix_list=[(0,0)])
     fb.erase(3)
+    print(fb._framebuffer())
     return fb._framebuffer() == makefb('33333333\n' * 8)
 
 @testing.automatic

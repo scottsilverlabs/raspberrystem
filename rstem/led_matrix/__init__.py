@@ -26,19 +26,8 @@ from itertools import islice
 # global variables for use
 BITS_PER_PIXEL = 4     # 4 bits to represent color
 DIM_OF_MATRIX = 8     # 8x8 led matrix elements
-initialized = False   # flag to indicate if LED has been initialized
-spi_initialized = False  # flag to indicate if SPI bus as been initialized
 width = 0    #: The width of the LED matrix grid
 height = 0   #: The height of the LED matrix grid
-container_math_coords = True
-
-def _init_check():
-    """Checks that init_matrices has been called and throws an error if not
-    @raise RuntimeError: If matrices have not been initialized."""
-    global initialized
-    if not initialized:
-        raise RuntimeError("Matrices must be initialized first.")
-    
 
 def _valid_color(color):
     """Checks if given color is number between 0-16 if an int or 0-f, or - if string
@@ -87,135 +76,6 @@ def _convert_to_std_coords(x, y):
     return x, (height - 1 - y)
 
 
-def init_matrices(mat_list=[(0, 0, 0)], math_coords=True, spi_speed=125000, spi_port=0):
-    """Creates a chain of led matrices set at particular offsets into the frame buffer
-    The order of the led matrices in the list indicate the order they are
-    physically hooked up with the first one connected to Pi.
-    
-    @param mat_list: list of tuples that contains led matrix and offset
-        (in math coordinates if math_coords==True, else in programmer coordinate if math_coords==False)
-        ex: [(0,0,0),(7,0,90)]
-    @type mat_list: list of size 2 or 3 tuples (mix or match)
-    @param math_coords: True to use math coordinates, False to use programming coordinates
-    @type math_coords: Boolean
-    """
-    global initialized
-    global width
-    global height
-    global container_math_coords
-                
-    width = max([matrix[0] for matrix in mat_list]) + DIM_OF_MATRIX
-    height = max([matrix[1] for matrix in mat_list]) + DIM_OF_MATRIX
-    container_math_coords = math_coords
-    if container_math_coords:
-        for i in range(len(mat_list)):
-            # convert y's to be standard programming coordinates
-            # and also move origin from bottom left to top left of matrix
-            if len(mat_list[i]) > 2:
-                mat_list[i] = (mat_list[i][0], (height-1 - mat_list[i][1]) - (DIM_OF_MATRIX-1), mat_list[i][2])
-            else:
-                mat_list[i] = (mat_list[i][0], (height-1 - mat_list[i][1]) - (DIM_OF_MATRIX-1))
-    #led_driver.init_matrices(mat_list, len(mat_list), width, height) # flatten out tuple
-        
-    # initialize spi bus
-    global spi_initialized
-    if not spi_initialized:
-        led_driver.init_SPI(spi_speed, spi_port)
-        spi_initialized = True
-    
-    initialized = True
-
-
-    
-def init_grid(num_rows=None, num_cols=None, angle=0, math_coords=True, spi_speed=125000, spi_port=0):
-    """Initiallizes led matrices in a grid pattern with either a given number
-    of rows and columns.
-    If num_rows and num_cols is not given, it will detect the number of matrices you have
-    and automatically set up a grid pattern with a max number of columns of 4.
-    
-    @param num_rows: Number of rows the grid is in (when angle == 0)
-    @param num_cols: Number of columns the gird is in (when angle == 0)
-    @param math_coords: True to use math coordinates, False to use programming coordinates
-    @type math_coords: Boolean
-    @param angle: Angle to rotate the coordinate system once initialized. (must be 90 degree multiple)
-    @type angle: int
-    
-    @raise ValueError: num_rows*num_cols != number of matrices
-    @raise ValueError: angle is not a multiple of 90
-    """
-
-
-    # initialize spi bus right away because we need it for led_driver.detect()
-    global spi_initialized
-    if not spi_initialized:
-        led_driver.init_SPI(spi_speed, spi_port)
-        spi_initialized = True
-    
-
-    if num_cols is None:
-        # num_rows, and num_cols are before rotation
-        # auto detect number of columns if none given
-        num_matrices = led_driver.detect()
-        if num_rows is None:
-            # if number of rows not given assume max of 4 columns per row
-            for cols in reversed(range(5)):  # should never hit zero
-                rows = float(num_matrices)/cols
-                if rows.is_integer():
-                    num_rows = int(rows)
-                    num_cols = cols
-                    break
-        else:
-            num_cols = int(num_matrices/num_rows)
-            
-        if num_cols*num_rows != num_matrices:  # safety check
-          raise ValueError("Invalid number of rows and columns")
-    
-    elif num_rows is None:
-        raise ValueError("If you are providing num_cols you must also provide num_rows.")
-    
-
-    if angle % 90 != 0:
-        raise ValueError("Angle must be a multiple of 90.")
-    angle = angle % 360
-    
-    mat_list = []
-    if angle == 0:
-        for row in range(num_rows): # increment through rows downward
-            if row % 2 == 1:
-                for column in range(num_cols-1,-1,-1):  # if odd increment right to left
-                    mat_list.append((column*DIM_OF_MATRIX, row*DIM_OF_MATRIX, 180))  # upside-down
-            else:
-                for column in range(num_cols): # if even, increment left to right
-                    mat_list.append((column*DIM_OF_MATRIX, row*DIM_OF_MATRIX, 0))  # right side up
-    elif angle == 90: # 90 degrees clockwise
-        for row in range(num_rows): 
-            if row % 2 == 1:
-                for column in range(num_cols-1,-1,-1): # if odd, increment downward
-                    mat_list.append(((num_rows-row - 1)*DIM_OF_MATRIX, column*DIM_OF_MATRIX, 270)) # 180 + 90
-            else:
-                for column in range(num_cols): # if even, increment upwards
-                    mat_list.append(((num_rows-row - 1)*DIM_OF_MATRIX, column*DIM_OF_MATRIX, 90))  # 0 + 90
-    elif angle == 180:
-        for row in range(num_rows-1,-1,-1): # increment through rows upwards
-            if row % 2 == 0:
-                for column in range(num_cols-1,-1,-1):  # if even increment right to left
-                    mat_list.append((column*DIM_OF_MATRIX, row*DIM_OF_MATRIX, 180)) # 0 + 180
-            else:
-                for column in range(num_cols): # if even increment left to right
-                    mat_list.append((column*DIM_OF_MATRIX, row*DIM_OF_MATRIX, 0)) # 180 + 180
-    elif angle == 270: # 90 degrees counter-clockwise
-        for row in range(num_rows): # increment columns right to left
-            if row % 2 == 1:
-                for column in range(num_cols-1,-1,-1): # if odd increment through rows upwards
-                    mat_list.append((row*DIM_OF_MATRIX, (num_cols - 1- column)*DIM_OF_MATRIX, 90)) # 180 - 90
-            else:
-                for column in range(num_cols): # increment through rows downwards
-                    mat_list.append((row*DIM_OF_MATRIX, (num_cols - 1 - column)*DIM_OF_MATRIX, 270)) # 0 - 90 = 270
-                  
-    global container_math_coords
-    init_matrices(mat_list, math_coords=False, spi_speed=spi_speed, spi_port=spi_port)
-    container_math_coords = math_coords
-
 def text(text, origin=(0, 0), crop_origin=(0, 0), crop_dimensions=None, font_name="small", font_path=None):
     """Sets given string to be displayed on the led matrix
         
@@ -260,7 +120,6 @@ def sprite(sprite, origin=(0,0), crop_origin=(0,0), crop_dimensions=None):
     elif type(sprite) != LEDText and type(sprite) != LEDSprite:
         raise ValueError("Invalid sprite")
     
-    _init_check()
     global width
     global height
     
@@ -299,22 +158,10 @@ def sprite(sprite, origin=(0,0), crop_origin=(0,0), crop_dimensions=None):
             y_sprite = y - y_start + y_crop
             x_sprite = int(x_sprite)
             y_sprite = int(y_sprite)
-            if container_math_coords:
-                y_sprite = sprite.height - 1 - y_sprite
             point((x, y), color=sprite.bitmap[y_sprite][x_sprite])
             x += 1
         y += 1
         
-def frame(numpy_bitmap):
-    """Sends the entire frame (represented as a numpy bitmap) to the led matrix.
-    
-    @param numpy_bitmap: A ndarray representing the entire framebuffer to display.
-    @type numpy_bitmap: numpy ndarray
-    @note: bitmap dimensions must be the same as the dimensions of the container (non rotated).
-    """
-    led_driver.frame(numpy_bitmap)
-
-
 class LEDSprite(object):
     """Allows the creation of a LED Sprite that is defined in a text file.
     @note: The text file must only contain hex numbers 0-9, a-f, A-F, or - (dash)
@@ -674,7 +521,7 @@ class LEDText(LEDSprite):
 class FrameBuffer(object):
     def __init__(self, num_rows=None, matrix_list=None, spi_port=0):
         self.fb = [[0]*8 for i in range(8)]
-        init_matrices()
+        led_driver.init_SPI(125000, spi_port)
 
     def _framebuffer(self):
         return self.fb
@@ -710,7 +557,7 @@ class FrameBuffer(object):
         err = dx - dy
         while True:
             self.point(x1, y1, color)
-            if (x1 == x2 and y1 == y2) or x1 >= width or y1 >= height:
+            if (x1 == x2 and y1 == y2) or x1 >= self.width or y1 >= self.height:
                 break
             e2 = 2*err
             if e2 > -dy:
@@ -755,13 +602,11 @@ class FrameBuffer(object):
 
     @property
     def width(self):
-        global width
-        return width
+        return 8
 
     @property
     def height(self):
-        global height
-        return height
+        return 8
 
 
 __all__ = ['FrameBuffer']
