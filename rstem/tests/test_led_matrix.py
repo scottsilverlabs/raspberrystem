@@ -1,7 +1,7 @@
 import testing
 import time
 from functools import partial
-from rstem.led_matrix import FrameBuffer
+from rstem.led_matrix import FrameBuffer, Sprite
 
 '''
 Automatic API tests for LED Matrix.
@@ -34,8 +34,6 @@ Automatic API tests for LED Matrix.
                         - removed spi_speed
                         - return the number of matrices
             def draw(sprite, origin)
-            def show()
-            def detect()
         - Add
             - test reliability of SPI chain
 - Classes
@@ -66,14 +64,13 @@ Automatic API tests for LED Matrix.
 '''
 
 def makefb(lines):
-    rows = []
-    for line in lines.splitlines():
-        if not line.strip():
-            continue
-        cols = [int(col, 16) for col in line.strip()]
-        rows += [cols]
-    fb_transposed = list(reversed(rows))
-    fb = [list(z) for z in zip(*fb_transposed)]
+    # Remove whitespace from lines
+    lines = (line.replace(' ', '') for line in lines.splitlines())
+    # remove blank lines
+    lines = (line for line in lines if line)
+    reversed_transposed_fb = [[int(color, 16) for color in line] for line in lines]
+    transposed_fb = list(reversed(reversed_transposed_fb))
+    fb = [list(z) for z in zip(*transposed_fb)]
     return fb
 
 
@@ -416,4 +413,24 @@ def time_point():
 def time_show():
     fb = FrameBuffer(matrix_list=[(0,0)])
     return timeit(partial(fb.show), loops=200) > 300
+
+#########################################################################
+# Sprite tests
+#
+
+@testing.automatic
+def zsprite_init():
+    s = Sprite('''
+        1 2 3
+        4 5 6
+        7 8 9
+        a b c
+        ''')
+    expected_fb = makefb('''
+        123
+        456
+        789
+        abc
+        ''')
+    return expected_fb == s.bitmap
 

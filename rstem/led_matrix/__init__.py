@@ -66,43 +66,6 @@ def _convert_color(color):
     raise RuntimeError("Invalid color")
 
 
-def _convert_to_std_coords(x, y):
-    """Converts given math coordinates to standard programming coordinates
-    @param x: x coordinate in math coordinates
-    @param y: y coordinate in math coordinates
-    @rtype: tuple
-    @return: (x,y) coordinates in standard programming coordinates"""
-    return x, (height - 1 - y)
-
-
-def text(text, origin=(0, 0), crop_origin=(0, 0), crop_dimensions=None, font_name="small", font_path=None):
-    """Sets given string to be displayed on the led matrix
-        
-    Example:
-        >>> text("Hello World", (0,0), (0,1), (0,5))
-        >>> show()
-        Displays only part of the first vertical line in 'H'
-        
-    @param origin, crop_origin, crop_dimensions: See L{sprite}
-        
-    @param text: text to display
-    @param text: string or L{LEDText}
-    @param font_name: Font folder (or .font) file to use as font face
-    @type font_name: string
-    @param font_path: Directory to use to look for fonts. If None it will used default directory in dist-packages
-    @type font_path: string
-    
-    @returns: LEDText sprite object used to create text
-    @rtype: L{LEDText}
-    """
-    if type(text) == str:
-        text = LEDText(text, font_name=font_name, font_path=font_path)
-    elif type(text) != LEDText and type(text) != LEDSprite:
-        raise ValueError("Invalid text")
-    sprite(text, origin, crop_origin, crop_dimensions)
-    return text
-
-
 def sprite(sprite, origin=(0,0), crop_origin=(0,0), crop_dimensions=None):
     """Sets given sprite into the framebuffer.
     
@@ -161,12 +124,12 @@ def sprite(sprite, origin=(0,0), crop_origin=(0,0), crop_dimensions=None):
             x += 1
         y += 1
         
-class LEDSprite(object):
+class Sprite(object):
     """Allows the creation of a LED Sprite that is defined in a text file.
     @note: The text file must only contain hex numbers 0-9, a-f, A-F, or - (dash)
     @note: The hex number indicates pixel color and "-" indicates a transparent pixel
     """
-    def __init__(self, filename=None, height=0, width=0, color=0x0):
+    def __init__(self, image_string):
         """Creates a L{LEDSprite} object from the given .spr file or image file or creates an empty sprite of given
         height and width if filename == None.
         
@@ -179,69 +142,13 @@ class LEDSprite(object):
         @param color: Color to display at point
         @type color: int or string (0-F or 16 or '-' for transparent)
         """
-        bitmap = []
-        bitmap_width = 0  # keep track of width and height
-        bitmap_height = 0
-        if filename is not None:
-            filename = filename.strip()
-            self.filename = filename    
-            # get filetype
-            proc = subprocess.Popen("file " + str(filename), shell=True, stdout=subprocess.PIPE)
-            output, errors = proc.communicate()
-            if type(output) == bytes:  # convert from byte to a string (happens if using python3)
-                output = output.decode() 
-            if errors is not None or (output.find("ERROR") != -1):
-                raise IOError(output)
-                
-            if output.find("text") != -1 or output.find("FORTRAN") != -1:  # file is a text file
-                if filename[-4:] != ".spr":
-                    raise ValueError("Filename must have '.spr' extension.")
-                f = open(filename, 'r')
-                for line in f:
-                    leds = [_convert_color(char) for char in line.split()]
-                    # Determine if widths are consistent
-                    if bitmap_width != 0:
-                        if len(leds) != bitmap_width:
-                            raise ValueError("Sprite has different widths")
-                    else:
-                        bitmap_width = len(leds)
-                    bitmap.append(leds)
-                    bitmap_height += 1
-                f.close()
-                
-            elif output.find("image") != -1:  # file is an image file
-                import scipy.misc, numpy, sys
-                if sys.version_info[0] > 2:
-                    raise ValueError("As of now, only python 2 supports images to sprites.")
-                # if no height or width given try to fill as much of the display
-                # with the image without stretching it
-                if height <= 0 or width <= 0:
-                    from PIL import Image
-                    im = Image.open(filename)
-                    im_width, im_height = im.size
-                    bitmap_height = min(height, im_height)
-                    bitmap_width = min(width, bitmap_height * (im_width / im_height))
-                else:
-                    bitmap_height = height
-                    bitmap_width = width
-                # pixelize and resize image with scipy
-                image = scipy.misc.imread(filename, flatten=True)
-                con_image = scipy.misc.imresize(image, (bitmap_width, bitmap_height), interp='cubic')
-                con_image = numpy.transpose(con_image)  # convert from column-wise to row-wise
-                con_image = numpy.fliplr(con_image)  # re-orient the image
-                con_image = numpy.rot90(con_image, k=1)
-                bitmap = [[int(pixel*16/255) for pixel in line] for line in con_image]  # convert to bitmap
-            else:
-                raise IOError("Unsupported filetype")
-        else:
-            # create an empty sprite of given height and width
-            bitmap = [[color for i in range(width)] for j in range(height)]
-            bitmap_height = height
-            bitmap_width = width
-
-        self.bitmap = bitmap
-        # self.height = bitmap_height
-        # self.width = bitmap_width
+        # Remove whitespace from lines
+        lines = (line.replace(' ', '') for line in image_string.splitlines())
+        # remove blank lines
+        lines = (line for line in lines if line)
+        reversed_transposed_bitmap = [(_convert_color(color) for color in line) for line in lines]
+        transposed_bitmap = list(reversed(reversed_transposed_bitmap))
+        self.bitmap = [list(z) for z in zip(*transposed_bitmap)]
 
     @property
     def width(self):
@@ -251,22 +158,13 @@ class LEDSprite(object):
     def height(self):
         return len(self.bitmap)
 
-    def append(self, sprite):
+    def add(self, sprite, offset, above=False, right=True):
         """Appends given sprite to the right of itself.
         
         @param sprite: sprite to append
         @type sprite: L{LEDSprite}
         @note: height of given sprite must be <= to itself otherwise will be truncated
         """
-        for i, line in enumerate(self.bitmap):
-            if i >= sprite.height:
-                # fill in with transparent pixels
-                tran_line = [0x10 for j in range(sprite.width)]
-                self.bitmap[i] = sum([line, tran_line], [])
-            else:
-                self.bitmap[i] = sum([line, sprite.bitmap[i]], [])
-        # update size
-        # self.width += sprite.width
 
     def set_pixel(self, point, color=0xF):
         """Sets given color to given x and y coordinate in sprite
@@ -292,27 +190,6 @@ class LEDSprite(object):
             return None
         return self.bitmap[y][x]
 
-    
-    def save_to_file(self, filename):
-        """Saves sprite bitmap to given .spr file. 
-        
-        @param filename: relative filename path
-        @type filename: string
-        @note: It will truncate filename if it already exists.
-        """
-        filename = filename.strip()
-        if filename[-4:] != ".spr":
-            raise ValueError("Filename must have '.spr' extension.")
-        f = open(filename, 'w')
-        for line in self.bitmap:
-            for pixel in line:
-                if pixel > 15:
-                    f.write("- ")
-                else:
-                    f.write(hex(pixel)[2] + " ")
-            f.write("\n")
-        f.close()
-        
     def rotate(self, angle=90):
         """Rotates sprite at 90 degree intervals. 
         
@@ -327,111 +204,29 @@ class LEDSprite(object):
         @raises ValueError: If angle is not multiple of 90
         @note: If no angle given, will rotate sprite 90 degrees.
         """
-        if angle % 90 != 0:
-            raise ValueError("Angle must be a multiple of 90.")
-            
-        angle = angle % 360    
-        if angle == 90:
-            bitmap = []
-            for i in range(self.width):
-                bitmap.append([row[i] for row in reversed(self.bitmap)])
-            self.bitmap = bitmap
-            # swap height and width
-            # temp = self.width
-            # self.width = self.height
-            # self.height = temp
-            
-        elif angle == 180:
-            self.bitmap.reverse()
-            for row in self.bitmap:
-                row.reverse()
-                
-        elif angle == 270:
-            bitmap = []
-            for i in range(self.width-1,-1,-1):
-                bitmap.append([row[i] for row in self.bitmap])
-            self.bitmap = bitmap
-            # swap height and width
-            # temp = self.width
-            # self.width = self.height
-            # self.height = temp
-        return self
-        
-    def rotated(self, angle=90):
-        """Same as L{rotate} only it returns a copy of the rotated sprite
-        and does not affect the original.
-        @returns: Rotated sprite
-        @rtype: L{LEDSprite}
-        """
-        sprite_copy = copy.deepcopy(self)
-        sprite_copy.rotate(angle)
-        return sprite_copy
-        
-    def copy(self):
-        """Copies sprite
-        @returns: A copy of sprite without affecting original sprite
-        @rtype: L{LEDSprite}
-        """
-        return copy.deepcopy(self)
+        self.angle = angle
         
     def invert(self):
         """Inverts the sprite.
         @returns: self
         @rtype: L{LEDSprite}
         """
-        for y, line in enumerate(self.bitmap):
-            for x, pixel in enumerate(line):
-                if pixel < 16:
-                    self.bitmap[y][x] = 15 - pixel
+        self.invert = True
                     
-    def inverted(self):
-        """Same as L{invert} only it returns a copy of the inverted sprite
-        and does not affect the original.
-        @returns: Inverted sprite
-        @rtype: L{LEDSprite}
-        """
-        sprite_copy = copy.deepcopy(self)
-        sprite_copy.invert()
-        return sprite_copy
-        
     def flip_horizontal(self):
         """Flips the sprite horizontally.
         @returns: self
         @rtype: L{LEDSprite}
         """
-        self.bitmap.reverse()
-        return self
-        
-    def flipped_horizontal(self):
-        """Same as L{flip_horizontal} only it returns a copy of the flipped sprite
-        and does not affect the original.
-        @returns: sprite flipped horizontally
-        @rtype: L{LEDSprite}
-        """
-        sprite_copy = copy.deepcopy(self)
-        sprite_copy.flip_horizontal()
-        return sprite_copy
-        
+        self.flipped_horizontal = True
         
     def flip_vertical(self):
         """Flips the sprite vertically.
         @returns: self
         @rtype: L{LEDSprite}
         """
-        for line in self.bitmap:
-            line.reverse()
-        return self
+        self.flipped_vertical = True
         
-    def flipped_vertical(self):
-        """Same as L{flip_vertical} only it returns a copy of the flipped sprite
-        and does not affect the original.
-        @returns: sprite flipped vertically
-        @rtype: L{LEDSprite}
-        """
-        sprite_copy = copy.deepcopy(self)
-        sprite_copy.flip_vertical()
-        return sprite_copy
-
 
 def _char_to_sprite(char, font_path):
     """Converts given character to a sprite.
@@ -463,7 +258,7 @@ def _char_to_sprite(char, font_path):
         
         
 
-class LEDText(LEDSprite):
+class LEDText(Sprite):
     """A L{LEDSprite} object of a piece of text."""
     def __init__(self, message, char_spacing=1, font_name="small", font_path=None):
         """Creates a text sprite of the given string
