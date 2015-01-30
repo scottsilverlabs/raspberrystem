@@ -597,7 +597,7 @@ class FrameBuffer(object):
         even = flat[::2]
         odd = flat[1::2]
         bitstream = bytes(b[0] | (b[1] << 4) for b in zip(even, odd))
-        led_driver.flush(bitstream)
+        x = led_driver.send(bitstream)
 
     @property
     def width(self):

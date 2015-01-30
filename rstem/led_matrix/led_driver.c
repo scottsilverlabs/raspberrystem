@@ -68,15 +68,6 @@ out:
     return spi;
 }
 
-int write_bytes(int dev, unsigned char* val, int len) {
-    struct spi_ioc_transfer tr = {
-        .tx_buf = (unsigned long)val,
-        .len = len,
-    };
-    int ret = ioctl(dev, SPI_IOC_MESSAGE(1), &tr);
-    return ret;
-}
-
 int rw_bytes(int dev, unsigned char* val, unsigned char* buff, int len){
     struct spi_ioc_transfer tr = {
         .tx_buf = (unsigned long)val,
@@ -100,19 +91,20 @@ static PyObject *py_init_spi(PyObject *self, PyObject *args){
     return Py_BuildValue("i", start_spi(speed, mode));
 }   
 
-static PyObject *py_flush(PyObject *self, PyObject *args){
-    const char *s;
+static PyObject *py_send(PyObject *self, PyObject *args){
+    char *s;
     int len;
-    if(!PyArg_ParseTuple(args, "s#", &s, &len)){
+    if(!PyArg_ParseTuple(args, "y#", &s, &len)){
         PyErr_SetString(PyExc_TypeError, "Not an unsigned int!");
         return NULL;
     }
-    return Py_BuildValue("i", write_bytes(spi, s, len));
+    rw_bytes(spi, s, s, len);
+    return Py_BuildValue("y#", s, len);
 }
 
 static PyMethodDef led_driver_methods[] = {
-    {"init_spi", py_init_spi, METH_VARARGS, "Initialize the SPI with given speed and port."},
-    {"flush", py_flush, METH_VARARGS, "Converts current frame buffer to a bistream and then sends it to SPI port."},
+    {"init_spi", py_init_spi, METH_VARARGS, "Initialize the SPI port."},
+    {"send", py_send, METH_VARARGS, "Sends bytes via SPI port."},
     {NULL, NULL, 0, NULL}  /* Sentinal */
 };
 
