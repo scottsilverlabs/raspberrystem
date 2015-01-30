@@ -87,15 +87,6 @@ def _convert_to_std_coords(x, y):
     return x, (height - 1 - y)
 
 
-def _framebuffer():
-    global width
-    global height
-
-    flat_fb = led_driver.framebuffer()
-    transposed_array = reversed([flat_fb[i*height:i*height+height] for i in range(width)])
-    return [list(i) for i in zip(*transposed_array)]
-
-    
 def init_matrices(mat_list=[(0, 0, 0)], math_coords=True, spi_speed=125000, spi_port=0):
     """Creates a chain of led matrices set at particular offsets into the frame buffer
     The order of the led matrices in the list indicate the order they are
@@ -224,41 +215,6 @@ def init_grid(num_rows=None, num_cols=None, angle=0, math_coords=True, spi_speed
     global container_math_coords
     init_matrices(mat_list, math_coords=False, spi_speed=spi_speed, spi_port=spi_port)
     container_math_coords = math_coords
-
-def show():
-    """Shows the current framebuffer on the display.
-    Tells the led_driver to send framebuffer to SPI port.    
-    Refreshes the display using current framebuffer.
-    
-    @rtype: int
-    @returns: 1 on success
-    """
-    _init_check()
-    return led_driver.flush()
-
-def show2():
-    """Shows the current framebuffer on the display.
-    Tells the led_driver to send framebuffer to SPI port.    
-    Refreshes the display using current framebuffer.
-    
-    @rtype: int
-    @returns: 1 on success
-    """
-    _init_check()
-    return led_driver.flush2()
-
-def fill(color=0xF):
-    """Fills the framebuffer with the given color.
-    @param color: Color to fill the entire display with
-    @type color: int or string (0-F or 16 or '-' for transparent)
-    """
-    _init_check()
-    led_driver.fill(_convert_color(color))
-
-    
-def erase():
-    """Clears display"""
-    fill(0)
 
 def text(text, origin=(0, 0), crop_origin=(0, 0), crop_dimensions=None, font_name="small", font_path=None):
     """Sets given string to be displayed on the led matrix
@@ -790,13 +746,12 @@ class FrameBuffer(object):
             self.line((x + width - 1, y), (x, y), color)
         
     def show(self):
-        show()
-        '''
-        flat = (pixel for col in self.fb for pixel in col)
-        even = islice(flat, 0, None, 2)
-        odd = islice(flat, 0, None, 2)
-        return bytes(b[0] | (b[1] << 4) for b in zip(even, odd))
-        '''
+        flat = list(pixel for col in self.fb for pixel in col)
+        even = flat[::2]
+        odd = flat[1::2]
+        bitstream = bytes(b[0] | (b[1] << 4) for b in zip(even, odd))
+        print(bitstream)
+        led_driver.flush2(bitstream)
 
     @property
     def width(self):

@@ -402,5 +402,10 @@ def time_point():
 @testing.automatic
 def time_show():
     fb = FrameBuffer(matrix_list=[(0,0)])
-    return timeit(partial(fb.show), loops=200) > 300
+    fb.rect((0,0),(4,5), color=1)
+    fb.rect((2,2),(6,6), color=2)
+    fb.rect((5,1),(3,3), color=3)
+    fb.rect((1,5),(4,2), color=4)
+    fb.show()
+    #return timeit(partial(fb.show), loops=200) > 300
 
