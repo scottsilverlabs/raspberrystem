@@ -380,6 +380,20 @@ def rect4():
     return fb._framebuffer() == expected_fb
 
 #########################################################################
+# detect tests
+#
+
+@testing.automatic
+def detect_fail():
+    # An unconnected chain should report IOError
+    try:
+        FrameBuffer.detect()
+    except IOError:
+        return True
+    return False
+
+
+#########################################################################
 # Timing functions
 #
 

@@ -23,9 +23,8 @@ import copy
 import subprocess
 from itertools import islice
 
-# global variables for use
-BITS_PER_PIXEL = 4     # 4 bits to represent color
-DIM_OF_MATRIX = 8     # 8x8 led matrix elements
+MAX_MATRICES = 4
+MATRIX_SPI_SHIFT_REGISTER_LENGTH=32
 width = 0    #: The width of the LED matrix grid
 height = 0   #: The height of the LED matrix grid
 
@@ -598,6 +597,33 @@ class FrameBuffer(object):
         odd = flat[1::2]
         bitstream = bytes(b[0] | (b[1] << 4) for b in zip(even, odd))
         x = led_driver.send(bitstream)
+
+    @staticmethod
+    def detect():
+        '''Returns the number of matrices connected.  
+        
+        Requires matrices connected in a full chain from MOSI back to MISO on
+        the Raspberry Pi.
+        '''
+        # Matrix chain forms one long shift-register, of N * B, where N is the
+        # number of matrices, and B is the length of the shift-register in each
+        # matrix (32 bytes)
+        #
+        # If we assume there is some MAX number of matrices we won't exceed, we
+        # can detect the length by push a string of bytes longer than the max
+        # through the chain.
+        rand = os.urandom(32)
+        recv = led_driver.send(rand + bytes(MAX_MATRICES * MATRIX_SPI_SHIFT_REGISTER_LENGTH))
+
+        # Search the received bytes for the random sequence.  The offset
+        # determines the number of matrices in the chain
+        for i in range(MAX_MATRICES + 2):
+            start = i*MATRIX_SPI_SHIFT_REGISTER_LENGTH
+            end = start + MATRIX_SPI_SHIFT_REGISTER_LENGTH
+            if rand == recv[start:end]:
+                break
+        if i > MAX_MATRICES:
+            raise IOError("Could not determine length of LED Matrix chain.")
 
     @property
     def width(self):
