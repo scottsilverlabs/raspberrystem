@@ -77,6 +77,20 @@ def makefb(lines):
 def erased_fb():
     return makefb('00000000\n' * 8)
     
+def timeit(f, loops=10000):
+    start = time.time()
+    for i in range(loops):
+        f()
+    period = (time.time() - start) / loops
+    freq = 1.0 / period
+    print("Time per call: {:.2f} usecs".format(period * 1000000))
+    print("Freq : {:.0f} Hz".format(freq))
+    return freq
+    
+#########################################################################
+# __init__() tests
+#
+
 @testing.automatic
 def default_erased():
     fb = FrameBuffer(matrix_list=[(0,0)])
@@ -216,6 +230,11 @@ def out_of_bounds_point4():
     fb = FrameBuffer(matrix_list=[(0,0)])
     fb.point(0, fb.height)
     return fb._framebuffer() == erased_fb()
+
+@testing.automatic
+def time_point():
+    fb = FrameBuffer(matrix_list=[(0,0)])
+    return timeit(partial(fb.point, 0, 0)) > 40000
 
 #########################################################################
 # line() tests
@@ -377,7 +396,7 @@ def rect4():
     return fb._framebuffer() == expected_fb
 
 #########################################################################
-# detect tests
+# misc tests
 #
 
 @testing.automatic
@@ -389,26 +408,6 @@ def detect_fail():
         return True
     return False
 
-
-#########################################################################
-# Timing functions
-#
-
-def timeit(f, loops=10000):
-    start = time.time()
-    for i in range(loops):
-        f()
-    period = (time.time() - start) / loops
-    freq = 1.0 / period
-    print("Time per call: {:.2f} usecs".format(period * 1000000))
-    print("Freq : {:.0f} Hz".format(freq))
-    return freq
-    
-@testing.automatic
-def time_point():
-    fb = FrameBuffer(matrix_list=[(0,0)])
-    return timeit(partial(fb.point, 0, 0)) > 40000
-
 @testing.automatic
 def time_show():
     fb = FrameBuffer(matrix_list=[(0,0)])
@@ -419,7 +418,7 @@ def time_show():
 #
 
 @testing.automatic
-def zsprite_init():
+def sprite_init():
     s = Sprite('''
         1 2 3
         4 5 6
@@ -434,3 +433,52 @@ def zsprite_init():
         ''')
     return expected_fb == s.bitmap
 
+@testing.automatic
+def sprite_init_lines_long():
+    s = Sprite('''
+        1 2 3 4
+        4 5 6 a b c
+        7 8 9
+        a b c d e
+        ''')
+    expected_fb = makefb('''
+        123
+        456
+        789
+        abc
+        ''')
+    return expected_fb == s.bitmap
+
+@testing.automatic
+def sprite_init_variable_whitespace():
+    s = Sprite('''
+        1  	2 3    4
+        4 				5       6 a b c
+        7  8  		  9
+        a   b  c d e
+        ''')
+    expected_fb = makefb('''
+        123
+        456
+        789
+        abc
+        ''')
+    return expected_fb == s.bitmap
+
+@testing.automatic
+def sprite_bitmaperator():
+    s = Sprite('''
+        1 2 3
+        4 5 6
+        7 8 9
+        a b c
+        ''')
+    print(s._bitmaperator())
+    expected_fb = makefb('''
+        123
+        456
+        789
+        abc
+        ''')
+    return False
+    return expected_fb == s.bitmap
