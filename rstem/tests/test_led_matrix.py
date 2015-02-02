@@ -2,6 +2,7 @@ import testing
 import time
 from functools import partial
 from rstem.led_matrix import FrameBuffer, Sprite
+import copy
 
 '''
 Automatic API tests for LED Matrix.
@@ -49,13 +50,9 @@ Automatic API tests for LED Matrix.
             def __init__(self, filename=None, height=0, width=0, color=0)
             def __add__(self, sprite)
             def add(self, sprite, offset, corner)
-            def flip_horizontal(self)
-            def flip_vertical(self)
-            def invert(self)
-            def rotate(self, angle=90)
+        - TBD
             def get_pixel(self, x, y)
             def set_pixel(self, point, color=15)
-                set via get/setitem?
         - Add
             def crop(origin=(0, 0), dimensions=None)
     - LEDText rename Text
@@ -417,21 +414,23 @@ def time_show():
 # Sprite tests
 #
 
+default_sprite = Sprite('''
+    1 2 3
+    4 5 6
+    7 8 9
+    a b c
+    ''')
+
 @testing.automatic
 def sprite_init():
-    s = Sprite('''
-        1 2 3
-        4 5 6
-        7 8 9
-        a b c
-        ''')
-    expected_fb = makefb('''
+    s = copy.deepcopy(default_sprite)
+    expected_bitmap = makefb('''
         123
         456
         789
         abc
         ''')
-    return expected_fb == s.bitmap
+    return expected_bitmap == s._bitmap()
 
 @testing.automatic
 def sprite_init_lines_long():
@@ -441,13 +440,13 @@ def sprite_init_lines_long():
         7 8 9
         a b c d e
         ''')
-    expected_fb = makefb('''
+    expected_bitmap = makefb('''
         123
         456
         789
         abc
         ''')
-    return expected_fb == s.bitmap
+    return expected_bitmap == s._bitmap()
 
 @testing.automatic
 def sprite_init_variable_whitespace():
@@ -457,28 +456,112 @@ def sprite_init_variable_whitespace():
         7  8  		  9
         a   b  c d e
         ''')
-    expected_fb = makefb('''
+    expected_bitmap = makefb('''
         123
         456
         789
         abc
         ''')
-    return expected_fb == s.bitmap
+    return expected_bitmap == s._bitmap()
 
 @testing.automatic
-def sprite_bitmaperator():
+def sprite_rotate_90():
+    s = copy.deepcopy(default_sprite)
+    s.rotate(90)
+    expected_bitmap = makefb('''
+        369c
+        258b
+        147a
+        ''')
+    return expected_bitmap == s._bitmap()
+
+@testing.automatic
+def sprite_rotate_180():
+    s = copy.deepcopy(default_sprite)
+    s.rotate(180)
+    expected_bitmap = makefb('''
+        cba
+        987
+        654
+        321
+        ''')
+    return expected_bitmap == s._bitmap()
+
+@testing.automatic
+def sprite_rotate_270():
+    s = copy.deepcopy(default_sprite)
+    s.rotate(270)
+    expected_bitmap = makefb('''
+        a741
+        b852
+        c963
+        ''')
+    return expected_bitmap == s._bitmap()
+
+@testing.automatic
+def sprite_rotate_neg_90():
+    s = copy.deepcopy(default_sprite)
+    s.rotate(-90)
+    expected_bitmap = makefb('''
+        a741
+        b852
+        c963
+        ''')
+    return expected_bitmap == s._bitmap()
+
+@testing.automatic
+def sprite_rotate_360():
+    s = copy.deepcopy(default_sprite)
+    s.rotate(360)
+    expected_bitmap = makefb('''
+        123
+        456
+        789
+        abc
+        ''')
+    return expected_bitmap == s._bitmap()
+
+@testing.automatic
+def sprite_flip():
+    s = copy.deepcopy(default_sprite)
+    s.flip()
+    expected_bitmap = makefb('''
+        321
+        654
+        987
+        cba
+        ''')
+    return expected_bitmap == s._bitmap()
+
+@testing.automatic
+def sprite_flip_vertical():
+    s = copy.deepcopy(default_sprite)
+    s.rotate(180).flip()
+    expected_bitmap = makefb('''
+        abc
+        789
+        456
+        123
+        ''')
+    return expected_bitmap == s._bitmap()
+
+@testing.automatic
+def sprite_rotate_bad_angle():
+    s = copy.deepcopy(default_sprite)
+    try:
+        s.rotate(123)
+    except ValueError:
+        return True
+    return False
+
+@testing.automatic
+def sprite_time_bitmap():
     s = Sprite('''
         1 2 3
         4 5 6
         7 8 9
         a b c
         ''')
-    print(s._bitmaperator())
-    expected_fb = makefb('''
-        123
-        456
-        789
-        abc
-        ''')
-    return False
-    return expected_fb == s.bitmap
+    s.rotate(270).flip()
+    return timeit(partial(s._bitmap), loops=200) > 300
+

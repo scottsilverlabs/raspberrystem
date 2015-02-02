@@ -66,64 +66,6 @@ def _convert_color(color):
     raise RuntimeError("Invalid color")
 
 
-def draw(sprite, origin=(0,0), crop_origin=(0,0), crop_dimensions=None):
-    """Sets given sprite into the framebuffer.
-    
-    @param origin: Bottom left position to diplay text (top left if math_coords == False)
-    @type origin: (x,y) tuple
-    @param crop_origin: Position to crop into the sprite relative to the origin
-    @type crop_origin: (x,y) tuple
-    @param crop_dimensions: x and y distance from the crop_origin to display
-        - Keep at None to not crop and display sprite all the way to top right corner (bottom right for math_coords == False)
-    @type crop_dimensions: (x,y) tuple
-    """
-    if type(sprite) == str:
-        sprite = Sprite(sprite)
-    elif type(sprite) != LEDText and type(sprite) != Sprite:
-        raise ValueError("Invalid sprite")
-    
-    global width
-    global height
-    
-    x_pos, y_pos = origin
-    x_crop, y_crop = crop_origin
-    
-    # set up offset
-    if x_crop < 0 or y_crop < 0:
-        raise ValueError("crop_origin must be positive numbers")
-    
-    # set up crop
-    if crop_dimensions is None:
-        x_crop_dim, y_crop_dim = (sprite.width, sprite.height)   # no cropping
-    else:
-        x_crop_dim, y_crop_dim = crop_dimensions
-        if x_crop_dim < 0 or y_crop_dim < 0:
-            raise ValueError("crop_dimensions must be positive numbers")
-        
-    # set up start position
-    x_start = x_pos + x_crop
-    y_start = y_pos + y_crop 
-    
-    if x_start >= width or y_start >= height:
-        return
-        
-    # set up end position
-    x_end = min(x_pos + x_crop + x_crop_dim, width, x_pos + sprite.width)
-    y_end = min(y_pos + y_crop + y_crop_dim, height, y_pos + sprite.height)
-    
-    # iterate through sprite and set points to led_driver
-    y = max(y_start,0)
-    while y < y_end:
-        x = max(x_start, 0)
-        while x < x_end:
-            x_sprite = x - x_start + x_crop
-            y_sprite = y - y_start + y_crop
-            x_sprite = int(x_sprite)
-            y_sprite = int(y_sprite)
-            point((x, y), color=sprite.bitmap[y_sprite][x_sprite])
-            x += 1
-        y += 1
-        
 class Sprite(object):
     """Allows the creation of a LED Sprite that is defined in a text file.
     @note: The text file must only contain hex numbers 0-9, a-f, A-F, or - (dash)
@@ -154,34 +96,40 @@ class Sprite(object):
         self.xcrop = range(self.width)
         self.ycrop = range(self.height)
         self.quarter_clockwise_rotations = 0
-        self.invert = False
-        self.flipped_horizontal = False
-        self.flipped_vertical = False
+        self.flipped = False
 
-    def _bitmaperator(self):
+    def _bitmap(self):
         if self.quarter_clockwise_rotations == 0:
-            xrange, yrange = self.xcrop, self.ycrop
+            xrange = reversed(self.xcrop) if self.flipped else self.xcrop
+            yrange = self.ycrop
+            transposed = False
         elif self.quarter_clockwise_rotations == 1:
-            xrange, yrange = reversed(self.ycrop), self.xcrop
+            xrange = reversed(self.xcrop) if self.flipped else self.xcrop
+            yrange = reversed(self.ycrop)
+            transposed = True
         elif self.quarter_clockwise_rotations == 2:
-            xrange, yrange = reversed(self.xcrop), reversed(self.ycrop)
+            xrange = reversed(self.xcrop) if not self.flipped else self.xcrop
+            yrange = reversed(self.ycrop)
+            transposed = False
         elif self.quarter_clockwise_rotations == 3:
-            xrange, yrange = self.ycrop, reversed(self.xcrop)
+            xrange = reversed(self.xcrop) if not self.flipped else self.xcrop
+            yrange = self.ycrop
+            transposed = True
         else:
             raise Exception("Internal Error: Invalid Sprite rotation")
-        if self.flipped_horizontal:
-            xrange = reversed(xrange)
-        if self.flipped_vertical:
-            yrange = reversed(yrange)
-        return (self.bitmap[x][y] for x in self.xcrop for y in self.ycrop)
-        
+        yrange = list(yrange)
+        bitmap = [[self.bitmap[x][y] for y in yrange] for x in xrange]
+        if transposed:
+            bitmap = [list(z) for z in zip(*bitmap)]
+        return bitmap
+
     @property
     def width(self):
-        return len(self.bitmap[0])
+        return len(self.bitmap)
 
     @property
     def height(self):
-        return len(self.bitmap)
+        return len(self.bitmap[0])
 
     def add(self, sprite, offset):
         """Appends given sprite to the right of itself.
@@ -191,30 +139,6 @@ class Sprite(object):
         @note: height of given sprite must be <= to itself otherwise will be truncated
         """
         raise NotImplemented
-
-    def set_pixel(self, point, color=0xF):
-        """Sets given color to given x and y coordinate in sprite
-
-        @param point: point relative to sprite to set point
-        @type point: (x,y)
-        @param color: Color to display at point
-        @type color: int or string (0-F or 16 or '-' for transparent)
-        
-        @return: None if coordinate is not valid
-        """
-        x, y = point
-        if x >= self.width or y >= self.height or x < 0 or y < 0:
-            return None
-        self.bitmap[y][x] = _convert_color(color)
-
-    def get_pixel(self, x, y):
-        """
-        @rtype: int
-        @returns: int of color at given origin or None
-        """
-        if x >= self.width or y >= self.height or x < 0 or y < 0:
-            return None
-        return self.bitmap[y][x]
 
     def crop(self, origin=(0,0), dimensions=None):
         x, y = origin
@@ -230,6 +154,7 @@ class Sprite(object):
 
         self.xcrop = range(x, min(x + width, self.width))
         self.ycrop = range(y, min(y + height, self.height))
+        return self
 
     def rotate(self, angle=90):
         """Rotates sprite at 90 degree intervals. 
@@ -245,30 +170,19 @@ class Sprite(object):
         @raises ValueError: If angle is not multiple of 90
         @note: If no angle given, will rotate sprite 90 degrees.
         """
-        self.angle = angle
+        if angle % 90 != 0:
+            raise ValueError("angle must be a multiple of 90.")
+        self.quarter_clockwise_rotations = int(angle/90) % 4
+        return self
         
-    def invert(self):
-        """Inverts the sprite.
-        @returns: self
-        @rtype: L{Sprite}
-        """
-        self.invert = True
-                    
-    def flip_horizontal(self):
+    def flip(self):
         """Flips the sprite horizontally.
-        @returns: self
-        @rtype: L{Sprite}
-        """
-        self.flipped_horizontal = True
-        
-    def flip_vertical(self):
-        """Flips the sprite vertically.
-        @returns: self
-        @rtype: L{Sprite}
-        """
-        self.flipped_vertical = True
-        
 
+        flip vertical is equivalent to rotate(180).flip()
+        """
+        self.flipped = True
+        return self
+        
 def _char_to_sprite(char, font_path):
     """Converts given character to a sprite.
     
@@ -469,6 +383,63 @@ class FrameBuffer(object):
     def height(self):
         return 8
 
+    def draw(sprite, origin=(0,0), crop_origin=(0,0), crop_dimensions=None):
+        """Sets given sprite into the framebuffer.
+        
+        @param origin: Bottom left position to diplay text (top left if math_coords == False)
+        @type origin: (x,y) tuple
+        @param crop_origin: Position to crop into the sprite relative to the origin
+        @type crop_origin: (x,y) tuple
+        @param crop_dimensions: x and y distance from the crop_origin to display
+            - Keep at None to not crop and display sprite all the way to top right corner
+        @type crop_dimensions: (x,y) tuple
+        """
+        if type(sprite) == str:
+            sprite = Sprite(sprite)
+        elif type(sprite) != LEDText and type(sprite) != Sprite:
+            raise ValueError("Invalid sprite")
+        
+        global width
+        global height
+        
+        x_pos, y_pos = origin
+        x_crop, y_crop = crop_origin
+        
+        # set up offset
+        if x_crop < 0 or y_crop < 0:
+            raise ValueError("crop_origin must be positive numbers")
+        
+        # set up crop
+        if crop_dimensions is None:
+            x_crop_dim, y_crop_dim = (sprite.width, sprite.height)   # no cropping
+        else:
+            x_crop_dim, y_crop_dim = crop_dimensions
+            if x_crop_dim < 0 or y_crop_dim < 0:
+                raise ValueError("crop_dimensions must be positive numbers")
+            
+        # set up start position
+        x_start = x_pos + x_crop
+        y_start = y_pos + y_crop 
+        
+        if x_start >= width or y_start >= height:
+            return
+            
+        # set up end position
+        x_end = min(x_pos + x_crop + x_crop_dim, width, x_pos + sprite.width)
+        y_end = min(y_pos + y_crop + y_crop_dim, height, y_pos + sprite.height)
+        
+        # iterate through sprite and set points to led_driver
+        y = max(y_start,0)
+        while y < y_end:
+            x = max(x_start, 0)
+            while x < x_end:
+                x_sprite = x - x_start + x_crop
+                y_sprite = y - y_start + y_crop
+                x_sprite = int(x_sprite)
+                y_sprite = int(y_sprite)
+                point((x, y), color=sprite.bitmap[y_sprite][x_sprite])
+                x += 1
+            y += 1
 
-__all__ = ['FrameBuffer']
+__all__ = ['FrameBuffer', 'Sprite']
         
