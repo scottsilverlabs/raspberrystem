@@ -575,6 +575,43 @@ def sprite_draw():
     return fb._framebuffer() == expected_fb
 
 @testing.automatic
+def sprite_add():
+    one = Sprite('''
+        12
+        45
+        67
+        ''')
+    two = Sprite('''
+        a
+        b
+        c
+        ''')
+    new = one + two
+    expected_bitmap = makefb('''
+        12a
+        45b
+        67c
+        ''')
+    return expected_bitmap == new._bitmap()
+
+@testing.automatic
+def sprite_add_inconsistent_heights():
+    one = Sprite('''
+        12
+        45
+        67
+        ''')
+    two = Sprite('''
+        b
+        c
+        ''')
+    try:
+        new = one + two
+    except ValueError:
+        return True
+    return False
+
+@testing.automatic
 def sprite_time_large_bitmap_draw_and_show():
     # This is currently quite slow, as it is all done in Python via a 2D array.
     # Speed not needed right now, but may in future move to numpy or CPython
@@ -584,4 +621,8 @@ def sprite_time_large_bitmap_draw_and_show():
         fb.draw(s)
         fb.show()
     return timeit(partial(draw), loops=100) > 50
+
+#########################################################################
+# Sprite tests
+#
 

@@ -92,7 +92,8 @@ class Sprite(object):
         reversed_transposed_bitmap = [[_convert_color(color) for color in line] for line in lines]
         # Reverse and transpose array
         transposed_bitmap = list(reversed(reversed_transposed_bitmap))
-        self.bitmap = [list(z) for z in zip(*transposed_bitmap)]
+        self.original_bitmap = [list(z) for z in zip(*transposed_bitmap)]
+        self.bitmap = self.original_bitmap
         self.xcrop = range(self.width)
         self.ycrop = range(self.height)
         self.quarter_clockwise_rotations = 0
@@ -119,13 +120,13 @@ class Sprite(object):
         else:
             raise Exception('Internal Error: Invalid Sprite rotation')
         yrange = list(yrange)
-        bitmap = [[self.bitmap[x][y] for y in yrange] for x in xrange]
+        bitmap = [[self.original_bitmap[x][y] for y in yrange] for x in xrange]
         if transposed:
             bitmap = [list(z) for z in zip(*bitmap)]
-        self.__bitmap = bitmap
+        self.bitmap = bitmap
 
     def _bitmap(self):
-        return self.__bitmap
+        return self.bitmap
 
     @property
     def width(self):
@@ -135,14 +136,11 @@ class Sprite(object):
     def height(self):
         return len(self.bitmap[0])
 
-    def add(self, sprite, offset):
-        '''Appends given sprite to the right of itself.
-        
-        @param sprite: sprite to append
-        @type sprite: L{Sprite}
-        @note: height of given sprite must be <= to itself otherwise will be truncated
-        '''
-        raise NotImplemented
+    def __add__(self, sprite):
+        if self.height != sprite.height:
+            raise ValueError("Can only add sprites of the same height")
+        self.bitmap += sprite.bitmap
+        return self
 
     def crop(self, origin=(0,0), dimensions=None):
         x, y = origin
