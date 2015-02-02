@@ -29,10 +29,10 @@ width = 0    #: The width of the LED matrix grid
 height = 0   #: The height of the LED matrix grid
 
 def _valid_color(color):
-    """Checks if given color is number between 0-16 if an int or 0-f, or - if string
+    '''Checks if given color is number between 0-16 if an int or 0-f, or - if string
     @param color: A color to check that is valid
     @type color: string or int
-    """
+    '''
     if type(color) == int:
         if color < 0x0 or color > 0x10:
             return False
@@ -45,7 +45,7 @@ def _valid_color(color):
 
 
 def _convert_color(color):
-    """Converts the given color to an int.
+    '''Converts the given color to an int.
     @param color: A color to be converted
     @type color: string or int
     
@@ -53,7 +53,7 @@ def _convert_color(color):
     
     @return: Either the same int back again if color was an int or the int of a converted string
     @rtype: int
-    """
+    '''
     if not _valid_color(color):
         raise ValueError("Invalid Color: must be a string between 0-f or '-'" +
                          " or a number 0-16 with 16 being transparent")
@@ -63,16 +63,16 @@ def _convert_color(color):
         if color == '-':
             return 0x10
         return int(color, 16)
-    raise RuntimeError("Invalid color")
+    raise RuntimeError('Invalid color')
 
 
 class Sprite(object):
-    """Allows the creation of a LED Sprite that is defined in a text file.
+    '''Allows the creation of a LED Sprite that is defined in a text file.
     @note: The text file must only contain hex numbers 0-9, a-f, A-F, or - (dash)
     @note: The hex number indicates pixel color and "-" indicates a transparent pixel
-    """
+    '''
     def __init__(self, image_string):
-        """Creates a L{Sprite} object from the given .spr file or image file or creates an empty sprite of given
+        '''Creates a L{Sprite} object from the given .spr file or image file or creates an empty sprite of given
         height and width if filename == None.
         
         @param filename: The full path location of a .spr sprite file or image file
@@ -83,7 +83,7 @@ class Sprite(object):
         @type width: int
         @param color: Color to display at point
         @type color: int or string (0-F or 16 or '-' for transparent)
-        """
+        '''
         # Remove whitespace from lines
         lines = (re.sub('\s', '', line) for line in image_string.splitlines())
         # remove blank lines
@@ -116,7 +116,7 @@ class Sprite(object):
             yrange = self.ycrop
             transposed = True
         else:
-            raise Exception("Internal Error: Invalid Sprite rotation")
+            raise Exception('Internal Error: Invalid Sprite rotation')
         yrange = list(yrange)
         bitmap = [[self.bitmap[x][y] for y in yrange] for x in xrange]
         if transposed:
@@ -132,20 +132,20 @@ class Sprite(object):
         return len(self.bitmap[0])
 
     def add(self, sprite, offset):
-        """Appends given sprite to the right of itself.
+        '''Appends given sprite to the right of itself.
         
         @param sprite: sprite to append
         @type sprite: L{Sprite}
         @note: height of given sprite must be <= to itself otherwise will be truncated
-        """
+        '''
         raise NotImplemented
 
     def crop(self, origin=(0,0), dimensions=None):
         x, y = origin
         if x >= self.width:
-            raise IndexError("Origin X is greater than Sprite width")
+            raise IndexError('Origin X is greater than Sprite width')
         if y >= self.height:
-            raise IndexError("Origin Y is greater than Sprite height")
+            raise IndexError('Origin Y is greater than Sprite height')
 
         try:
             width, height = dimensions
@@ -157,7 +157,7 @@ class Sprite(object):
         return self
 
     def rotate(self, angle=90):
-        """Rotates sprite at 90 degree intervals. 
+        '''Rotates sprite at 90 degree intervals. 
         
         @returns: self
         @rtype: L{Sprite}
@@ -169,54 +169,54 @@ class Sprite(object):
         @rtype: L{Sprite}
         @raises ValueError: If angle is not multiple of 90
         @note: If no angle given, will rotate sprite 90 degrees.
-        """
+        '''
         if angle % 90 != 0:
-            raise ValueError("angle must be a multiple of 90.")
+            raise ValueError('angle must be a multiple of 90.')
         self.quarter_clockwise_rotations = int(angle/90) % 4
         return self
         
     def flip(self):
-        """Flips the sprite horizontally.
+        '''Flips the sprite horizontally.
 
         flip vertical is equivalent to rotate(180).flip()
-        """
+        '''
         self.flipped = True
         return self
         
 def _char_to_sprite(char, font_path):
-    """Converts given character to a sprite.
+    '''Converts given character to a sprite.
     
     @param char: character to convert (must be of length == 1)
     @type char: string
     @param font_path: Relative location of font face to use.
     @type font_path: string
     @rtype: L{Sprite}
-    """
+    '''
     if not (type(char) == str and len(char) == 1):
-        raise ValueError("Not a character")
+        raise ValueError('Not a character')
     orig_font_path = font_path
     if char.isdigit():
-        font_path = os.path.join(font_path, "numbers", char + ".spr")
+        font_path = os.path.join(font_path, 'numbers', char + '.spr')
     elif char.isupper():
-        font_path = os.path.join(font_path, "upper", char + ".spr")
+        font_path = os.path.join(font_path, 'upper', char + '.spr')
     elif char.islower():
-        font_path = os.path.join(font_path, "lower", char + ".spr")
+        font_path = os.path.join(font_path, 'lower', char + '.spr')
     elif char.isspace():
-        font_path = os.path.join(font_path, "space.spr")
+        font_path = os.path.join(font_path, 'space.spr')
     else:
-        font_path = os.path.join(font_path, "misc", str(ord(char)) + ".spr")
+        font_path = os.path.join(font_path, 'misc', str(ord(char)) + '.spr')
         
     if os.path.isfile(font_path):
         return Sprite(font_path)
     else:
-        return Sprite(os.path.join(orig_font_path, "unknown.spr"))
+        return Sprite(os.path.join(orig_font_path, 'unknown.spr'))
         
         
 
 class LEDText(Sprite):
-    """A L{Sprite} object of a piece of text."""
-    def __init__(self, message, char_spacing=1, font_name="small", font_path=None):
-        """Creates a text sprite of the given string
+    '''A L{Sprite} object of a piece of text.'''
+    def __init__(self, message, char_spacing=1, font_name='small', font_path=None):
+        '''Creates a text sprite of the given string
         This object can be used the same way a sprite is useds
         
         @param char_spacing: number pixels between characters
@@ -225,14 +225,14 @@ class LEDText(Sprite):
         @type font_name: string
         @param font_path: Directory to use to look for fonts. If None it will used default directory in dist-packages
         @type font_path: string
-        """
+        '''
         if font_path is None: # if none, set up default font location
             this_dir, this_filename = os.path.split(__file__)
             # only use font_name if no custom font_path was given
-            font_path = os.path.join(this_dir, "font")
+            font_path = os.path.join(this_dir, 'font')
             
         if not os.path.isdir(font_path):
-            raise IOError("Font path does not exist.")
+            raise IOError('Font path does not exist.')
         orig_font_path = font_path
 
         # attach font_name to font_path
@@ -240,7 +240,7 @@ class LEDText(Sprite):
         
         # if font subdirectory doesn exist, attempt to open a .font file
         if not os.path.isdir(font_path):
-            f = open(os.path.join(orig_font_path, font_name + ".font"), 'r')
+            f = open(os.path.join(orig_font_path, font_name + '.font'), 'r')
             font_path = os.path.join(orig_font_path, f.read().strip())
             f.close()
 
@@ -261,7 +261,7 @@ class LEDText(Sprite):
                 # now add next character
                 sprite = _char_to_sprite(char, font_path)
                 if sprite.height != init_sprite.height:
-                    raise ValueError("Height of character sprites must all be the same.")
+                    raise ValueError('Height of character sprites must all be the same.')
                 # append
                 init_sprite.append(sprite)
 
@@ -281,7 +281,8 @@ class FrameBuffer(object):
                 x, y = x
             if x < 0 or y < 0:
                 raise IndexError
-            self.fb[x][y] = color
+            if color >= 0:
+                self.fb[x][y] = color
         except IndexError:
             pass
 
@@ -291,12 +292,12 @@ class FrameBuffer(object):
                 self.fb[x][y] = color
 
     def line(self, point_a, point_b, color=0xF):
-        """Create a line from point_a to point_b.
+        '''Create a line from point_a to point_b.
         Uses Bresenham's Line Algorithm U{http://en.wikipedia.org/wiki/Bresenham's_line_algorithm}
         @type point_a, point_b: (x,y) tuple
         @param color: Color to display at point
         @type color: int or string (0-F or 16 or '-' for transparent)
-        """
+        '''
         x1, y1 = point_a
         x2, y2 = point_b
         dx = abs(x2 - x1)
@@ -317,7 +318,7 @@ class FrameBuffer(object):
                 y1 += sy
 
     def rect(self, origin, dimensions, fill=False, color=0xF):
-        """Creates a rectangle from start point using given dimensions
+        '''Creates a rectangle from start point using given dimensions
         
         @param origin: The bottom left corner of rectange (if math_coords == True).
             The top left corner of rectangle (if math_coords == False)
@@ -328,7 +329,7 @@ class FrameBuffer(object):
         @type fill: boolean
         @param color: Color to display at point
         @type color: int or string (0-F or 16 or '-' for transparent)
-        """
+        '''
         x, y = origin
         width, height = dimensions
 
@@ -373,7 +374,7 @@ class FrameBuffer(object):
             if rand == recv[start:end]:
                 break
         if i > MAX_MATRICES:
-            raise IOError("Could not determine length of LED Matrix chain.")
+            raise IOError('Could not determine length of LED Matrix chain.')
 
     @property
     def width(self):
@@ -383,63 +384,25 @@ class FrameBuffer(object):
     def height(self):
         return 8
 
-    def draw(sprite, origin=(0,0), crop_origin=(0,0), crop_dimensions=None):
-        """Sets given sprite into the framebuffer.
-        
-        @param origin: Bottom left position to diplay text (top left if math_coords == False)
-        @type origin: (x,y) tuple
-        @param crop_origin: Position to crop into the sprite relative to the origin
-        @type crop_origin: (x,y) tuple
-        @param crop_dimensions: x and y distance from the crop_origin to display
-            - Keep at None to not crop and display sprite all the way to top right corner
-        @type crop_dimensions: (x,y) tuple
-        """
-        if type(sprite) == str:
-            sprite = Sprite(sprite)
-        elif type(sprite) != LEDText and type(sprite) != Sprite:
-            raise ValueError("Invalid sprite")
-        
-        global width
-        global height
-        
-        x_pos, y_pos = origin
-        x_crop, y_crop = crop_origin
-        
-        # set up offset
-        if x_crop < 0 or y_crop < 0:
-            raise ValueError("crop_origin must be positive numbers")
-        
-        # set up crop
-        if crop_dimensions is None:
-            x_crop_dim, y_crop_dim = (sprite.width, sprite.height)   # no cropping
-        else:
-            x_crop_dim, y_crop_dim = crop_dimensions
-            if x_crop_dim < 0 or y_crop_dim < 0:
-                raise ValueError("crop_dimensions must be positive numbers")
-            
-        # set up start position
-        x_start = x_pos + x_crop
-        y_start = y_pos + y_crop 
-        
-        if x_start >= width or y_start >= height:
+    def __str__(self):
+        s = ''
+        for y in reversed(range(self.height)):
+            for x in range(self.width):
+                s += '{:1X}'.format(_convert_color(self.fb[x][y]))
+            s += '\n'
+        return s
+
+    def draw(self, drawable, origin=(0,0)):
+        '''Sets given sprite into the framebuffer.
+        '''
+        xorig, yorig = origin
+        bitmap = drawable._bitmap()
+        if not bitmap:
             return
-            
-        # set up end position
-        x_end = min(x_pos + x_crop + x_crop_dim, width, x_pos + sprite.width)
-        y_end = min(y_pos + y_crop + y_crop_dim, height, y_pos + sprite.height)
-        
-        # iterate through sprite and set points to led_driver
-        y = max(y_start,0)
-        while y < y_end:
-            x = max(x_start, 0)
-            while x < x_end:
-                x_sprite = x - x_start + x_crop
-                y_sprite = y - y_start + y_crop
-                x_sprite = int(x_sprite)
-                y_sprite = int(y_sprite)
-                point((x, y), color=sprite.bitmap[y_sprite][x_sprite])
-                x += 1
-            y += 1
+        width, height = len(bitmap), len(bitmap[0])
+        for x in range(width):
+            for y in range(height):
+                self.point(xorig + x, yorig + y, bitmap[x][y])
 
 __all__ = ['FrameBuffer', 'Sprite']
         

@@ -34,7 +34,6 @@ Automatic API tests for LED Matrix.
                         - removed math_coords
                         - removed spi_speed
                         - return the number of matrices
-            def draw(sprite, origin)
         - Add
             - test reliability of SPI chain
 - Classes
@@ -556,12 +555,56 @@ def sprite_rotate_bad_angle():
 
 @testing.automatic
 def sprite_time_bitmap():
-    s = Sprite('''
-        1 2 3
-        4 5 6
-        7 8 9
-        a b c
-        ''')
+    s = copy.deepcopy(default_sprite)
     s.rotate(270).flip()
     return timeit(partial(s._bitmap), loops=200) > 300
+
+@testing.automatic
+def sprite_draw_default_origin():
+    fb = FrameBuffer(matrix_list=[(0,0)])
+    fb.erase(0xE)
+    s = copy.deepcopy(default_sprite)
+    fb.draw(s)
+    expected_fb = makefb('''
+        eeeeeeee
+        eeeeeeee
+        eeeeeeee
+        eeeeeeee
+        123eeeee
+        456eeeee
+        789eeeee
+        abceeeee
+        ''')
+    return fb._framebuffer() == expected_fb
+
+@testing.automatic
+def sprite_draw():
+    fb = FrameBuffer(matrix_list=[(0,0)])
+    fb.erase(0xE)
+    s = copy.deepcopy(default_sprite)
+    fb.draw(s, origin=(2,3))
+    expected_fb = makefb('''
+        eeeeeeee
+        ee123eee
+        ee456eee
+        ee789eee
+        eeabceee
+        eeeeeeee
+        eeeeeeee
+        eeeeeeee
+        ''')
+    return fb._framebuffer() == expected_fb
+
+@testing.automatic
+def sprite_time_large_bitmap_draw_and_show():
+    # This is currently quite slow, as it is all done in Python via a 2D array.
+    # Speed not needed right now, but may in future move to numpy or CPython -
+    # in addition, Sprite._bitmap() does not need to be computed every time as
+    # it is now.
+    fb = FrameBuffer(matrix_list=[(0,0)])
+    s = Sprite((('5'*16) + '\n')*16)
+    def draw():
+        fb.draw(s)
+        fb.show()
+    return timeit(partial(draw), loops=100) > 50
 
