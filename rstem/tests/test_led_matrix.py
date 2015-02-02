@@ -27,8 +27,7 @@ Automatic API tests for LED Matrix.
     - TBD
         def get_pixel(self, x, y)
         def set_pixel(self, point, color=15)
-    - Add
-        def crop(origin=(0, 0), dimensions=None)
+
 '''
 
 def makefb(lines):
@@ -56,6 +55,17 @@ def timeit(f, loops=10000):
     print("Freq : {:.2f} Hz".format(freq))
     return freq
     
+def arrays_equal(expected, actual):
+    e = [line.strip().upper() for line in str(expected).splitlines() if line.strip()]
+    a = [line.strip().upper() for line in str(actual).splitlines() if line.strip()]
+    print("EXPECTED:")
+    for line in e:
+        print('\t', line)
+    print("ACTUAL:")
+    for line in a:
+        print('\t', line)
+    return a == e
+
 #########################################################################
 # __init__() tests
 #
@@ -96,7 +106,7 @@ def erase3():
 def point1():
     fb = FrameBuffer(matrix_list=[(0,0)])
     fb.point(0,0)
-    expected_fb = makefb('''
+    expected_fb = '''
         00000000
         00000000
         00000000
@@ -105,14 +115,14 @@ def point1():
         00000000
         00000000
         F0000000
-        ''')
-    return fb._framebuffer() == expected_fb
+        '''
+    return arrays_equal(expected_fb, fb)
 
 @testing.automatic
 def point2():
     fb = FrameBuffer(matrix_list=[(0,0)])
     fb.point((0,0), color=1)
-    expected_fb = makefb('''
+    expected_fb = '''
         00000000
         00000000
         00000000
@@ -121,14 +131,14 @@ def point2():
         00000000
         00000000
         10000000
-        ''')
-    return fb._framebuffer() == expected_fb
+        '''
+    return arrays_equal(expected_fb, fb)
 
 @testing.automatic
 def point3():
     fb = FrameBuffer(matrix_list=[(0,0)])
     fb.point(1,2,color=3)
-    expected_fb = makefb('''
+    expected_fb = '''
         00000000
         00000000
         00000000
@@ -137,14 +147,14 @@ def point3():
         03000000
         00000000
         00000000
-        ''')
-    return fb._framebuffer() == expected_fb
+        '''
+    return arrays_equal(expected_fb, fb)
 
 @testing.automatic
 def point4():
     fb = FrameBuffer(matrix_list=[(0,0)])
     fb.point(7,7,color=10)
-    expected_fb = makefb('''
+    expected_fb = '''
         0000000A
         00000000
         00000000
@@ -153,14 +163,14 @@ def point4():
         00000000
         00000000
         00000000
-        ''')
-    return fb._framebuffer() == expected_fb
+        '''
+    return arrays_equal(expected_fb, fb)
 
 @testing.automatic
 def point5():
     fb = FrameBuffer(matrix_list=[(0,0)])
     fb.point(7,7,color=10)
-    expected_fb = makefb('''
+    expected_fb = '''
         0000000A
         00000000
         00000000
@@ -169,8 +179,8 @@ def point5():
         00000000
         00000000
         00000000
-        ''')
-    return fb._framebuffer() == expected_fb
+        '''
+    return arrays_equal(expected_fb, fb)
 
     fb.point(0,0,1)
     fb.point(0,7,2)
@@ -213,8 +223,8 @@ def time_point():
 def line1():
     fb = FrameBuffer(matrix_list=[(0,0)])
     fb.line((0,7),(7,7))
-    expected_fb = makefb('''
-        ffffffff
+    expected_fb = '''
+        FFFFFFFF
         00000000
         00000000
         00000000
@@ -222,40 +232,40 @@ def line1():
         00000000
         00000000
         00000000
-        ''')
-    return fb._framebuffer() == expected_fb
+        '''
+    return arrays_equal(expected_fb, fb)
 
 @testing.automatic
 def line2():
     fb = FrameBuffer(matrix_list=[(0,0)])
     fb.line((0,0),(0,7))
-    expected_fb = makefb('''
-        f0000000
-        f0000000
-        f0000000
-        f0000000
-        f0000000
-        f0000000
-        f0000000
-        f0000000
-        ''')
-    return fb._framebuffer() == expected_fb
+    expected_fb = '''
+        F0000000
+        F0000000
+        F0000000
+        F0000000
+        F0000000
+        F0000000
+        F0000000
+        F0000000
+        '''
+    return arrays_equal(expected_fb, fb)
 
 @testing.automatic
 def line3():
     fb = FrameBuffer(matrix_list=[(0,0)])
     fb.line((0,0),(7,7))
-    expected_fb = makefb('''
-        0000000f
-        000000f0
-        00000f00
-        0000f000
-        000f0000
-        00f00000
-        0f000000
-        f0000000
-        ''')
-    return fb._framebuffer() == expected_fb
+    expected_fb = '''
+        0000000F
+        000000F0
+        00000F00
+        0000F000
+        000F0000
+        00F00000
+        0F000000
+        F0000000
+        '''
+    return arrays_equal(expected_fb, fb)
 
 @testing.automatic
 def line4():
@@ -264,33 +274,33 @@ def line4():
     fb.line((7,0),(0,7), color=1)
     fb.line((2,0),(2,7), color=2)
     fb.line((0,2),(7,2), color=3)
-    expected_fb = makefb('''
-        1020000f
-        012000f0
-        00200f00
-        0021f000
-        002f1000
+    expected_fb = '''
+        1020000F
+        012000F0
+        00200F00
+        0021F000
+        002F1000
         33333333
-        0f200010
-        f0200001
-        ''')
-    return fb._framebuffer() == expected_fb
+        0F200010
+        F0200001
+        '''
+    return arrays_equal(expected_fb, fb)
 
 @testing.automatic
 def line5():
     fb = FrameBuffer(matrix_list=[(0,0)])
     fb.line((1,3),(6,5))
-    expected_fb = makefb('''
+    expected_fb = '''
         00000000
         00000000
-        00000ff0
-        000ff000
-        0ff00000
+        00000FF0
+        000FF000
+        0FF00000
         00000000
         00000000
         00000000
-        ''')
-    return fb._framebuffer() == expected_fb
+        '''
+    return arrays_equal(expected_fb, fb)
 
 
 #########################################################################
@@ -301,49 +311,49 @@ def line5():
 def rect1():
     fb = FrameBuffer(matrix_list=[(0,0)])
     fb.rect((0,0),(8,8))
-    expected_fb = makefb('''
-        ffffffff
-        f000000f
-        f000000f
-        f000000f
-        f000000f
-        f000000f
-        f000000f
-        ffffffff
-        ''')
-    return fb._framebuffer() == expected_fb
+    expected_fb = '''
+        FFFFFFFF
+        F000000F
+        F000000F
+        F000000F
+        F000000F
+        F000000F
+        F000000F
+        FFFFFFFF
+        '''
+    return arrays_equal(expected_fb, fb)
 
 @testing.automatic
 def rect2():
     fb = FrameBuffer(matrix_list=[(0,0)])
     fb.rect((0,0),(8,8), fill=True)
-    expected_fb = makefb('''
-        ffffffff
-        ffffffff
-        ffffffff
-        ffffffff
-        ffffffff
-        ffffffff
-        ffffffff
-        ffffffff
-        ''')
-    return fb._framebuffer() == expected_fb
+    expected_fb = '''
+        FFFFFFFF
+        FFFFFFFF
+        FFFFFFFF
+        FFFFFFFF
+        FFFFFFFF
+        FFFFFFFF
+        FFFFFFFF
+        FFFFFFFF
+        '''
+    return arrays_equal(expected_fb, fb)
 
 @testing.automatic
 def rect3():
     fb = FrameBuffer(matrix_list=[(0,0)])
     fb.rect((2,1),(3,5), fill=True)
-    expected_fb = makefb('''
+    expected_fb = '''
         00000000
         00000000
-        00fff000
-        00fff000
-        00fff000
-        00fff000
-        00fff000
+        00FFF000
+        00FFF000
+        00FFF000
+        00FFF000
+        00FFF000
         00000000
-        ''')
-    return fb._framebuffer() == expected_fb
+        '''
+    return arrays_equal(expected_fb, fb)
 
 @testing.automatic
 def rect4():
@@ -352,7 +362,7 @@ def rect4():
     fb.rect((2,2),(6,6), color=2)
     fb.rect((5,1),(3,3), color=3)
     fb.rect((1,5),(4,2), color=4)
-    expected_fb = makefb('''
+    expected_fb = '''
         00222222
         04444002
         04444002
@@ -361,8 +371,8 @@ def rect4():
         10222323
         10010333
         11110000
-        ''')
-    return fb._framebuffer() == expected_fb
+        '''
+    return arrays_equal(expected_fb, fb)
 
 #########################################################################
 # misc tests
@@ -396,13 +406,13 @@ default_sprite = Sprite('''
 @testing.automatic
 def sprite_init():
     s = copy.deepcopy(default_sprite)
-    expected_bitmap = makefb('''
+    expected_bitmap = '''
         123
         456
         789
         abc
-        ''')
-    return expected_bitmap == s._bitmap()
+        '''
+    return arrays_equal(expected_bitmap, s)
 
 @testing.automatic
 def sprite_init_lines_long():
@@ -412,13 +422,13 @@ def sprite_init_lines_long():
         7 8 9
         a b c d e
         ''')
-    expected_bitmap = makefb('''
+    expected_bitmap = '''
         123
         456
         789
         abc
-        ''')
-    return expected_bitmap == s._bitmap()
+        '''
+    return arrays_equal(expected_bitmap, s)
 
 @testing.automatic
 def sprite_init_variable_whitespace():
@@ -428,94 +438,94 @@ def sprite_init_variable_whitespace():
         7  8  		  9
         a   b  c d e
         ''')
-    expected_bitmap = makefb('''
+    expected_bitmap = '''
         123
         456
         789
         abc
-        ''')
-    return expected_bitmap == s._bitmap()
+        '''
+    return arrays_equal(expected_bitmap, s)
 
 @testing.automatic
 def sprite_rotate_90():
     s = copy.deepcopy(default_sprite)
     s.rotate(90)
-    expected_bitmap = makefb('''
+    expected_bitmap = '''
         369c
         258b
         147a
-        ''')
-    return expected_bitmap == s._bitmap()
+        '''
+    return arrays_equal(expected_bitmap, s)
 
 @testing.automatic
 def sprite_rotate_180():
     s = copy.deepcopy(default_sprite)
     s.rotate(180)
-    expected_bitmap = makefb('''
+    expected_bitmap = '''
         cba
         987
         654
         321
-        ''')
-    return expected_bitmap == s._bitmap()
+        '''
+    return arrays_equal(expected_bitmap, s)
 
 @testing.automatic
 def sprite_rotate_270():
     s = copy.deepcopy(default_sprite)
     s.rotate(270)
-    expected_bitmap = makefb('''
+    expected_bitmap = '''
         a741
         b852
         c963
-        ''')
-    return expected_bitmap == s._bitmap()
+        '''
+    return arrays_equal(expected_bitmap, s)
 
 @testing.automatic
 def sprite_rotate_neg_90():
     s = copy.deepcopy(default_sprite)
     s.rotate(-90)
-    expected_bitmap = makefb('''
+    expected_bitmap = '''
         a741
         b852
         c963
-        ''')
-    return expected_bitmap == s._bitmap()
+        '''
+    return arrays_equal(expected_bitmap, s)
 
 @testing.automatic
 def sprite_rotate_360():
     s = copy.deepcopy(default_sprite)
     s.rotate(360)
-    expected_bitmap = makefb('''
+    expected_bitmap = '''
         123
         456
         789
         abc
-        ''')
-    return expected_bitmap == s._bitmap()
+        '''
+    return arrays_equal(expected_bitmap, s)
 
 @testing.automatic
 def sprite_flip():
     s = copy.deepcopy(default_sprite)
     s.flip()
-    expected_bitmap = makefb('''
+    expected_bitmap = '''
         321
         654
         987
         cba
-        ''')
-    return expected_bitmap == s._bitmap()
+        '''
+    return arrays_equal(expected_bitmap, s)
 
 @testing.automatic
 def sprite_flip_vertical():
     s = copy.deepcopy(default_sprite)
     s.rotate(180).flip()
-    expected_bitmap = makefb('''
+    expected_bitmap = '''
         abc
         789
         456
         123
-        ''')
-    return expected_bitmap == s._bitmap()
+        '''
+    return arrays_equal(expected_bitmap, s)
 
 @testing.automatic
 def sprite_rotate_bad_angle():
@@ -538,17 +548,17 @@ def sprite_draw_default_origin():
     fb.erase(0xE)
     s = copy.deepcopy(default_sprite)
     fb.draw(s)
-    expected_fb = makefb('''
-        eeeeeeee
-        eeeeeeee
-        eeeeeeee
-        eeeeeeee
-        123eeeee
-        456eeeee
-        789eeeee
-        abceeeee
-        ''')
-    return fb._framebuffer() == expected_fb
+    expected_fb = '''
+        EEEEEEEE
+        EEEEEEEE
+        EEEEEEEE
+        EEEEEEEE
+        123EEEEE
+        456EEEEE
+        789EEEEE
+        ABCEEEEE
+        '''
+    return arrays_equal(expected_fb, fb)
 
 @testing.automatic
 def sprite_draw():
@@ -556,17 +566,17 @@ def sprite_draw():
     fb.erase(0xE)
     s = copy.deepcopy(default_sprite)
     fb.draw(s, origin=(2,3))
-    expected_fb = makefb('''
-        eeeeeeee
-        ee123eee
-        ee456eee
-        ee789eee
-        eeabceee
-        eeeeeeee
-        eeeeeeee
-        eeeeeeee
-        ''')
-    return fb._framebuffer() == expected_fb
+    expected_fb = '''
+        EEEEEEEE
+        EE123EEE
+        EE456EEE
+        EE789EEE
+        EEABCEEE
+        EEEEEEEE
+        EEEEEEEE
+        EEEEEEEE
+        '''
+    return arrays_equal(expected_fb, fb)
 
 @testing.automatic
 def sprite_add():
@@ -581,12 +591,12 @@ def sprite_add():
         c
         ''')
     new = one + two
-    expected_bitmap = makefb('''
+    expected_bitmap = '''
         12a
         45b
         67c
-        ''')
-    return expected_bitmap == new._bitmap()
+        '''
+    return arrays_equal(expected_bitmap, new)
 
 @testing.automatic
 def sprite_add_inconsistent_heights():
@@ -616,6 +626,70 @@ def sprite_time_large_bitmap_draw_and_show():
         fb.show()
     return timeit(partial(draw), loops=100) > 50
 
+@testing.automatic
+def sprite_crop():
+    s = copy.deepcopy(default_sprite)
+    s.crop((1,2))
+    expected_bitmap = '''
+        23
+        56
+        '''
+    return arrays_equal(expected_bitmap, s)
+
+@testing.automatic
+def sprite_crop_x_only():
+    s = copy.deepcopy(default_sprite)
+    s.crop((1,0))
+    expected_bitmap = '''
+        23
+        56
+        89
+        bc
+        '''
+    return arrays_equal(expected_bitmap, s)
+
+@testing.automatic
+def sprite_crop_y_only():
+    s = copy.deepcopy(default_sprite)
+    s.crop((0,1))
+    expected_bitmap = '''
+        123
+        456
+        789
+        '''
+    return arrays_equal(expected_bitmap, s)
+
+@testing.automatic
+def sprite_crop_dimensions():
+    s = copy.deepcopy(default_sprite)
+    s.crop((1,1),(2,2))
+    expected_bitmap = '''
+        56
+        89
+        '''
+    return arrays_equal(expected_bitmap, s)
+
+@testing.automatic
+def sprite_crop_and_rotate():
+    s = copy.deepcopy(default_sprite)
+    s.crop((1,2))
+    s.rotate()
+    expected_bitmap = '''
+        36
+        25
+        '''
+    return arrays_equal(expected_bitmap, s)
+
+@testing.automatic
+def sprite_rotate_and_crop():
+    s = copy.deepcopy(default_sprite)
+    s.rotate()
+    s.crop((1,2))
+    expected_bitmap = '''
+        69c
+        '''
+    return arrays_equal(expected_bitmap, s)
+
 #########################################################################
 # Text tests
 #
@@ -623,16 +697,16 @@ def sprite_time_large_bitmap_draw_and_show():
 @testing.automatic
 def text():
     t = Text("ABCabc")
-    expected_bitmap = makefb('''
-        --f---ffff---fff--------f----------
-        -f-f--f---f-f---f-------f----------
-        f---f-f---f-f------fff--ffff---ffff
-        f---f-ffff--f---------f-f---f-f----
-        fffff-f---f-f------ffff-f---f-f----
-        f---f-f---f-f---f-f---f-f---f-f----
-        f---f-ffff---fff---ffff-ffff---ffff
-        ''')
-    return expected_bitmap == t._bitmap()
+    expected_bitmap = '''
+        --F---FFFF---FFF--------F----------
+        -F-F--F---F-F---F-------F----------
+        F---F-F---F-F------FFF--FFFF---FFFF
+        F---F-FFFF--F---------F-F---F-F----
+        FFFFF-F---F-F------FFFF-F---F-F----
+        F---F-F---F-F---F-F---F-F---F-F----
+        F---F-FFFF---FFF---FFFF-FFFF---FFFF
+        '''
+    return arrays_equal(expected_bitmap, t)
 
 @testing.automatic
 def time_text():

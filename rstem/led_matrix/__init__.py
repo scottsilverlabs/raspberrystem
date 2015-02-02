@@ -80,11 +80,6 @@ class Sprite(object):
         transposed_bitmap = list(reversed(reversed_transposed_bitmap))
         self.original_bitmap = [list(z) for z in zip(*transposed_bitmap)]
         self.bitmap = self.original_bitmap
-        self.xcrop = range(self.width)
-        self.ycrop = range(self.height)
-        self.quarter_clockwise_rotations = 0
-        self.flipped = False
-        self._create_bitmap()
 
     @classmethod
     def from_file(cls, filename):
@@ -92,31 +87,6 @@ class Sprite(object):
             s = cls(f.read())
         return s
         
-    def _create_bitmap(self):
-        if self.quarter_clockwise_rotations == 0:
-            xrange = reversed(self.xcrop) if self.flipped else self.xcrop
-            yrange = self.ycrop
-            transposed = False
-        elif self.quarter_clockwise_rotations == 1:
-            xrange = reversed(self.xcrop) if self.flipped else self.xcrop
-            yrange = reversed(self.ycrop)
-            transposed = True
-        elif self.quarter_clockwise_rotations == 2:
-            xrange = reversed(self.xcrop) if not self.flipped else self.xcrop
-            yrange = reversed(self.ycrop)
-            transposed = False
-        elif self.quarter_clockwise_rotations == 3:
-            xrange = reversed(self.xcrop) if not self.flipped else self.xcrop
-            yrange = self.ycrop
-            transposed = True
-        else:
-            raise Exception('Internal Error: Invalid Sprite rotation')
-        yrange = list(yrange)
-        bitmap = [[self.original_bitmap[x][y] for y in yrange] for x in xrange]
-        if transposed:
-            bitmap = [list(z) for z in zip(*bitmap)]
-        self.bitmap = bitmap
-
     def _bitmap(self):
         return self.bitmap
 
@@ -134,6 +104,10 @@ class Sprite(object):
         self.bitmap += sprite.bitmap
         return self
 
+    def _recreate_bitmap(self, xrange, yrange):
+        yrange = list(yrange)
+        self.bitmap = [[self.bitmap[x][y] for y in yrange] for x in xrange]
+
     def crop(self, origin=(0,0), dimensions=None):
         x, y = origin
         if x >= self.width:
@@ -146,9 +120,9 @@ class Sprite(object):
         except TypeError:
             width, height = self.width, self.height
 
-        self.xcrop = range(x, min(x + width, self.width))
-        self.ycrop = range(y, min(y + height, self.height))
-        self._create_bitmap()
+        xrange = range(x, min(x + width, self.width))
+        yrange = range(y, min(y + height, self.height))
+        self._recreate_bitmap(xrange, yrange)
         return self
 
     def rotate(self, angle=90):
@@ -167,22 +141,44 @@ class Sprite(object):
         '''
         if angle % 90 != 0:
             raise ValueError('angle must be a multiple of 90.')
-        self.quarter_clockwise_rotations = int(angle/90) % 4
-        self._create_bitmap()
+        quarter_clockwise_rotations = int(angle/90) % 4
+        if quarter_clockwise_rotations == 0:
+            xrange, yrange = range(self.width), range(self.height)
+            transposed = False
+        elif quarter_clockwise_rotations == 1:
+            xrange, yrange = range(self.width), reversed(range(self.height))
+            transposed = True
+        elif quarter_clockwise_rotations == 2:
+            xrange, yrange = reversed(range(self.width)), reversed(range(self.height))
+            transposed = False
+        elif quarter_clockwise_rotations == 3:
+            xrange, yrange = reversed(range(self.width)), range(self.height)
+            transposed = True
+        else:
+            raise Exception('Internal Error: Invalid Sprite rotation')
+        self._recreate_bitmap(xrange, yrange)
+        if transposed:
+            self.bitmap = [list(z) for z in zip(*self.bitmap)]
         return self
         
-    def flip(self):
+    def flip(self, vertical=False):
         '''Flips the sprite horizontally.
-
-        flip vertical is equivalent to rotate(180).flip()
         '''
-        self.flipped = True
-        self._create_bitmap()
+        if vertical:
+            xrange, yrange = range(self.width), reversed(range(self.height))
+        else:
+            xrange, yrange = reversed(range(self.width)), range(self.height)
+        self._recreate_bitmap(xrange, yrange)
         return self
 
     def __str__(self):
         return _color_array_to_str(self.bitmap, self.height, self.width)
 
+    def reset(self):
+        '''Undoes previous flip/rotate/crop/etc actions
+        '''
+        self.bitmap = self.original_bitmap
+        return self
         
 class Text(Sprite):
     def __init__(self, message, char_spacing=1, font_name='5x7', font_dir=None):
