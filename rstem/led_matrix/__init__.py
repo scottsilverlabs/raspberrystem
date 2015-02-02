@@ -28,23 +28,8 @@ MATRIX_SPI_SHIFT_REGISTER_LENGTH=32
 width = 0    #: The width of the LED matrix grid
 height = 0   #: The height of the LED matrix grid
 
-def _valid_color(color):
-    '''Checks if given color is number between 0-16 if an int or 0-f, or - if string
-    @param color: A color to check that is valid
-    @type color: string or int
-    '''
-    if type(color) == int:
-        if color < 0x0 or color > 0x10:
-            return False
-        return True
-    elif type(color) == str:
-        if not re.match(r'^[A-Za-z0-9-]$', color):
-            return False
-        return True
-    return False
 
-
-def _convert_color(color):
+def _to_color(color):
     '''Converts the given color to an int.
     @param color: A color to be converted
     @type color: string or int
@@ -54,17 +39,18 @@ def _convert_color(color):
     @return: Either the same int back again if color was an int or the int of a converted string
     @rtype: int
     '''
-    if not _valid_color(color):
-        raise ValueError("Invalid Color: must be a string between 0-f or '-'" +
-                         " or a number 0-16 with 16 being transparent")
-    if type(color) == int:
-        return color
-    elif type(color) == str:
-        if color == '-':
-            return 0x10
-        return int(color, 16)
-    raise RuntimeError('Invalid color')
+    if not (isinstance(color, str) and len(color) == 1 and color in '01234567890abcdefABCDEF-'):
+        raise ValueError("Invalid Color: must be a string between 0-9 or a-f or '-'")
+    return int(color, 16) if color != '-' else -1
 
+def _color_array_to_str(array, height, width):
+    s = ''
+    for y in reversed(range(height)):
+        for x in range(width):
+            color = array[x][y]
+            s += '{:1X}'.format(color) if color >= 0 else '-'
+        s += '\n'
+    return s
 
 class Sprite(object):
     '''Allows the creation of a LED Sprite that is defined in a text file.
@@ -89,7 +75,7 @@ class Sprite(object):
         # remove blank lines
         lines = (line for line in lines if line)
         # Convert chars to integer colors
-        reversed_transposed_bitmap = [[_convert_color(color) for color in line] for line in lines]
+        reversed_transposed_bitmap = [[_to_color(color) for color in line] for line in lines]
         # Reverse and transpose array
         transposed_bitmap = list(reversed(reversed_transposed_bitmap))
         self.original_bitmap = [list(z) for z in zip(*transposed_bitmap)]
@@ -100,6 +86,12 @@ class Sprite(object):
         self.flipped = False
         self._create_bitmap()
 
+    @classmethod
+    def from_file(cls, filename):
+        with open(filename) as f:
+            s = cls(f.read())
+        return s
+        
     def _create_bitmap(self):
         if self.quarter_clockwise_rotations == 0:
             xrange = reversed(self.xcrop) if self.flipped else self.xcrop
@@ -187,90 +179,58 @@ class Sprite(object):
         self.flipped = True
         self._create_bitmap()
         return self
-        
-def _char_to_sprite(char, font_path):
-    '''Converts given character to a sprite.
-    
-    @param char: character to convert (must be of length == 1)
-    @type char: string
-    @param font_path: Relative location of font face to use.
-    @type font_path: string
-    @rtype: L{Sprite}
-    '''
-    if not (type(char) == str and len(char) == 1):
-        raise ValueError('Not a character')
-    orig_font_path = font_path
-    if char.isdigit():
-        font_path = os.path.join(font_path, 'numbers', char + '.spr')
-    elif char.isupper():
-        font_path = os.path.join(font_path, 'upper', char + '.spr')
-    elif char.islower():
-        font_path = os.path.join(font_path, 'lower', char + '.spr')
-    elif char.isspace():
-        font_path = os.path.join(font_path, 'space.spr')
-    else:
-        font_path = os.path.join(font_path, 'misc', str(ord(char)) + '.spr')
-        
-    if os.path.isfile(font_path):
-        return Sprite(font_path)
-    else:
-        return Sprite(os.path.join(orig_font_path, 'unknown.spr'))
-        
-        
 
-class LEDText(Sprite):
-    '''A L{Sprite} object of a piece of text.'''
-    def __init__(self, message, char_spacing=1, font_name='small', font_path=None):
-        '''Creates a text sprite of the given string
-        This object can be used the same way a sprite is useds
+    def __str__(self):
+        return _color_array_to_str(self.bitmap, self.height, self.width)
+
         
-        @param char_spacing: number pixels between characters
-        @type char_spacing: int
-        @param font_name: Font folder (or .font) file to use as font face
-        @type font_name: string
-        @param font_path: Directory to use to look for fonts. If None it will used default directory in dist-packages
-        @type font_path: string
-        '''
-        if font_path is None: # if none, set up default font location
-            this_dir, this_filename = os.path.split(__file__)
-            # only use font_name if no custom font_path was given
-            font_path = os.path.join(this_dir, 'font')
-            
-        if not os.path.isdir(font_path):
-            raise IOError('Font path does not exist.')
-        orig_font_path = font_path
-
-        # attach font_name to font_path
-        font_path = os.path.join(font_path, font_name)
-        
-        # if font subdirectory doesn exist, attempt to open a .font file
-        if not os.path.isdir(font_path):
-            f = open(os.path.join(orig_font_path, font_name + '.font'), 'r')
-            font_path = os.path.join(orig_font_path, f.read().strip())
-            f.close()
-
-        message = message.strip()
-        if len(message) == 0:
-            super().__init__()
-            return
-
-        # start with first character as intial sprite object
-        init_sprite = _char_to_sprite(message[0], font_path)
-        # get general height and width of characters
-
+class Text(Sprite):
+    def __init__(self, message, char_spacing=1, font_name='5x7', font_dir=None):
+        with open(self._font_path(font_dir, font_name, message[0])) as f:
+            super().__init__(f.read())
         if len(message) > 1:
-            # append other characters to initial sprite
-            for char in message[1:]:
-                # add character spacing
-                init_sprite.append(Sprite(height=init_sprite.height, width=char_spacing, color=0x10))
-                # now add next character
-                sprite = _char_to_sprite(char, font_path)
-                if sprite.height != init_sprite.height:
-                    raise ValueError('Height of character sprites must all be the same.')
-                # append
-                init_sprite.append(sprite)
+            self.__add__(Sprite((('-' * char_spacing) + '\n') * self.height))
+            self.__add__(Text(message[1:]))
 
-        self.bitmap = init_sprite.bitmap
+    @classmethod
+    def from_file(cls, filename):
+        super().from_file(filename)
+        
+    @classmethod
+    def font_list(cls, font_dir=None):
+        font_dir = cls._font_dir(font_dir)
+        return [d for d in os.glob(font_dir) if os.path.isdir(d)]
+
+    @staticmethod
+    def _font_dir(font_dir=None):
+        if font_dir is None:
+            this_dir, this_filename = os.path.split(__file__)
+            font_dir = os.path.join(this_dir, 'font')
+            
+        if not os.path.isdir(font_dir):
+            raise IOError('Font path does not exist.')
+
+        return font_dir
+        
+    def _font_path(self, font_dir, font_name, char):
+        font_path = os.path.join(self._font_dir(), font_name)
+        unknown_font_path = os.path.join(font_path, 'unknown.spr')
+        
+        if char.isdigit():
+            font_path = os.path.join(font_path, 'numbers', char + '.spr')
+        elif char.isupper():
+            font_path = os.path.join(font_path, 'upper', char + '.spr')
+        elif char.islower():
+            font_path = os.path.join(font_path, 'lower', char + '.spr')
+        elif char.isspace():
+            font_path = os.path.join(font_path, 'space.spr')
+        else:
+            font_path = os.path.join(font_path, 'misc', str(ord(char)) + '.spr')
+            
+        if not os.path.isfile(font_path):
+            return unknown_font_path
+
+        return font_path
 
 class FrameBuffer(object):
     def __init__(self, num_rows=None, matrix_list=None, spi_port=0):
@@ -390,12 +350,7 @@ class FrameBuffer(object):
         return 8
 
     def __str__(self):
-        s = ''
-        for y in reversed(range(self.height)):
-            for x in range(self.width):
-                s += '{:1X}'.format(_convert_color(self.fb[x][y]))
-            s += '\n'
-        return s
+        return _color_array_to_str(self.fb, self.height, self.width)
 
     def draw(self, drawable, origin=(0,0)):
         '''Sets given sprite into the framebuffer.

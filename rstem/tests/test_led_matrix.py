@@ -1,7 +1,7 @@
 import testing
 import time
 from functools import partial
-from rstem.led_matrix import FrameBuffer, Sprite
+from rstem.led_matrix import FrameBuffer, Sprite, Text
 import copy
 
 '''
@@ -23,19 +23,12 @@ Automatic API tests for LED Matrix.
                             - int angle
     - Add
         - test reliability of SPI chain
-- Classes
-    - class LEDSprite rename Sprite
-        - Keep
-            def __add__(self, sprite)
-            def add(self, sprite, offset, corner)
-        - TBD
-            def get_pixel(self, x, y)
-            def set_pixel(self, point, color=15)
-        - Add
-            def crop(origin=(0, 0), dimensions=None)
-    - LEDText rename Text
-        def __init__(self, message, char_spacing=1, font_name='small', font_path=None)
-        All inherited function from Sprite
+- Sprite
+    - TBD
+        def get_pixel(self, x, y)
+        def set_pixel(self, point, color=15)
+    - Add
+        def crop(origin=(0, 0), dimensions=None)
 '''
 
 def makefb(lines):
@@ -43,7 +36,8 @@ def makefb(lines):
     lines = (line.replace(' ', '') for line in lines.splitlines())
     # remove blank lines
     lines = (line for line in lines if line)
-    reversed_transposed_fb = [[int(color, 16) for color in line] for line in lines]
+    reversed_transposed_fb = \
+        [[int(color, 16) if color != '-'  else -1 for color in line] for line in lines]
     transposed_fb = list(reversed(reversed_transposed_fb))
     fb = [list(z) for z in zip(*transposed_fb)]
     return fb
@@ -59,7 +53,7 @@ def timeit(f, loops=10000):
     period = (time.time() - start) / loops
     freq = 1.0 / period
     print("Time per call: {:.2f} usecs".format(period * 1000000))
-    print("Freq : {:.0f} Hz".format(freq))
+    print("Freq : {:.2f} Hz".format(freq))
     return freq
     
 #########################################################################
@@ -623,6 +617,24 @@ def sprite_time_large_bitmap_draw_and_show():
     return timeit(partial(draw), loops=100) > 50
 
 #########################################################################
-# Sprite tests
+# Text tests
 #
+
+@testing.automatic
+def text():
+    t = Text("ABCabc")
+    expected_bitmap = makefb('''
+        --f---ffff---fff--------f----------
+        -f-f--f---f-f---f-------f----------
+        f---f-f---f-f------fff--ffff---ffff
+        f---f-ffff--f---------f-f---f-f----
+        fffff-f---f-f------ffff-f---f-f----
+        f---f-f---f-f---f-f---f-f---f-f----
+        f---f-ffff---fff---ffff-ffff---ffff
+        ''')
+    return expected_bitmap == t._bitmap()
+
+@testing.automatic
+def time_text():
+    return timeit(partial(Text, '0123456789'), loops=10) > 5
 
