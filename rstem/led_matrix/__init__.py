@@ -97,8 +97,9 @@ class Sprite(object):
         self.ycrop = range(self.height)
         self.quarter_clockwise_rotations = 0
         self.flipped = False
+        self._create_bitmap()
 
-    def _bitmap(self):
+    def _create_bitmap(self):
         if self.quarter_clockwise_rotations == 0:
             xrange = reversed(self.xcrop) if self.flipped else self.xcrop
             yrange = self.ycrop
@@ -121,7 +122,10 @@ class Sprite(object):
         bitmap = [[self.bitmap[x][y] for y in yrange] for x in xrange]
         if transposed:
             bitmap = [list(z) for z in zip(*bitmap)]
-        return bitmap
+        self.__bitmap = bitmap
+
+    def _bitmap(self):
+        return self.__bitmap
 
     @property
     def width(self):
@@ -154,6 +158,7 @@ class Sprite(object):
 
         self.xcrop = range(x, min(x + width, self.width))
         self.ycrop = range(y, min(y + height, self.height))
+        self._create_bitmap()
         return self
 
     def rotate(self, angle=90):
@@ -173,6 +178,7 @@ class Sprite(object):
         if angle % 90 != 0:
             raise ValueError('angle must be a multiple of 90.')
         self.quarter_clockwise_rotations = int(angle/90) % 4
+        self._create_bitmap()
         return self
         
     def flip(self):
@@ -181,6 +187,7 @@ class Sprite(object):
         flip vertical is equivalent to rotate(180).flip()
         '''
         self.flipped = True
+        self._create_bitmap()
         return self
         
 def _char_to_sprite(char, font_path):
