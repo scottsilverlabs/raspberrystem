@@ -25,6 +25,7 @@ from itertools import islice
 
 MAX_MATRICES = 4
 MATRIX_SPI_SHIFT_REGISTER_LENGTH=32
+SPI_SPEED=250000
 width = 0    #: The width of the LED matrix grid
 height = 0   #: The height of the LED matrix grid
 
@@ -51,6 +52,11 @@ def _color_array_to_str(array, height, width):
             s += '{:1X}'.format(color) if color >= 0 else '-'
         s += '\n'
     return s
+
+def _quarter_clockwise_rotations(angle):
+    if angle % 90 != 0:
+        raise ValueError('angle must be a multiple of 90.')
+    return int(angle/90) % 4
 
 class Sprite(object):
     '''Allows the creation of a LED Sprite that is defined in a text file.
@@ -139,9 +145,7 @@ class Sprite(object):
         @raises ValueError: If angle is not multiple of 90
         @note: If no angle given, will rotate sprite 90 degrees.
         '''
-        if angle % 90 != 0:
-            raise ValueError('angle must be a multiple of 90.')
-        quarter_clockwise_rotations = int(angle/90) % 4
+        quarter_clockwise_rotations = _quarter_clockwise_rotations(angle)
         if quarter_clockwise_rotations == 0:
             xrange, yrange = range(self.width), range(self.height)
             transposed = False
@@ -155,7 +159,7 @@ class Sprite(object):
             xrange, yrange = reversed(range(self.width)), range(self.height)
             transposed = True
         else:
-            raise Exception('Internal Error: Invalid Sprite rotation')
+            raise RuntimeException('Internal Error: Invalid rotation')
         self._recreate_bitmap(xrange, yrange)
         if transposed:
             self.bitmap = [list(z) for z in zip(*self.bitmap)]
@@ -229,9 +233,37 @@ class Text(Sprite):
         return font_path
 
 class FrameBuffer(object):
-    def __init__(self, num_rows=None, matrix_list=None, spi_port=0):
-        self.fb = [[0]*8 for i in range(8)]
-        led_driver.init_spi(250000, spi_port)
+    def __init__(self, matrix_layout=None, spi_port=0):
+        if not matrix_layout:
+            num_matrices = self.detect()
+            if num_matrices == 0:
+                raise('No LED Matrices connected')
+            elif num_matrices > 8:
+                raise('More than 8 LED Matrices connected - you must define the matrix_layout')
+            else:
+                matrix_layout = {
+                    1 : [(x*8,0,0) for x in range(1)],
+                    2 : [(x*8,0,0) for x in range(2)],
+                    3 : [(x*8,0,0) for x in range(3)],
+                    4 : [(x*8,8,0) for x in range(2)] + [(x*8,0,180) for x in reversed(range(2))],
+                    5 : [(x*8,0,0) for x in range(5)],
+                    6 : [(x*8,8,0) for x in range(3)] + [(x*8,0,180) for x in reversed(range(3))],
+                    7 : [(x*8,8,0) for x in range(4)] + [(x*8,0,180) for x in reversed(range(3))],
+                    8 : [(x*8,8,0) for x in range(4)] + [(x*8,0,180) for x in reversed(range(4))],
+                }[num_matrices]
+        xlist = [x for x,y,angle in matrix_layout]
+        ylist = [y for x,y,angle in matrix_layout]
+        maxx, maxy = max(xlist), max(ylist)
+        minx, miny = min(xlist), min(ylist)
+        if minx < 0 or miny < 0:
+            raise ValueError('All matrix_layout origins must be greater than zero (x and y)')
+
+        # Convert angles to quarter_clockwise_rotations
+        matrix_layout = [(x, y, _quarter_clockwise_rotations(angle)) for x, y, angle in matrix_layout]
+
+        self.matrix_layout = matrix_layout
+        self.fb = [[0]*(maxy + 8) for i in range(maxx + 8)]
+        led_driver.init_spi(SPI_SPEED, spi_port)
 
     def _framebuffer(self):
         return self.fb
@@ -281,8 +313,6 @@ class FrameBuffer(object):
     def rect(self, origin, dimensions, fill=False, color=0xF):
         '''Creates a rectangle from start point using given dimensions
         
-        @param origin: The bottom left corner of rectange (if math_coords == True).
-            The top left corner of rectangle (if math_coords == False)
         @type origin: (x,y) tuple
         @param dimensions: width and height of rectangle
         @type dimensions: (width, height) tuple
@@ -304,11 +334,22 @@ class FrameBuffer(object):
             self.line((x + width - 1, y), (x, y), color)
         
     def show(self):
-        flat = list(pixel for col in self.fb for pixel in col)
-        even = flat[::2]
-        odd = flat[1::2]
-        bitstream = bytes(b[0] | (b[1] << 4) for b in zip(even, odd))
-        x = led_driver.send(bitstream)
+        bitstream = b''
+        for x, y, quarter_clockwise_rotations in reversed(self.matrix_layout):
+            if quarter_clockwise_rotations == 0:
+                flat = [self.fb[x][y] for x in range(x) for y in range(y)]
+            elif quarter_clockwise_rotations == 1:
+                flat = [self.fb[x][y] for y in range(y) for x in reversed(range(x))]
+            elif quarter_clockwise_rotations == 2:
+                flat = [self.fb[x][y] for x in reversed(range(x)) for y in reversed(range(y))]
+            elif quarter_clockwise_rotations == 3:
+                flat = [self.fb[x][y] for y in reversed(range(y)) for x in range(x)]
+            else:
+                raise Exception('Internal Error: Invalid rotation')
+            even = flat[::2]
+            odd = flat[1::2]
+            bitstream += bytes(b[0] | (b[1] << 4) for b in zip(even, odd))
+        led_driver.send(bitstream)
 
     @staticmethod
     def detect():
@@ -339,11 +380,11 @@ class FrameBuffer(object):
 
     @property
     def width(self):
-        return 8
+        return len(self.fb)
 
     @property
     def height(self):
-        return 8
+        return len(self.fb[0])
 
     def __str__(self):
         return _color_array_to_str(self.fb, self.height, self.width)

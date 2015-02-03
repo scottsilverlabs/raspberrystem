@@ -10,17 +10,6 @@ Automatic API tests for LED Matrix.
 
 '''
 - functions -> FrameBuffer class
-    - Keep
-        __init__(merge of init_grid and init_matrices)
-            - new:
-                def __init__(num_rows=None, matrix_list=None, spi_port=0)
-                    - num_rows=None favor minimal
-                      rectangle, landscape before
-                      portrait
-                    - matrix_list:
-                        list of either:
-                            - relative corridinates (i.e. (-8,0))
-                            - int angle
     - Add
         - test reliability of SPI chain
 - Sprite
@@ -36,7 +25,7 @@ def makefb(lines):
     # remove blank lines
     lines = (line for line in lines if line)
     reversed_transposed_fb = \
-        [[int(color, 16) if color != '-'  else -1 for color in line] for line in lines]
+        [[int(color, 16) if color != '-' else -1 for color in line] for line in lines]
     transposed_fb = list(reversed(reversed_transposed_fb))
     fb = [list(z) for z in zip(*transposed_fb)]
     return fb
@@ -72,8 +61,25 @@ def arrays_equal(expected, actual):
 
 @testing.automatic
 def default_erased():
-    fb = FrameBuffer(matrix_list=[(0,0)])
+    fb = FrameBuffer(matrix_layout=[(0,0,0)])
     return fb._framebuffer() == erased_fb()
+
+@testing.automatic
+def zinit_two():
+    fb = FrameBuffer(matrix_layout=[(0,0,0), (8,0,0)])
+    fb.line((0,0),(fb.width, fb.height), color=0xa)
+    expected_fb = '''
+        00000000000000aa
+        000000000000aa00
+        0000000000aa0000
+        00000000aa000000
+        000000aa00000000
+        0000aa0000000000
+        00aa000000000000
+        aa00000000000000
+        '''
+    return arrays_equal(expected_fb, fb)
+    return False
 
 #########################################################################
 # erase() tests
@@ -81,20 +87,20 @@ def default_erased():
 
 @testing.automatic
 def erase1():
-    fb = FrameBuffer(matrix_list=[(0,0)])
+    fb = FrameBuffer(matrix_layout=[(0,0,0)])
     fb.erase(0xf)
     fb.erase()
     return fb._framebuffer() == makefb('00000000\n' * 8)
 
 @testing.automatic
 def erase2():
-    fb = FrameBuffer(matrix_list=[(0,0)])
+    fb = FrameBuffer(matrix_layout=[(0,0,0)])
     fb.erase(3)
     return fb._framebuffer() == makefb('33333333\n' * 8)
 
 @testing.automatic
 def erase3():
-    fb = FrameBuffer(matrix_list=[(0,0)])
+    fb = FrameBuffer(matrix_layout=[(0,0,0)])
     fb.erase(7)
     return fb._framebuffer() == makefb('77777777\n' * 8)
 
@@ -104,7 +110,7 @@ def erase3():
 
 @testing.automatic
 def point1():
-    fb = FrameBuffer(matrix_list=[(0,0)])
+    fb = FrameBuffer(matrix_layout=[(0,0,0)])
     fb.point(0,0)
     expected_fb = '''
         00000000
@@ -120,7 +126,7 @@ def point1():
 
 @testing.automatic
 def point2():
-    fb = FrameBuffer(matrix_list=[(0,0)])
+    fb = FrameBuffer(matrix_layout=[(0,0,0)])
     fb.point((0,0), color=1)
     expected_fb = '''
         00000000
@@ -136,7 +142,7 @@ def point2():
 
 @testing.automatic
 def point3():
-    fb = FrameBuffer(matrix_list=[(0,0)])
+    fb = FrameBuffer(matrix_layout=[(0,0,0)])
     fb.point(1,2,color=3)
     expected_fb = '''
         00000000
@@ -152,7 +158,7 @@ def point3():
 
 @testing.automatic
 def point4():
-    fb = FrameBuffer(matrix_list=[(0,0)])
+    fb = FrameBuffer(matrix_layout=[(0,0,0)])
     fb.point(7,7,color=10)
     expected_fb = '''
         0000000A
@@ -168,7 +174,7 @@ def point4():
 
 @testing.automatic
 def point5():
-    fb = FrameBuffer(matrix_list=[(0,0)])
+    fb = FrameBuffer(matrix_layout=[(0,0,0)])
     fb.point(7,7,color=10)
     expected_fb = '''
         0000000A
@@ -188,31 +194,31 @@ def point5():
     fb.point(7,7,4)
 @testing.automatic
 def out_of_bounds_point1():
-    fb = FrameBuffer(matrix_list=[(0,0)])
+    fb = FrameBuffer(matrix_layout=[(0,0,0)])
     fb.point(-1, 0)
     return fb._framebuffer() == erased_fb()
 
 @testing.automatic
 def out_of_bounds_point2():
-    fb = FrameBuffer(matrix_list=[(0,0)])
+    fb = FrameBuffer(matrix_layout=[(0,0,0)])
     fb.point(0, -1)
     return fb._framebuffer() == erased_fb()
 
 @testing.automatic
 def out_of_bounds_point3():
-    fb = FrameBuffer(matrix_list=[(0,0)])
+    fb = FrameBuffer(matrix_layout=[(0,0,0)])
     fb.point(fb.width, 0)
     return fb._framebuffer() == erased_fb()
 
 @testing.automatic
 def out_of_bounds_point4():
-    fb = FrameBuffer(matrix_list=[(0,0)])
+    fb = FrameBuffer(matrix_layout=[(0,0,0)])
     fb.point(0, fb.height)
     return fb._framebuffer() == erased_fb()
 
 @testing.automatic
 def time_point():
-    fb = FrameBuffer(matrix_list=[(0,0)])
+    fb = FrameBuffer(matrix_layout=[(0,0,0)])
     return timeit(partial(fb.point, 0, 0)) > 40000
 
 #########################################################################
@@ -221,7 +227,7 @@ def time_point():
 
 @testing.automatic
 def line1():
-    fb = FrameBuffer(matrix_list=[(0,0)])
+    fb = FrameBuffer(matrix_layout=[(0,0,0)])
     fb.line((0,7),(7,7))
     expected_fb = '''
         FFFFFFFF
@@ -237,7 +243,7 @@ def line1():
 
 @testing.automatic
 def line2():
-    fb = FrameBuffer(matrix_list=[(0,0)])
+    fb = FrameBuffer(matrix_layout=[(0,0,0)])
     fb.line((0,0),(0,7))
     expected_fb = '''
         F0000000
@@ -253,7 +259,7 @@ def line2():
 
 @testing.automatic
 def line3():
-    fb = FrameBuffer(matrix_list=[(0,0)])
+    fb = FrameBuffer(matrix_layout=[(0,0,0)])
     fb.line((0,0),(7,7))
     expected_fb = '''
         0000000F
@@ -269,7 +275,7 @@ def line3():
 
 @testing.automatic
 def line4():
-    fb = FrameBuffer(matrix_list=[(0,0)])
+    fb = FrameBuffer(matrix_layout=[(0,0,0)])
     fb.line((0,0),(7,7))
     fb.line((7,0),(0,7), color=1)
     fb.line((2,0),(2,7), color=2)
@@ -288,7 +294,7 @@ def line4():
 
 @testing.automatic
 def line5():
-    fb = FrameBuffer(matrix_list=[(0,0)])
+    fb = FrameBuffer(matrix_layout=[(0,0,0)])
     fb.line((1,3),(6,5))
     expected_fb = '''
         00000000
@@ -309,7 +315,7 @@ def line5():
 
 @testing.automatic
 def rect1():
-    fb = FrameBuffer(matrix_list=[(0,0)])
+    fb = FrameBuffer(matrix_layout=[(0,0,0)])
     fb.rect((0,0),(8,8))
     expected_fb = '''
         FFFFFFFF
@@ -325,7 +331,7 @@ def rect1():
 
 @testing.automatic
 def rect2():
-    fb = FrameBuffer(matrix_list=[(0,0)])
+    fb = FrameBuffer(matrix_layout=[(0,0,0)])
     fb.rect((0,0),(8,8), fill=True)
     expected_fb = '''
         FFFFFFFF
@@ -341,7 +347,7 @@ def rect2():
 
 @testing.automatic
 def rect3():
-    fb = FrameBuffer(matrix_list=[(0,0)])
+    fb = FrameBuffer(matrix_layout=[(0,0,0)])
     fb.rect((2,1),(3,5), fill=True)
     expected_fb = '''
         00000000
@@ -357,7 +363,7 @@ def rect3():
 
 @testing.automatic
 def rect4():
-    fb = FrameBuffer(matrix_list=[(0,0)])
+    fb = FrameBuffer(matrix_layout=[(0,0,0)])
     fb.rect((0,0),(4,5), color=1)
     fb.rect((2,2),(6,6), color=2)
     fb.rect((5,1),(3,3), color=3)
@@ -389,7 +395,7 @@ def detect_fail():
 
 @testing.automatic
 def time_show():
-    fb = FrameBuffer(matrix_list=[(0,0)])
+    fb = FrameBuffer(matrix_layout=[(0,0,0)])
     return timeit(partial(fb.show), loops=200) > 300
 
 #########################################################################
@@ -544,7 +550,7 @@ def sprite_time_bitmap():
 
 @testing.automatic
 def sprite_draw_default_origin():
-    fb = FrameBuffer(matrix_list=[(0,0)])
+    fb = FrameBuffer(matrix_layout=[(0,0,0)])
     fb.erase(0xE)
     s = copy.deepcopy(default_sprite)
     fb.draw(s)
@@ -562,7 +568,7 @@ def sprite_draw_default_origin():
 
 @testing.automatic
 def sprite_draw():
-    fb = FrameBuffer(matrix_list=[(0,0)])
+    fb = FrameBuffer(matrix_layout=[(0,0,0)])
     fb.erase(0xE)
     s = copy.deepcopy(default_sprite)
     fb.draw(s, origin=(2,3))
@@ -619,7 +625,7 @@ def sprite_add_inconsistent_heights():
 def sprite_time_large_bitmap_draw_and_show():
     # This is currently quite slow, as it is all done in Python via a 2D array.
     # Speed not needed right now, but may in future move to numpy or CPython
-    fb = FrameBuffer(matrix_list=[(0,0)])
+    fb = FrameBuffer(matrix_layout=[(0,0,0)])
     s = Sprite((('5'*16) + '\n')*16)
     def draw():
         fb.draw(s)
