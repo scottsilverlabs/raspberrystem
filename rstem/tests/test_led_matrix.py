@@ -65,7 +65,7 @@ def default_erased():
     return fb._framebuffer() == erased_fb()
 
 @testing.automatic
-def zinit_two():
+def init_two():
     fb = FrameBuffer(matrix_layout=[(0,0,0), (8,0,0)])
     fb.line((0,0),(fb.width, fb.height), color=0xa)
     expected_fb = '''
@@ -79,6 +79,38 @@ def zinit_two():
         aa00000000000000
         '''
     return arrays_equal(expected_fb, fb)
+
+@testing.automatic
+def init_two_offset():
+    fb = FrameBuffer(matrix_layout=[(0,0,0), (8,3,0)])
+    fb.line((0,0),(fb.width, fb.height), color=0xa)
+    expected_fb = '''
+        00000000000000aa
+        0000000000000a00
+        00000000000aa000
+        0000000000a00000
+        000000000a000000
+        0000000aa0000000
+        000000a000000000
+        0000aa0000000000
+        000a000000000000
+        0aa0000000000000
+        a000000000000000
+        '''
+    return arrays_equal(expected_fb, fb)
+
+@testing.automatic
+def init_three_diagonal():
+    fb = FrameBuffer(matrix_layout=[(0,0,0), (8,8,0), (16,16,0)])
+    expected_fb = (('0' * 24) + '\n') * 24
+    return arrays_equal(expected_fb, fb)
+
+@testing.automatic
+def init_two_bad_angle():
+    try:
+        fb = FrameBuffer(matrix_layout=[(0,0,0), (8,0,123)])
+    except ValueError:
+        return True
     return False
 
 #########################################################################

@@ -345,7 +345,7 @@ class FrameBuffer(object):
             elif quarter_clockwise_rotations == 3:
                 flat = [self.fb[x][y] for y in reversed(range(y)) for x in range(x)]
             else:
-                raise Exception('Internal Error: Invalid rotation')
+                raise RuntimeException('Internal Error: Invalid rotation')
             even = flat[::2]
             odd = flat[1::2]
             bitstream += bytes(b[0] | (b[1] << 4) for b in zip(even, odd))
