@@ -67,8 +67,7 @@ class Button(Pin):
 
         super().__init__(pin)
 
-        with open(self.gpio_dir + "/direction", "w") as fdirection:
-            fdirection.write("in")
+        self._set_dir(output=False)
 
         self._enable_pullup(self.pin)
 

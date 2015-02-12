@@ -20,6 +20,7 @@ Cell, and other RaspberrySTEM Cells.
 """
 
 import os
+import time
 
 PINS = [2, 3, 4, 14, 15, 17, 18, 22, 23, 24, 25, 27]
 
@@ -44,6 +45,25 @@ class Pin(object):
         if pin in active_pins:
             active_pins[pin]._deactivate()
         active_pins[pin] = self
+
+    def _set_dir(self, output=False):
+        # Repeat try to set the direction -
+        TRIES = 12
+        SLEEP = 0.01
+        while TRIES:
+            try:
+                with open(self.gpio_dir + "/direction", "w") as fdirection:
+                    fdirection.write("out" if output else "in")
+            except IOError:
+                # Reraise the error if that was our last try
+                if TRIES == 1:
+                    raise
+                print("Retrying", SLEEP)
+                time.sleep(SLEEP)
+            else:
+                break
+            TRIES -= 1
+            SLEEP *= 2
 
     def _pullup(self, pin, enable):
         os.system("pullup.sbin %d %d" % (pin, enable))
@@ -84,9 +104,8 @@ class Output(Pin):
         """
         super().__init__(pin)
         self._active_low = active_low
-        with open(self.gpio_dir + "/direction", "w") as fdirection:
-            fdirection.write("out")
-            self._fvalue = open(self.gpio_dir + "/value", "w")
+        self._set_dir(output=True)
+        self._fvalue = open(self.gpio_dir + "/value", "w")
 
     def _set(self, level):
         self._fvalue.seek(0)
