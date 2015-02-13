@@ -73,6 +73,8 @@ class Button(Pin):
 
         self._fvalue = open(self.gpio_dir + "/value", "r")
 
+        self.current = 0
+
         self._button_queue = Queue()
         self._poll_thread_stop = Event()
         self._poll_thread = Thread(target=self.__button_poll_thread, args=())
@@ -87,14 +89,14 @@ class Button(Pin):
             self._fvalue.seek(0)
             read = self._fvalue.read().strip()
             if len(read):
-                current = 1 if read == '1' else 0
-                if previous >= 0 and current != previous:
-                    self._button_queue.put(current)
-                previous = current
+                self.current = 1 if read == '1' else 0
+                if previous >= 0 and self.current != previous:
+                    self._button_queue.put(self.current)
+                previous = self.current
 
-    def _edges(self):
+    def changes(self):
+        releases, presses, level = 0, 0, self.current
         try:
-            releases, presses = 0, 0
             while True:
                 level = self._button_queue.get_nowait()
                 if level:
@@ -103,17 +105,7 @@ class Button(Pin):
                     presses += 1
         except Empty:
             pass
-        return releases, presses
-
-    def _one_edge(self, level_wanted):
-        try:
-            while True:
-                level = self._button_queue.get_nowait()
-                if level == level_wanted:
-                    return 1
-        except Empty:
-            pass
-        return 0
+        return releases, presses, level
 
     def _wait(self, level_wanted, timeout=None):
         try:
@@ -129,10 +121,6 @@ class Button(Pin):
         except Empty:
             return False
 
-    def _get(self):
-        self._fvalue.seek(0)
-        return int(self._fvalue.read())
-
     def _deactivate(self):
         if self._poll_thread:
             self._poll_thread_stop.set()
@@ -146,18 +134,18 @@ class Button(Pin):
         is `False`, then the function returns the opposite - that is, it
         reports if the button released instead of pressed.
         """
-        pressed = not bool(self._get())
-        return pressed if press else not pressed
+        releases, presses, level = self.changes()
+        return not level if press else bool(level)
 
     def is_released(self):
         """Reports if the button is released.
 
-        Equivalent to `not self.is_pressed()`.
+        Equivalent to `not is_pressed()`.
         """
         return not self.is_pressed()
 
     def presses(self, press=True):
-        """Returns the number of presses since this function was last called.
+        """Returns the number of presses since presses/releases were last queried.
 
         Button presses and releases are queued up - this function reads all
         the presses/releases from the queue and returns the total number of
@@ -165,32 +153,17 @@ class Button(Pin):
         presses and releases to zero.
 
         Alternatively, if `press` is `False`, this function returns the number
-        of releases since this function was last called.
+        of releases since presses/releases were last queried.
         """
-        _releases, _presses = self._edges()
-        return _presses if press else _releases
+        releases, presses, level = self.changes()
+        return presses if press else releases
 
-    def one_press(self, press=True):
-        """Reports if a single press has occured.
+    def releases(self):
+        """Returns the number of releases since presses/releases were last queried.
 
-        Button presses and releases are queued up - this function reads the
-        next press from the queue, and returns 1.  If no presses are queued, it
-        returns 0.
-
-        For example, if the button was pressed 2 times, and then this function
-        was called 3 times, the result would be:
-
-            >>> button.one_press()
-            1
-            >>> button.one_press()
-            1
-            >>> button.one_press()
-            0
-
-        Alternatively, if `press` is `False`, this function reports releases
-        instead of presses.
+        Equivalent to `presses(press=False)`.
         """
-        return self._one_edge(0 if press else 1)
+        return self.presses(press=False)
 
     def wait(self, press=True, timeout=None):
         """Wait until a press occurs.
