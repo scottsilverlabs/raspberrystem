@@ -36,8 +36,27 @@ class Pin(object):
         self.pin = pin
         if pin in PINS:
             if not os.path.exists(self.gpio_dir):
-                with open("/sys/class/gpio/export", "w") as f:
-                    f.write("%d\n" % pin)
+                with open('/sys/class/gpio/export', 'w') as f:
+                    f.write('%d\n' % pin)
+
+                # Repeat trying to configure GPIO as input (default).  Repeats
+                # required because this can fail when run right after the pin
+                # is exported in /sys.  Once it passes, we know the pin is
+                # ready to use.
+                TRIES = 12
+                SLEEP = 0.01
+                while TRIES:
+                    try:
+                        self._set_dir(output=False)
+                    except IOError:
+                        # Reraise the error if that was our last try
+                        if TRIES == 1:
+                            raise
+                        time.sleep(SLEEP)
+                    else:
+                        break
+                    TRIES -= 1
+                    SLEEP *= 2
         else:
             raise ValueError("Invalid GPIO pin")
 
@@ -46,24 +65,20 @@ class Pin(object):
             active_pins[pin]._deactivate()
         active_pins[pin] = self
 
-    def _set_dir(self, output=False):
-        # Repeat try to set the direction -
-        TRIES = 12
-        SLEEP = 0.01
-        while TRIES:
-            try:
-                with open(self.gpio_dir + "/direction", "w") as fdirection:
-                    fdirection.write("out" if output else "in")
-            except IOError:
-                # Reraise the error if that was our last try
-                if TRIES == 1:
-                    raise
-                print("Retrying", SLEEP)
-                time.sleep(SLEEP)
-            else:
-                break
-            TRIES -= 1
-            SLEEP *= 2
+    def _write_gpio_file(self, filename, value):
+        with open(self.gpio_dir + '/' + filename, 'w') as f:
+            f.write(value)
+
+    def _set_dir(self, output=False, starts_off=True):
+        if output:
+            is_low = self._active_low and not starts_off or not self._active_low and starts_off
+            direction = 'low' if is_low else 'high'
+        else:
+            direction = 'in'
+        self._write_gpio_file('direction', direction)
+
+    def _set_active_low(self, enabled=True):
+        self._write_gpio_file('active_low', '1' if enabled else '0')
 
     def _pullup(self, pin, enable):
         os.system("pullup.sbin %d %d" % (pin, enable))
@@ -133,8 +148,7 @@ class DisablePin(Pin):
         super().__init__(*args, **kwargs)
 
     def _deactivate(self):
-        with open(self.gpio_dir + "/direction", "w") as fdirection:
-            fdirection.write("in")
+        self._set_dir(output=False)
         super()._deactivate()
 
 __all__ = ['Output', 'DisablePin']
