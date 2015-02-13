@@ -120,6 +120,7 @@ class Sound(BaseSound):
                     args += ['trim 0 {}'.format(duration)]
             args += ['repeat {}'.format(loops-1)]
             self.sox = SoxPlay(*args)
+        return self
 
 class Note(BaseSound):
     def __init__(self, pitch):
@@ -161,6 +162,7 @@ class Note(BaseSound):
             self._stop()
             args = ['-q -n synth {} sine {}'.format(duration, self.frequency)]
             self.sox = SoxPlay(*args)
+        return self
 
 class Speech(Sound):
     def __init__(self, text, espeak_options=''):
