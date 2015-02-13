@@ -160,7 +160,8 @@ class Note(BaseSound):
     def play(self, duration=1):
         with self.mutex:
             self._stop()
-            args = ['-q -n synth {} sine {}'.format(duration, self.frequency)]
+            duration = duration if duration else 0
+            args = ['-q -n synth {} sine {} gain 20'.format(duration, self.frequency)]
             self.sox = SoxPlay(*args)
         return self
 
