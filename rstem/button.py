@@ -228,7 +228,7 @@ class Button(Pin):
         # Python does not provide a way to wait on multiple Queues.  Big bummer.
         # To avoid overcomplicating this, we'll simply poll the queues.
         start = time.time()
-        while timeout == None or timeout - (time.time() - start) < 0:
+        while timeout == None or timeout - (time.time() - start) > 0:
             for i, button in enumerate(buttons):
                 button_found = button.wait(press=press, timeout=0)
                 if button_found:
