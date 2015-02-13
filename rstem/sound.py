@@ -130,7 +130,7 @@ class Note(BaseSound):
         try:
             self.frequency = float(pitch)
         except ValueError:
-            match = re.search("^([A-G])([b#]?)([0-9]?)$", pitch)
+            match = re.search('^([A-G])([b#]?)([0-9]?)$', pitch)
             if not match:
                 raise ValueError("pitch parameter must be a frequency or note (e.g. 'A', 'B#', or 'Cb4'")
             note, semitone, octave = match.groups()

@@ -14,10 +14,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-"""
+'''
 This module provides interfaces to GPIOs - useful for the lighting LEDs in the LED RaspberrySTEM
 Cell, and other RaspberrySTEM Cells.
-"""
+'''
 
 import os
 import time
@@ -32,7 +32,7 @@ class Pin(object):
     _ARG_PULL_UP = 2
 
     def __init__(self, pin):
-        self.gpio_dir = "/sys/class/gpio/gpio%d" % pin
+        self.gpio_dir = '/sys/class/gpio/gpio%d' % pin
         self.pin = pin
         if pin in PINS:
             if not os.path.exists(self.gpio_dir):
@@ -58,7 +58,7 @@ class Pin(object):
                     TRIES -= 1
                     SLEEP *= 2
         else:
-            raise ValueError("Invalid GPIO pin")
+            raise ValueError('Invalid GPIO pin')
 
         global active_pins
         if pin in active_pins:
@@ -81,7 +81,7 @@ class Pin(object):
         self._write_gpio_file('active_low', '1' if enabled else '0')
 
     def _pullup(self, pin, enable):
-        os.system("pullup.sbin %d %d" % (pin, enable))
+        os.system('pullup.sbin %d %d' % (pin, enable))
 
     def _enable_pullup(self, pin):
         self._pullup(pin, self._ARG_PULL_UP)
@@ -100,13 +100,13 @@ class Pin(object):
 
 
 class Output(Pin):
-    """A GPIO output.
+    '''A GPIO output.
 
     An `rstem.gpio.Output` configures a GPIO pin as an output.  The pin can then used as a
     programmable switch to drive LEDs, motor drivers, relays and other devices.
-    """
+    '''
     def __init__(self, pin, active_low=True):
-        """Create a new `Output`.
+        '''Create a new `Output`.
 
         `pin` is the number of the GPIO as labeled on the RaspberrySTEM Lid
         connector.  It is the GPIO number used by the Broadcom processor on
@@ -116,11 +116,11 @@ class Output(Pin):
         (grounded, i.e. 0 volts) when the output is turned `on`.  If
         `active_low=False`, then the output will be set HIGH (the supply
         voltage, i.e. 3.3 volts) when the output is turned `on`.
-        """
+        '''
         super().__init__(pin)
         self._active_low = active_low
         self._set_dir(output=True)
-        self._fvalue = open(self.gpio_dir + "/value", "w")
+        self._fvalue = open(self.gpio_dir + '/value', 'w')
 
     def _set(self, level):
         self._fvalue.seek(0)
@@ -128,23 +128,23 @@ class Output(Pin):
         self._fvalue.flush()
 
     def on(self):
-        """Turn the GPIO output on (repects `active_low` setting)."""
+        '''Turn the GPIO output on (repects `active_low` setting).'''
         self._set(not self._active_low)
 
     def off(self):
-        """Turn the GPIO output off (repects `active_low` setting)."""
+        '''Turn the GPIO output off (repects `active_low` setting).'''
         self._set(self._active_low)
 
 class DisablePin(Pin):
-    """Disable a previously used GPIO pin."""
+    '''Disable a previously used GPIO pin.'''
 
     def __init__(self, *args, **kwargs):
-        """Disable a previously used GPIO pin.
+        '''Disable a previously used GPIO pin.
 
         `pin` is the number of the GPIO as labeled on the RaspberrySTEM Lid
         connector.  It is the GPIO number used by the Broadcom processor on
         the Raspberry Pi.
-        """
+        '''
         super().__init__(*args, **kwargs)
 
     def _deactivate(self):
