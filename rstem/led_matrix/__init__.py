@@ -335,15 +335,16 @@ class FrameBuffer(object):
         
     def show(self):
         bitstream = b''
-        for x, y, quarter_clockwise_rotations in reversed(self.matrix_layout):
+        for xoff, yoff, quarter_clockwise_rotations in reversed(self.matrix_layout):
+            xrange, yrange = range(xoff, xoff+8), range(yoff, yoff+8)
             if quarter_clockwise_rotations == 0:
-                flat = [self.fb[x][y] for x in range(x) for y in range(y)]
+                flat = [self.fb[x][y] for x in xrange for y in yrange]
             elif quarter_clockwise_rotations == 1:
-                flat = [self.fb[x][y] for y in range(y) for x in reversed(range(x))]
+                flat = [self.fb[x][y] for x in xrange for y in reversed(yrange)]
             elif quarter_clockwise_rotations == 2:
-                flat = [self.fb[x][y] for x in reversed(range(x)) for y in reversed(range(y))]
+                flat = [self.fb[x][y] for x in reversed(xrange) for y in reversed(yrange)]
             elif quarter_clockwise_rotations == 3:
-                flat = [self.fb[x][y] for y in reversed(range(y)) for x in range(x)]
+                flat = [self.fb[x][y] for x in reversed(xrange) for y in yrange]
             else:
                 raise RuntimeException('Internal Error: Invalid rotation')
             even = flat[::2]
