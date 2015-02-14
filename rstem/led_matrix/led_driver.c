@@ -39,6 +39,9 @@ unsigned int spi_speed;
 
 int start_spi(unsigned long speed, int mode){
     char *sMode;
+    if (spi) {
+        close(spi);
+    }
     if(mode == 0){
         sMode = "/dev/spidev0.0";
     } else {
@@ -68,7 +71,7 @@ out:
     return spi;
 }
 
-int rw_bytes(int dev, unsigned char* val, unsigned char* buff, int len){
+int rw_bytes(int dev, char * val, char * buff, int len){
     struct spi_ioc_transfer tr = {
         .tx_buf = (unsigned long)val,
         .rx_buf = (unsigned long)buff,
@@ -84,11 +87,17 @@ int rw_bytes(int dev, unsigned char* val, unsigned char* buff, int len){
 static PyObject *py_init_spi(PyObject *self, PyObject *args){
     unsigned int speed;
     int mode;
+    int ret;
     if(!PyArg_ParseTuple(args, "ki", &speed, &mode)){
         PyErr_SetString(PyExc_TypeError, "Not an unsigned long and int!");
         return NULL;
     }
-    return Py_BuildValue("i", start_spi(speed, mode));
+    ret = start_spi(speed, mode);
+    if (ret < 0) {
+        PyErr_SetString(PyExc_IOError, "Failed to init SPI port.");
+        return NULL;
+    }
+    return Py_BuildValue("");
 }   
 
 static PyObject *py_send(PyObject *self, PyObject *args){
@@ -98,7 +107,10 @@ static PyObject *py_send(PyObject *self, PyObject *args){
         PyErr_SetString(PyExc_TypeError, "Not an unsigned int!");
         return NULL;
     }
-    rw_bytes(spi, s, s, len);
+    if (rw_bytes(spi, s, s, len) < 0) {
+        PyErr_SetString(PyExc_IOError, "Failed to read/write LED Matrices via SPI.");
+        return NULL;
+    }
     return Py_BuildValue("y#", s, len);
 }
 

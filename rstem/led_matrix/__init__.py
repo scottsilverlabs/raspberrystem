@@ -235,7 +235,7 @@ class Text(Sprite):
 class FrameBuffer(object):
     def __init__(self, matrix_layout=None, spi_port=0):
         if not matrix_layout:
-            num_matrices = self.detect()
+            num_matrices = self.detect(spi_port)
             if num_matrices == 0:
                 raise('No LED Matrices connected')
             elif num_matrices > 8:
@@ -352,12 +352,14 @@ class FrameBuffer(object):
         led_driver.send(bitstream)
 
     @staticmethod
-    def detect():
+    def detect(spi_port=0):
         '''Returns the number of matrices connected.  
         
         Requires matrices connected in a full chain from MOSI back to MISO on
         the Raspberry Pi.
         '''
+        led_driver.init_spi(SPI_SPEED, spi_port)
+
         # Matrix chain forms one long shift-register, of N * B, where N is the
         # number of matrices, and B is the length of the shift-register in each
         # matrix (32 bytes)
@@ -366,7 +368,8 @@ class FrameBuffer(object):
         # can detect the length by push a string of bytes longer than the max
         # through the chain.
         rand = os.urandom(32)
-        recv = led_driver.send(rand + bytes(MAX_MATRICES * MATRIX_SPI_SHIFT_REGISTER_LENGTH))
+        sequence = rand + bytes(MAX_MATRICES * MATRIX_SPI_SHIFT_REGISTER_LENGTH)
+        recv = led_driver.send(sequence)
 
         # Search the received bytes for the random sequence.  The offset
         # determines the number of matrices in the chain
@@ -377,6 +380,7 @@ class FrameBuffer(object):
                 break
         if i > MAX_MATRICES:
             raise IOError('Could not determine length of LED Matrix chain.')
+        return i
 
     @property
     def width(self):
