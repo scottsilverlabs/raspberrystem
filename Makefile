@@ -315,9 +315,12 @@ test:
 		TESTNAME="$${WITHOUT_EXTENSION##test_}"; \
 		echo "    make test-$$TESTNAME"; \
 	done
-	@echo "Or, replace 'test-' with 'auto-' to run only automatic tests"
+	@echo "Or, replace 'test-' with:"
+	@echo "    'auto-' to run only automatic tests"
+	@echo "    'manu-' to run only manual tests"
+	@echo "    'help-' to get help on a specific test"
 
-test-% auto-% help-%: push
+test-% auto-% manu-% help-%: push
 	$(RUNONPI) "cd rstem/tests; $(PYTHON) -m testing $@ $*"
 
 test-clean:

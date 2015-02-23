@@ -132,6 +132,7 @@ if __name__ == '__main__':
     #   just the suffix:
     #       *       Run all tests
     #       auto    Run only automatic tests
+    #       manu    Run only manual tests
     #       help    Show test's docstring
     #   user_test_name is the python test file to run (without the .py extension)
     #
@@ -148,6 +149,8 @@ if __name__ == '__main__':
     tests = [func for func in funcs if hasattr(func, 'test_type')]
     if user_test_type == 'auto':
         test_types = [AUTOMATIC_TEST]
+    elif user_test_type == 'manu':
+        test_types = [MANUAL_OUTPUT_TEST, MANUAL_INPUT_TEST]
     elif user_test_type == 'help':
         print('#' * 78)
         print()
