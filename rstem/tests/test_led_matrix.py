@@ -1,9 +1,3 @@
-import testing
-import time
-from functools import partial
-from rstem.led_matrix import FrameBuffer, Sprite, Text
-import copy
-
 '''
 Automatic API tests for LED Matrix.
 '''
@@ -18,6 +12,11 @@ Automatic API tests for LED Matrix.
         def set_pixel(self, point, color=15)
 
 '''
+import testing
+import time
+from functools import partial
+from rstem.led_matrix import FrameBuffer, Sprite, Text
+import copy
 
 def makefb(lines):
     # Remove whitespace from lines

@@ -317,11 +317,8 @@ test:
 	done
 	@echo "Or, replace 'test-' with 'auto-' to run only automatic tests"
 
-test-%: push
-	$(RUNONPI) "cd rstem/tests; $(PYTHON) -m testing all $*"
-
-auto-%: push
-	$(RUNONPI) "cd rstem/tests; $(PYTHON) -m testing auto $*"
+test-% auto-% help-%: push
+	$(RUNONPI) "cd rstem/tests; $(PYTHON) -m testing $@ $*"
 
 test-clean:
 	$(RUNONPI) rm -rf "~/rstem_logs"

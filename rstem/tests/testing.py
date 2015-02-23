@@ -123,13 +123,38 @@ def manual_input(func):
     return wrapper
 
 if __name__ == '__main__':
+    #
+    # Usage: python -m testing user_test_type user_test_name
+    #
+    # where:
+    #   user_test_type is [*|auto|help]-testname.  Anything after (and
+    #   including) the dash is ignored, if it is given.  The important part is
+    #   just the suffix:
+    #       *       Run all tests
+    #       auto    Run only automatic tests
+    #       help    Show test's docstring
+    #   user_test_name is the python test file to run (without the .py extension)
+    #
     user_test_type = sys.argv[1]
+    try:
+        # Remove everything after dash
+        dash_index = user_test_type.index('-')
+        user_test_type = user_test_type[:dash_index]
+    except ValueError:
+        pass
     module_name = 'test_' + sys.argv[2]
     module = importlib.import_module(module_name)
     funcs = [getattr(module, func) for func in dir(module)]
     tests = [func for func in funcs if hasattr(func, 'test_type')]
     if user_test_type == 'auto':
         test_types = [AUTOMATIC_TEST]
+    elif user_test_type == 'help':
+        print('#' * 78)
+        print()
+        print(module.__doc__)
+        print()
+        print('#' * 78)
+        sys.exit()
     else:
         test_types = set([test.test_type for test in tests])
 

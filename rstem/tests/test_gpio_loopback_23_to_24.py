@@ -1,19 +1,17 @@
+'''
+Automatic tests of gpio module via loopback output to input
+
+Short GPIO 23 to 24.
+'''
 import testing_log
 import importlib
 import testing
-import pytest
 import time
 from threading import Timer
 from functools import wraps
 
 from rstem.gpio import Output, DisablePin
 from rstem.button import Button
-
-'''
-Automatic tests of gpio module via loopback output to input
-
-Short GPIO 23 to 24.
-'''
 
 OUTPUT_PIN = 23
 INPUT_PIN = 24

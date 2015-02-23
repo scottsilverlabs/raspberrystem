@@ -1,3 +1,9 @@
+'''
+Tests of sound module
+
+Manual tests require a speaker attached to the the audio jack (with or without
+speaker amplifier).
+'''
 import testing_log
 import importlib
 import testing
@@ -6,13 +12,6 @@ from threading import Timer
 from functools import wraps
 
 from rstem.sound import Sound, Note, Speech
-
-'''
-Tests of sound module
-
-Manual tests require a speaker attached to the the audio jack (with or without
-speaker amplifier).
-'''
 
 TEST_SOUND='/home/pi/python_games/match1.wav'
 TEST_SOUND_LENGTH=0.565125
