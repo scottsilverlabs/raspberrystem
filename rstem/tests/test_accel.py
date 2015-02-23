@@ -33,6 +33,10 @@ def accel_forces(a):
     x_good = abs(0.0 - x) < 0.05
     y_good = abs(0.0 - y) < 0.05
     z_good = abs(1.0 - z) < 0.05
+    print("Note: Accelerometer should be sitting flat , with Z pointing up.")
+    print("X: {}".format(x))
+    print("Y: {}".format(y))
+    print("Z: {}".format(z))
     return x_good and y_good and z_good
 
 @testing.automatic

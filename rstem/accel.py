@@ -175,6 +175,10 @@ class Accel(object):
         # unsigned short) to floats in units of 'g'.
         g_forces = [(raw_force>>6)/self.resolution for raw_force in raw_forces]
 
+        # Part is on underside of board, this inverts the Y and Z axes.
+        x, y, z = g_forces
+        g_forces = x, -y, -z
+
         return g_forces
 
     def __del__(self):
