@@ -77,8 +77,11 @@ help:
 	@echo ""
 	@echo "Use cases:"
 	@echo "    For rstem development"
+	@echo "        <first time>:"
+	@echo "            make && make install # Required for post-install steps"
+	@echo "            sudo reboot"
 	@echo "        <repeat>:"
-	@echo "            make rstem-dev (only required once at start if not editing C files)"
+	@echo "            make rstem-dev (only required once at start unless editing C files)"
 	@echo "            <edit files>"
 	@echo "            make test-<test_suite>"
 	@echo "        make rstem-undev"
@@ -148,6 +151,10 @@ rstem-register:
 	$(SETUP) register
 
 rstem-install: rstem-undev
+	@if [ ! -e $(RSTEM_TAR) ]; then \
+		echo "Rstem package not built.  Did you run 'make' first?"; \
+		exit 1; \
+	fi
 	scp $(RSTEM_TAR) $(PI):/tmp
 	-$(RUNONPI) sudo $(PIP) uninstall -y $(RSTEM_NAME)
 	$(RUNONPI) sudo $(PIP) install /tmp/$(notdir $(RSTEM_TAR))
@@ -261,7 +268,7 @@ pi-setup:
 	@echo "            - For Mac: Use SDFormmatter."
 	@echo "        - NOOBS install (tested with v1.3.11):"
 	@echo "            - Extract zip file, copy all to SD card"
-	@echo "            - Boot target with SD card"
+	@echo "           - Boot target with SD card"
 	@echo "            - Install Raspbian (i) - takes a while"
 	@echo "    - Wifi setup"
 	@echo "         - Use startx, Wifi Config (from menu)"
