@@ -259,7 +259,8 @@ class FrameBuffer(object):
             raise ValueError('All matrix_layout origins must be greater than zero (x and y)')
 
         # Convert angles to quarter_clockwise_rotations
-        matrix_layout = [(x, y, _quarter_clockwise_rotations(angle)) for x, y, angle in matrix_layout]
+        matrix_layout = \
+            [(x, y, _quarter_clockwise_rotations(angle)) for x, y, angle in matrix_layout]
 
         self.matrix_layout = matrix_layout
         self.fb = [[0]*(maxy + 8) for i in range(maxx + 8)]
@@ -336,15 +337,16 @@ class FrameBuffer(object):
     def show(self):
         bitstream = b''
         for xoff, yoff, quarter_clockwise_rotations in reversed(self.matrix_layout):
-            xrange, yrange = range(xoff, xoff+8), range(yoff, yoff+8)
+            forward = range(8)
+            backward = reversed(range(8))
             if quarter_clockwise_rotations == 0:
-                flat = [self.fb[x][y] for x in xrange for y in yrange]
+                flat = [self.fb[xoff + x][yoff + y] for x in forward for y in forward]
             elif quarter_clockwise_rotations == 1:
-                flat = [self.fb[x][y] for x in xrange for y in reversed(yrange)]
+                flat = [self.fb[xoff + x][yoff + y] for y in backward for x in forward]
             elif quarter_clockwise_rotations == 2:
-                flat = [self.fb[x][y] for x in reversed(xrange) for y in reversed(yrange)]
+                flat = [self.fb[xoff + x][yoff + y] for x in backward for y in backward]
             elif quarter_clockwise_rotations == 3:
-                flat = [self.fb[x][y] for x in reversed(xrange) for y in yrange]
+                flat = [self.fb[xoff + x][yoff + y] for y in forward for x in backward]
             else:
                 raise RuntimeException('Internal Error: Invalid rotation')
             even = flat[::2]
