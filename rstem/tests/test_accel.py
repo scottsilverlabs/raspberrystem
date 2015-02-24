@@ -52,3 +52,18 @@ def accel_time_forces(a):
     MINIMUM_RATE = 100
     print("Output test running at: {:.2f}Hz (MINIMUM_RATE: {}Hz)".format(rate, MINIMUM_RATE))
     return rate > MINIMUM_RATE
+
+@testing.manual
+@io_setup()
+def accel_vertical(a):
+    '''Accelerometer should be sitting vertically, with Y pointing up.
+    '''
+    x, y, z = a.forces()
+    x_good = abs(0.0 - x) < 0.05
+    y_good = abs(1.0 - y) < 0.05
+    z_good = abs(0.0 - z) < 0.05
+    print("X: {}".format(x))
+    print("Y: {}".format(y))
+    print("Z: {}".format(z))
+    return x_good and y_good and z_good
+
