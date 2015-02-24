@@ -338,7 +338,7 @@ class FrameBuffer(object):
         bitstream = b''
         for xoff, yoff, quarter_clockwise_rotations in reversed(self.matrix_layout):
             forward = range(8)
-            backward = reversed(range(8))
+            backward = list(reversed(forward))
             if quarter_clockwise_rotations == 0:
                 flat = [self.fb[xoff + x][yoff + y] for x in forward for y in forward]
             elif quarter_clockwise_rotations == 1:
