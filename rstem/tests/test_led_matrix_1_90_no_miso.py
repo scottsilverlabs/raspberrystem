@@ -1,5 +1,8 @@
 '''
-Automatic API tests for LED Matrix.
+API tests for LED Matrix.
+
+The automatic tests require no LED matrix attached.  The manual tests require a
+single matrix rotated clockwise 90 degrees.
 '''
 
 '''
@@ -748,4 +751,34 @@ def text():
 @testing.automatic
 def time_text():
     return timeit(partial(Text, '0123456789'), loops=10) > 5
+
+#########################################################################
+# Manual tests
+#
+
+@testing.manual_output
+def brightness():
+    '''All matrices show displays all LEDs lit, from min to max brightness over about 1 second.
+    Should be left at max brightness.
+    '''
+    fb = FrameBuffer(matrix_layout=[(0,0,90)])
+    for i in range(16):
+        fb.erase(i)
+        fb.show()
+        time.sleep(0.1)
+
+@testing.manual_output
+def diagonal_wave_animation():
+    '''Displays a diagonal wave animation over ~3 seconds.  Movement should
+    appear in the direction from the botton right to the top left.
+    '''
+    fb = FrameBuffer(matrix_layout=[(0,0,90)])
+    colors = list(range(16)) + list(reversed(range(16)))
+    for i in range(80):
+        for x in range(16):
+            fb.line((x-8,0),(x,fb.height), color=colors[x])
+        fb.show()
+        # rotate colors
+        colors = colors[1:] + colors[:1]
+        time.sleep(0.04)
 

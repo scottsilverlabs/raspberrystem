@@ -58,7 +58,6 @@ def one_two_three():
     for i in range(3):
         fb.draw(numbers[i], (2,i*8))
     fb.show()
-    return True
 
 @testing.manual_output
 def brightness():
@@ -70,7 +69,6 @@ def brightness():
         fb.erase(i)
         fb.show()
         time.sleep(0.07)
-    return True
 
 @testing.automatic
 def verify_detect():
