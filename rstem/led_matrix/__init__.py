@@ -23,7 +23,7 @@ import copy
 import subprocess
 from itertools import islice
 
-MAX_MATRICES = 4
+MAX_MATRICES = 64
 MATRIX_SPI_SHIFT_REGISTER_LENGTH=32
 SPI_SPEED=250000
 width = 0    #: The width of the LED matrix grid
