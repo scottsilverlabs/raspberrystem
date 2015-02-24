@@ -46,6 +46,7 @@ def output_starts_off(b, o):
 def output_turned_on(b, o):
     o.off()
     o.on()
+    time.sleep(MINIMUM_BUTTON_PRESS_PERIOD)
     return b.is_released()
 
 @testing.automatic
@@ -53,6 +54,7 @@ def output_turned_on(b, o):
 def output_turned_off(b, o):
     o.on()
     o.off()
+    time.sleep(MINIMUM_BUTTON_PRESS_PERIOD)
     return b.is_pressed()
 
 @testing.automatic
@@ -87,24 +89,28 @@ def output_init_start_off_false(b, o):
 @io_setup(output_active_low=True)
 def output_init_active_low_on(b, o):
     o.on()
+    time.sleep(MINIMUM_BUTTON_PRESS_PERIOD)
     return b.is_pressed()
 
 @testing.automatic
 @io_setup(output_active_low=True)
 def output_init_active_low_off(b, o):
     o.off()
+    time.sleep(MINIMUM_BUTTON_PRESS_PERIOD)
     return b.is_released()
 
 @testing.automatic
 @io_setup()
 def button_is_pressed(b, o):
     o.off()
+    time.sleep(MINIMUM_BUTTON_PRESS_PERIOD)
     return b.is_pressed()
 
 @testing.automatic
 @io_setup()
 def button_is_released(b, o):
     o.on()
+    time.sleep(MINIMUM_BUTTON_PRESS_PERIOD)
     return b.is_released()
 
 def try_n_half_presses(n, b, o):
@@ -215,49 +221,15 @@ def button_6_half_releases(b, o):
     try_n_half_presses(6, b, o)
     return b.presses(press=False) == 3
 
-@testing.automatic
-@io_setup()
-def button_0_half_presses_get_one(b, o):
-    try_n_half_presses(0, b, o)
-    return [b.one_press()] == [0]
-
-@testing.automatic
-@io_setup()
-def button_1_half_presses_get_one(b, o):
-    try_n_half_presses(1, b, o)
-    return [b.one_press(), b.one_press()] == [1, 0]
-
-@testing.automatic
-@io_setup()
-def button_2_half_presses_get_one(b, o):
-    try_n_half_presses(2, b, o)
-    return [b.one_press(), b.one_press()] == [1, 0]
-
-@testing.automatic
-@io_setup()
-def button_3_half_presses_get_one(b, o):
-    try_n_half_presses(3, b, o)
-    return [b.one_press(), b.one_press(), b.one_press()] == [1, 1, 0]
-
-@testing.automatic
-@io_setup()
-def button_4_half_presses_get_one(b, o):
-    try_n_half_presses(4, b, o)
-    return [b.one_press(), b.one_press(), b.one_press()] == [1, 1, 0]
-
-@testing.automatic
-@io_setup()
-def button_5_half_presses_get_one(b, o):
-    try_n_half_presses(5, b, o)
-    return [b.one_press(), b.one_press(), b.one_press(), b.one_press()] == [1, 1, 1, 0]
-
 def _output_defaults():
     b = Button(INPUT_PIN)
     o = Output(OUTPUT_PIN) # default is active low!
 
     o.off() # HIGH
+    time.sleep(MINIMUM_BUTTON_PRESS_PERIOD)
     released_worked = b.is_released() # Released button is HIGH
     o.on() # LOW
+    time.sleep(MINIMUM_BUTTON_PRESS_PERIOD)
     pressed_worked = b.is_pressed() # PRESSED button is LOW
 
     DisablePin(OUTPUT_PIN)
@@ -270,7 +242,7 @@ def output_defaults():
 
 @testing.automatic
 def button_recreation():
-    # Recreate button pin serval times and verify
+    # Recreate button pin several times and verify
     for i in range(5):
         Button(INPUT_PIN)
         Button(OUTPUT_PIN)
