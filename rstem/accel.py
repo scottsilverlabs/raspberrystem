@@ -109,15 +109,50 @@ class Accel(object):
         os.write(self.fd, pack('bb', CTRL_REG1, 0x01))
 
         # Verify device is who we think it is
-        id = self._read(WHO_AM_I)[0]
-        if id != 0x5A:
+        # NOTE: Must retry, as self._read() is not guaranteed.
+        TRIES = 10
+        for i in range(TRIES):
+            id = self._read(WHO_AM_I)[0]
+            if id == 0x5A:
+                break
+            time.sleep(0.001)
+        if i + 1 == TRIES:
             raise IOError('MMA8653 Accelerometer is not returning correct ID ({})'.format(id))
 
-    def _read(self, command, bytes_to_read=1):
+    def _read(self, register, bytes_to_read=1):
+        '''Read bytes from Accelerometer, starting at `register`.
+
+        Reads from an arbitrary register require writing the register number, a
+        repeated-start, and the reading the register value.
+
+        Unfortunately, the MMA8653 appears to be a bit flaky, and although a
+        repeated-start transaction works most of the time, it sometimes gets
+        the MMA8653 in a funky state (specifically, it sometimes returns
+        nonsense values, even though it always correctly responds with ACKs on
+        the bus).
+
+        As a workaround, we do two things:
+            - If the register is low, we do not use a repeated-start
+              transaction, and instead use os.read() to read from regsiter 0 up
+              through the requested registers using the parts auto-increment
+              feature.  This works always, but only works for low registers
+              (STATUS and OUT_?_?SB)
+            - We add a read of one byte after the repeated-start transaction.
+              This appears to leave the device in a state where it is
+              responding correctly MOST of the time, in testing.  But beware -
+              this means you can't trust reads from high registers, and may
+              need to retry them.
+        '''
         if bytes_to_read > 8:
-            raise ValueError('MMA8653 Accelerometer does not (seem) to allow consectutive reads > 8')
-        # Create C-based I2C write message struct (1 byte command)
-        buf = create_string_buffer(bytes((command,)), 1)
+            raise ValueError('MMA8653 Accel. does not (seem) to allow consectutive reads > 8')
+
+        # HW Workaround for low registers to avoid repeated-start.  See docstring.
+        if register + bytes_to_read <= OUT_Z_LSB + 1:
+            data = os.read(self.fd, register + bytes_to_read)
+            return data[register:]
+
+        # Create C-based I2C write message struct (1 byte register)
+        buf = create_string_buffer(bytes((register,)), 1)
         write_msg = i2c_msg(
             addr=MMA8653_DEVICE_ADDR,
             flags=0,
@@ -146,6 +181,9 @@ class Accel(object):
         ret = ioctl(self.fd, I2C_RDWR, ioctl_arg)
         if ret != 2:
             raise IOError('ioctl() failed to send to I2C messages ({})'.format(ret))
+
+        # HW workaround.  See docstring.
+        os.read(self.fd, 1)
 
         return string_at(read_msg.buf, read_msg.len)
 
