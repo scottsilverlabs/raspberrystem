@@ -96,7 +96,7 @@ class Sound(BaseSound):
 
         self.filename = filename
 
-        # Is it a file?  Not a definitive test here, but used as a cuortesy to
+        # Is it a file?  Not a definitive test here, but used as a courtesy to
         # give a better error when the filename is wrong.
         if not os.path.isfile(filename):
             raise IOError("Sound file '{}' cannot be found".format(filename))
