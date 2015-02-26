@@ -1,4 +1,5 @@
 from rstem.led_matrix import FrameBuffer
+import time
 
 fb = FrameBuffer()
 
@@ -12,4 +13,5 @@ while True:
 
     # Show FrameBuffer on LED Matrix
     fb.show()
-    time.sleep(0.001)
+
+    time.sleep(0.01)
