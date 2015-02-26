@@ -10,7 +10,6 @@ spaceship_position = fb.width / 2
 TILT_FORCE = 0.1
 SPACESHIP_STEP = 0.1
 
-i = 0
 while True:
     # ########################################
     # Get inputs

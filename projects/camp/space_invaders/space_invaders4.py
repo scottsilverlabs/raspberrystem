@@ -1,4 +1,4 @@
-from rstem import Accel
+from rstem.accel import Accel
 from rstem.led_matrix import FrameBuffer
 import time
 
@@ -8,32 +8,27 @@ accel = Accel()
 spaceship_position = fb.width / 2
 
 alien_columns = [0, 1, 2, 3]
-alien_row = fb.height
+alien_row = fb.height - 1
 
-TILT_FORCE = 0.3
+TILT_FORCE = 0.1
+SPACESHIP_STEP = 0.1
 
 while True:
     # ########################################
     # Get inputs
     # ########################################
     x_force, y_force, z_force = accel.forces()
-    now = time.time()
 
     # ########################################
     # Change the World
     # ########################################
 
     # Move spaceship
-    if x_force < -TILT_FORCE:
+    if x_force > TILT_FORCE:
         spaceship_position -= SPACESHIP_STEP
-    elif x_force > TILT_FORCE:
+    elif x_force < -TILT_FORCE:
         spaceship_position += SPACESHIP_STEP
-    spaceship_position = max(0, min(fb.width - 1, spaceship_position)
-
-    # Move alien
-    if now - alien_start_time > ALIENS_STEP_TIME
-        alien_columns = [(column + 1) % fb.width for column in alien_columns]
-        alien_start_time = now
+    spaceship_position = max(0, min(fb.width - 1, spaceship_position))
 
     # ########################################
     # Show world
