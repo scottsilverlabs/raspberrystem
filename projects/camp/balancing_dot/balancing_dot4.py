@@ -17,12 +17,6 @@ while True:
         x += STEP
     x = max(min(fb.width, x), 0)
 
-    if y_force > TILT_FORCE:
-        y -= STEP
-    elif y_force < -TILT_FORCE:
-        y += STEP
-    y = max(min(fb.width, y), 0)
-    
     fb.erase()
     fb.point(round(x), round(y))
     fb.show()
