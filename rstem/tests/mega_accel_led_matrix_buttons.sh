@@ -4,7 +4,7 @@ echo "Accelerometer / LED Matrix / Buttons / LEDSs / GPIOs Test Lid"
 echo ""
 echo "Lid setup:"
 echo "  - Single LED matrix"
-echo "      - mounted 90 deg clockwise"
+echo "      - standard mount (cable on left)"
 echo "      - MISO connected"
 echo "      - SPI Port 0 (CE0)"
 echo "      - Reset unconnected"
@@ -22,10 +22,10 @@ echo "###################################################################"
 read
 make auto-accel
 make auto-gpio_loopback_23_to_24
-make auto-led_matrix_1_270_no_miso
+make auto-led_matrix_1_90_no_miso
 make auto-speaker
 
 make manu-accel
 make manu-gpio_loopback_23_to_24
-make manu-led_matrix_1_270_no_miso
+make manu-led_matrix_1_90_no_miso
 make manu-speaker
