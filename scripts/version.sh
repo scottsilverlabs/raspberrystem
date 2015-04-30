@@ -1,4 +1,4 @@
 #!/bin/bash
-echo raspberrystemtest > NAME
+echo raspberrystem > NAME
 git describe --tags --dirty > VERSION
 
