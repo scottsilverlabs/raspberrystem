@@ -3,8 +3,9 @@ import traceback
 import sys
 import time
 
-def failed(s):
-    print(traceback.format_exc())
+def failed(s, tb=False):
+    if tb:
+        print(traceback.format_exc())
     print("ERROR: ", s)
     print("TEST FAILED")
     sys.exit()
@@ -12,11 +13,18 @@ def failed(s):
 try:
     fb = FrameBuffer([(0,0,-90),(8,0,-90),(8,8,-90)])
 except:
-    failed("FrameBuffer() could not be intialized")
+    failed("FrameBuffer() could not be intialized", True)
 
-if len(fb.matrix_layout) != 3:
+if FrameBuffer.detect() != 3:
     failed("Should be exactly 3 LED Matrices attached")
 
+print("INFO: Three matrices found.")
+try:
+    for i in range(20):
+        if FrameBuffer.detect() != 3:
+            failed("Retesting detect() failure: Should be exactly 3 LED Matrices attached")
+except:
+    failed("Retesting detect() failure: exception caught", True)
 
 print("""
 Verify that the following sequence occurs:
