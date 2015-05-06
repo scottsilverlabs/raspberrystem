@@ -322,6 +322,7 @@ help:
 	@echo "        From target, to install ide:"
 	@echo "            pip install raspberrystem"
 	@echo "            pip install raspberrystem-ide"
+	@echo "            pip install raspberrystem-projects"
 	@echo ""
 	@echo "Final targets (copied to 'out' dir):"
 	@echo "    RSTEM API (w/ api_docs) (sdist): $(notdir $(RSTEM_TAR))"
