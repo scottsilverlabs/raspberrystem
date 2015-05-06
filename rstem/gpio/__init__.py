@@ -22,7 +22,7 @@ Cell, and other RaspberrySTEM Cells.
 import os
 import time
 
-PINS = [2, 3, 4, 14, 15, 17, 18, 22, 23, 24, 25, 27]
+PINS = range(2, 28)
 
 active_pins = {}
 
