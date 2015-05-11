@@ -21,27 +21,19 @@ from setuptools import setup, find_packages, Extension
 from setuptools.command.install import install as _install
 import subprocess
 
-def shell(cmd):
-    process = subprocess.Popen(cmd.split(), stdout=subprocess.PIPE)
-    stdout, stderr = process.communicate()
-    return stdout.decode().strip()
-
 # Utility function to read the README file.
-# Used for the long_description.  It's nice, because now 1) we have a top level
-# README file and 2) it's easier to type in the README file than to put a raw
-# string in below ...
 def read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
 def _post_install(dir):
     from subprocess import call
-    call("bash ./pkg/postinstall %s rstem" % dir, shell=True)
+    call('bash ./pkg/postinstall %s rstem' % dir, shell=True)
 
 # Post installation task to setup raspberry pi
 class install(_install):
     def run(self):
-        _install.run(self)
-        self.execute(_post_install, (self.install_lib,), msg="Running post install task...")
+        super().run()
+        self.execute(_post_install, (self.install_lib,), msg='Running post install task...')
 
 # C extension wrappers
 led_driver =  Extension('rstem.led_matrix.led_driver', sources = ['rstem/led_matrix/led_driver.c'])
@@ -49,22 +41,22 @@ led_driver =  Extension('rstem.led_matrix.led_driver', sources = ['rstem/led_mat
 setup(
     name = read('NAME').strip(),
     version = read('VERSION').strip(),
-    author = "Brian Silverman",
-    author_email = "bri@raspberrystem.com",
-    description = ("RaspberrySTEM Test"),
-    license = "BSD",
-    keywords = ["raspberrypi", "stem"],
-    url = "https://raspberrystem.com",
+    author = 'Brian Silverman',
+    author_email = 'bri@raspberrystem.com',
+    description = ('RaspberrySTEM API'),
+    license = 'Apache License 2.0',
+    keywords = ['raspberrystem', 'raspberrypi', 'stem'],
+    url = 'http://www.raspberrystem.com',
     packages = find_packages(),
     include_package_data = True,
     long_description = read('README.md'),
     # use https://pypi.python.org/pypi?%3Aaction=list_classifiers as help when editing this
     classifiers=[
-        "Development Status :: 2 - Pre-Alpha",
-        "Topic :: Education",
-        "License :: OSI Approved :: Apache Software License",
-        "Programming Language :: Python :: 3.2",
-        "Programming Language :: Python :: 3.3",
+        'Development Status :: 4 - Beta',
+        'Topic :: Education',
+        'License :: OSI Approved :: Apache Software License',
+        'Programming Language :: Python :: 3.2',
+        'Programming Language :: Python :: 3.3',
     ],
     cmdclass={'install': install},  # overload install command
     ext_modules = [led_driver]  # c extensions defined above

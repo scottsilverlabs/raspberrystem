@@ -15,26 +15,27 @@ done
 # Copy udev rule to correct place
 sudo cp ./pkg/90-raspberrystem.rules /etc/udev/rules.d/90-raspberrystem.rules
 
-# Set up SPI, I2C, etc...
+# Set up SPI, I2C, etc...  Taken from http://github.com/asb/raspi-config
+CONFIG=/boot/config.txt
+BLACKLIST=/etc/modprobe.d/raspi-blacklist.conf
+if ! [ -e $BLACKLIST ]; then
+    touch $BLACKLIST
+fi
 
-# lines to be in /etc/modules:
-declare -a modules=('i2c-bcm2708' 'i2c-dev' 'spidev' 'snd-bcm2835');
-for mod in ${modules[@]}; do
-    if grep -q $mod /etc/modules; then
-        echo "$mod already in /etc/modules."
-    else
-        echo "$mod not found in /etc/modules, adding...."
-        echo $mod | sudo tee -a /etc/modules >> /dev/null
-    fi
-done
+# SPI config
+SETTING=on
+sed $CONFIG -i -r -e "s/^((device_tree_param|dtparam)=([^,]*,)*spi)(=[^,]*)?/\1=$SETTING/"
+if ! grep -q -E "^(device_tree_param|dtparam)=([^,]*,)*spi=[^,]*" $CONFIG; then
+    printf "dtparam=spi=$SETTING\n" >> $CONFIG
+fi
+sed $BLACKLIST -i -e "s/^\(blacklist[[:space:]]*spi[-_]bcm2708\)/#\1/"
+#modprobe spi-bcm2708
 
-# lines to be commented out in /etc/modprobe.d/raspi-blacklist.conf:
-declare -a blacklist=('i2c-bcm2708' 'spi-bcm2708');
-for mod in ${blacklist[@]}; do
-    if grep -q "^blacklist $mod" /etc/modprobe.d/raspi-blacklist.conf; then
-        echo "$mod is blacklisted, commenting out...."
-        sudo sed -i -e "s/blacklist $mod/#blacklist $mod/g" /etc/modprobe.d/raspi-blacklist.conf
-    else
-        echo "$mod is not blacklisted."
-    fi
-done
+# I2C config
+sed $CONFIG -i -r -e "s/^((device_tree_param|dtparam)=([^,]*,)*i2c(_arm)?)(=[^,]*)?/\1=$SETTING/"
+if ! grep -q -E "^(device_tree_param|dtparam)=([^,]*,)*i2c(_arm)?=[^,]*" $CONFIG; then
+    printf "dtparam=i2c_arm=$SETTING\n" >> $CONFIG
+fi
+sed $BLACKLIST -i -e "s/^\(blacklist[[:space:]]*i2c[-_]bcm2708\)/#\1/"
+#modprobe i2c-bcm2708
+
