@@ -21,16 +21,15 @@ RSTEM_VER:=$(shell cat VERSION)
 
 # Final targets
 RSTEM_TAR:=$(OUT)/$(RSTEM_NAME)-$(RSTEM_VER).tar.gz
-PYDOC_TAR:=$(OUT)/$(RSTEM_NAME)_api_docs-$(RSTEM_VER).tar.gz
+PYDOC_TAR:=$(OUT)/$(RSTEM_NAME)_pydocs-$(RSTEM_VER).tar.gz
 
 # Target paths
-PI_IDE_API_DIR=/var/local/raspberrystem/ide/api
-PI_API_NAME=$(notdir $(PI_IDE_API_DIR))
+PYDOC_NAME=pydoc
 
 # Dependency files
 GIT_FILES=$(shell git ls-files)
 
-all: rstem ide doc pydoc
+all: rstem ide projects pydoc
 
 $(OUT):
 	mkdir -p $(OUT)
@@ -52,7 +51,7 @@ $(RSTEM_TAR): $(GIT_FILES) rstem-pydoc rstem-util | $(OUT)
 	mv dist/$(notdir $@) $@
 
 rstem-pydoc: $(PYDOC_TAR)
-	rm -rf rstem/api
+	rm -rf rstem/$(PYDOC_NAME)
 	tar xf $(PYDOC_TAR) -C rstem
 
 rstem-dev: push
@@ -93,16 +92,18 @@ $(PYDOC_TAR): $(GIT_FILES) | $(OUT)
 	@# (which doesn't require the API docs in the build via rstem-dev, and we
 	@# undev it at the end.
 	$(MAKE) rstem-dev
-	$(RUNONPI) pdoc --overwrite --html --html-dir $(PI_API_NAME) rstem
-	$(RUNONPI) tar czf $(PI_API_NAME).tar.gz $(PI_API_NAME)
-	scp $(PI):~/rsinstall/$(PI_API_NAME).tar.gz $@
+	$(RUNONPI) pdoc --overwrite --html --html-dir $(PYDOC_NAME) rstem
+	$(RUNONPI) tar czf $(PYDOC_NAME).tar.gz $(PYDOC_NAME)
+	scp $(PI):~/rsinstall/$(PYDOC_NAME).tar.gz $@
 	$(MAKE) rstem-undev
 
 pydoc-clean:
-	$(RUNONPI) rm -rf $(PI_API_NAME).tar.gz $(PI_API_NAME)
+	$(RUNONPI) rm -rf $(PYDOC_NAME).tar.gz $(PYDOC_NAME)
 	rm -f $(PYDOC_TAR)
 
 pydoc-upload:
+	#TBD
+	exit 1
 	rm -rf build/docs
 	mkdir -p build/docs
 	cd build/docs && tar xvf $(PYDOC_TAR)
@@ -132,20 +133,20 @@ host-clean:
 # avoiding that for now.
 
 #
-# doc repo
+# Projects repo
 #
-DOC_REPO=../raspberrystem-doc
+DOC_REPO=../raspberrystem-projects
 
 ifeq ($(wildcard $(DOC_REPO)),)
-doc doc-%:
+projects projects-%:
 	@echo "Warning: Skipping build of $@.  Git repo not found."
 else
 DOC_TARGETS=$(shell $(MAKE) -C $(DOC_REPO) targets)
-.PHONY: doc
-doc: doc-all | $(OUT)
+.PHONY: projects
+projects: projects-all | $(OUT)
 	cp $(DOC_TARGETS) $(OUT)
 
-doc-%:
+projects-%:
 	$(MAKE) -C $(DOC_REPO) $*
 endif
 
@@ -209,9 +210,9 @@ pi-setup:
 	$(RUNONPI) sudo apt-get install -y espeak
 	$(RUNONPI) sudo $(PIP) install pdoc
 
-CLEAN_TARGETS=rstem pydoc ide doc host test
-INSTALL_TARGETS=rstem ide doc
-UPLOAD_TARGETS=rstem pydoc ide
+CLEAN_TARGETS=rstem pydoc ide projects host test
+INSTALL_TARGETS=rstem ide projects
+UPLOAD_TARGETS=rstem ide projects
 
 clean: $(addsuffix -clean,$(CLEAN_TARGETS))
 	$(RUNONPI) "cd ~; sudo rm -rf ~/rsinstall"
@@ -251,43 +252,41 @@ test-clean:
 help:
 	@echo "Usage: make <make-target>, where <make-target> is one of:"
 	@echo "rstem commands (use to make/install pip packages):"
-	@echo "    rstem             setup.py sdist - Create a pip installable source distribution"
-	@echo "    rstem-dev       * setup.py develop - Build/install on target for (fast) development"
-	@echo "    rstem-undev     * setup.py develop --uninstall - Reverse of make rstem-dev"
-	@echo "    rstem-pydoc       Extract the pydocs into the rstem package"
-	@echo "    rstem-register    setup.py register - One-time user register/login on Cheeseshop"
-	@echo "    rstem-upload      setup.py upload - Upload source distribution to Cheeseshop"
-	@echo "    rstem-install   * pip install <tar.gz> - Install from source distribution"
-	@echo "    rstem-clean     * Remove all host and target rstem files"
-	@echo ""
-	@echo "Pydoc commands (HTML API documentation generated from source):"
-	@echo "    pydoc           * HTML API docs, for upload"
-	@echo "    pydoc-upload      Upload built API doc to <TBD>"
-	@echo "    pydoc-clean     * Remove all host and target rstem files"
+	@echo "    rstem               setup.py sdist - Create a pip installable source distribution"
+	@echo "    rstem-dev         * setup.py develop - Build/install on target for (fast) dev"
+	@echo "    rstem-undev       * setup.py develop --uninstall - Reverse of make rstem-dev"
+	@echo "    rstem-pydoc         Extract the pydocs into the rstem package"
+	@echo "    rstem-register      setup.py register - One-time user register/login on PyPI"
+	@echo "    rstem-upload        setup.py upload - Upload source distribution to PyPI"
+	@echo "    rstem-install     * pip install <tar.gz> - Install from source distribution"
+	@echo "    rstem-clean       * Remove all host and target rstem files"
 	@echo ""
 	@echo "Doc commands (docs are in a separate git repo.  Skip if not found):"
-	@echo "    doc               Create PDF docs and HTML projects"
-	@echo "    doc-install     * Install projects (from Instructor Manual)"
-	@echo "    doc-clean       * Uninstall projects"
+	@echo "    projects            Create HTML projects"
+	@echo "    projects-register   setup.py register - One-time user register/login on PyPI"
+	@echo "    projects-upload     setup.py upload - Upload source distribution to PyPI"
+	@echo "    projects-install  * Install projects (from Instructor Manual)"
+	@echo "    projects-clean    * Uninstall projects"
 	@echo ""
 	@echo "IDE commands (IDE is in a separate git repo.  Skip if not found):"
-	@echo "    ide               Build IDE."
-	@echo "    ide-upload      * Upload IDE."
-	@echo "    ide-install     * Install IDE."
-	@echo "    ide-run         * Start IDE server."
-	@echo "    ide-clean       * Clean IDE."
+	@echo "    ide                 Build IDE."
+	@echo "    ide-register        setup.py register - One-time user register/login on PyPI"
+	@echo "    ide-upload          setup.py upload - Upload source distribution to PyPI"
+	@echo "    ide-install       * Install IDE."
+	@echo "    ide-run           * Start IDE server."
+	@echo "    ide-clean         * Clean IDE."
 	@echo ""
 	@echo "Top-level commands:"
-	@echo "    [all]             make rstem, doc, ide"
-	@echo "    pi-setup        * One-time setup required on clean Raspbian install."
-	@echo "    test            * Run tests (TBD)"
-	@echo "    push            * Push changes on local computer onto pi"
-	@echo "    pull            * Pull changes on pi back to local onto pi (BE CARFEULL!!)"
-	@echo "    upload            make *-upload, and upload final binaries to <TBD>"
-	@echo "    install         * make *-install"
-	@echo "    clean           * make *-clean"
-	@echo "    run             * make ide-run"
-	@echo "    dev             * make rstem-dev"
+	@echo "    [all]               make rstem, projects, ide"
+	@echo "    pi-setup          * One-time setup required on clean Raspbian install."
+	@echo "    test              * Run tests (TBD)"
+	@echo "    push              * Push changes on local computer onto pi"
+	@echo "    pull              * Pull changes on pi back to local onto pi (BE CARFEULL!!)"
+	@echo "    upload              make *-upload, and upload final binaries to <TBD>"
+	@echo "    install           * make *-install"
+	@echo "    clean             * make *-clean"
+	@echo "    run               * make ide-run"
+	@echo "    dev               * make rstem-dev"
 	@echo ""
 	@echo " * Requires access to target Raspberry Pi"
 	@echo ""
@@ -306,7 +305,7 @@ help:
 	@echo "        make ide-install"
 	@echo "        make ide-run"
 	@echo "        <On host, open browser and point to raspberrypi>"
-	@echo "    X development (where X is in [ide, doc, rstem]:"
+	@echo "    X development (where X is in [ide, projects, rstem]:"
 	@echo "        <edit files>"
 	@echo "        make X && make X-install"
 	@echo "        <test & repeat>"
@@ -326,7 +325,6 @@ help:
 	@echo ""
 	@echo "Final targets (copied to 'out' dir):"
 	@echo "    RSTEM API (w/ api_docs) (sdist): $(notdir $(RSTEM_TAR))"
-	@echo "    Uploadable API doc HTML tarball: $(notdir $(PYDOC_TAR))"
 	@echo "    IDE (sdist):                     $(notdir $(IDE_TARGETS))"
 	@echo "    Projects (sdist):                $(notdir $(DOC_TARGETS))"
 	@echo "    Docs (PDF):                      TBD"
