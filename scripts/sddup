@@ -1,0 +1,126 @@
+#!/bin/bash
+#
+# SD Duplicator
+#
+# Copies image on a master SD Card to many destination SD cards.  Verifies
+# cards after copy.
+#
+# USB Ports MUST be connected in the following positions (shown looking into ports)
+#   -----------------------------------------------------------------------------|
+#   |              |   USB CARD (MASTER)       |   USB 7-PORT POWERED HUB (TOP)  |
+#   |   ETHERNET   |---------------------------|---------------------------------|
+#   |              |   KEYBOARD & MOUSE (OPT)  |   USB 7-PORT POWERED HUB (BOT)  |
+#   -----------------------------------------------------------------------------|
+#
+# - USB Hubs should have an SD card in SD card readers in each port, for each
+#   duplication to be made.
+# - Master SD Card should be in the port shown in the table above.
+#
+to_port()
+{
+    case `cut -d: -f2 <<< $1` in
+        1.2)     echo "master";;
+        1.4.4)   echo "top hub, port 1";;
+        1.4.3)   echo "top hub, port 2";;
+        1.4.2)   echo "top hub, port 3";;
+        1.4.5.5) echo "top hub, port 4";;
+        1.4.5.2) echo "top hub, port 5";;
+        1.4.5.3) echo "top hub, port 6";;
+        1.4.5.4) echo "top hub, port 7";;
+        1.5.4)   echo "bottom hub, port 1";;
+        1.5.3)   echo "bottom hub, port 2";;
+        1.5.2)   echo "bottom hub, port 3";;
+        1.5.5.5) echo "bottom hub, port 4";;
+        1.5.5.2) echo "bottom hub, port 5";;
+        1.5.5.3) echo "bottom hub, port 6";;
+        1.5.5.4) echo "bottom hub, port 7";;
+    esac
+}
+
+echo "SD Duplicator..."
+
+SRC=/dev/disk/by-path/platform-bcm2708_usb-usb-0:1.2:1.0-scsi-0:0:0:0
+DESTS=/dev/disk/by-path/platform-bcm2708_usb-usb-0\:1.[45].*:0
+
+if [ ! -b "$SRC" ]; then
+    echo "Source SD card reader not found"
+    exit 1
+else
+    echo "Found source SD card reader"
+fi
+echo "Found `echo $DESTS | wc -w` destination SD card readers"
+umount /dev/sd?? 2>/dev/null
+if ! blockdev --getsz $SRC >/dev/null; then
+    echo "Can't get SRC device size.  You need to run as root."
+    exit 1
+fi
+BLOCKS=`blockdev --getsz $SRC`
+rm -rf sddup.tmp
+mkdir -p sddup.tmp
+
+start_dup()
+{
+    pids=
+    for dest in $DESTS; do
+        dd bs=1M if=$SRC of=$dest &
+        pids+="$! "
+    done
+}
+
+start_verification()
+{
+    pids=
+    for dest in $SRC $DESTS; do
+        dd bs=1M if=$dest | md5sum | cut -d" " -f1 > "sddup.tmp/`to_port $dest`" &
+        pids+="$! "
+    done
+}
+
+wait_pids()
+{
+    for p in $pids; do
+        wait $p
+    done
+}
+
+echo
+echo "########################################################################"
+echo "# Starting duplication..."
+echo "# ...to see progress, in another shell run 'sudo killall -USR1 dd'"
+echo "#"
+
+start_dup
+wait_pids
+
+echo
+echo "########################################################################"
+echo "# Duplication done.  Verifying"
+echo "# ...to see progress, in another shell run 'sudo killall -USR1 dd'"
+echo "#"
+
+start_verification
+wait_pids
+
+echo
+echo "########################################################################"
+echo "# Verification output:"
+echo "#"
+
+master_md5="`cat sddup.tmp/master`"
+echo "master: $master_md5"
+for card in sddup.tmp/*; do
+    md5=`cat "$card"`
+    name=`basename "$card"`
+    [ "$name" == master ] && continue
+    if [ "$md5" == "$master_md5" ]; then
+        verification="verified"
+    else
+        verification="##### VERIFICATION FAILED #####"
+    fi
+    echo "$name: $md5 $verification"
+done
+
+#rm -rf sddup.tmp
+
+echo "Done"
+
