@@ -37,6 +37,20 @@ to_port()
     esac
 }
 
+#
+# For debugging:
+#COUNT=count=2
+
+VERIFY_ONLY=
+if [ -n "$1" ]; then
+    if [ "$1" == "ver" ]; then
+        VERIFY_ONLY=1
+    else
+        echo "Invalid first argument"
+        exit 1
+    fi
+fi
+
 echo "SD Duplicator..."
 
 SRC=/dev/disk/by-path/platform-bcm2708_usb-usb-0:1.2:1.0-scsi-0:0:0:0
@@ -48,7 +62,8 @@ if [ ! -b "$SRC" ]; then
 else
     echo "Found source SD card reader"
 fi
-echo "Found `echo $DESTS | wc -w` destination SD card readers"
+NUM_CARDS=`echo $DESTS | wc -w`
+echo "Found $NUM_CARDS destination SD card readers"
 umount /dev/sd?? 2>/dev/null
 if ! blockdev --getsz $SRC >/dev/null; then
     echo "Can't get SRC device size.  You need to run as root."
@@ -62,7 +77,7 @@ start_dup()
 {
     pids=
     for dest in $DESTS; do
-        dd bs=1M if=$SRC of=$dest &
+        dd bs=1M if=$SRC of=$dest $COUNT &
         pids+="$! "
     done
 }
@@ -71,7 +86,7 @@ start_verification()
 {
     pids=
     for dest in $SRC $DESTS; do
-        dd bs=1M if=$dest | md5sum | cut -d" " -f1 > "sddup.tmp/`to_port $dest`" &
+        dd bs=1M if=$dest $COUNT | md5sum | cut -d" " -f1 > "sddup.tmp/`to_port $dest`" &
         pids+="$! "
     done
 }
@@ -83,14 +98,16 @@ wait_pids()
     done
 }
 
-echo
-echo "########################################################################"
-echo "# Starting duplication..."
-echo "# ...to see progress, in another shell run 'sudo killall -USR1 dd'"
-echo "#"
+if [ ! -n "$VERIFY_ONLY" ]; then
+    echo
+    echo "########################################################################"
+    echo "# Starting duplication..."
+    echo "# ...to see progress, in another shell run 'sudo killall -USR1 dd'"
+    echo "#"
 
-start_dup
-wait_pids
+    start_dup
+    wait_pids
+fi
 
 echo
 echo "########################################################################"
@@ -108,19 +125,38 @@ echo "#"
 
 master_md5="`cat sddup.tmp/master`"
 echo "master: $master_md5"
+echo
+TOTAL=0
+PASS=0
+FAIL=0
 for card in sddup.tmp/*; do
     md5=`cat "$card"`
     name=`basename "$card"`
     [ "$name" == master ] && continue
     if [ "$md5" == "$master_md5" ]; then
         verification="verified"
+        PASS=$((PASS+1))
     else
         verification="##### VERIFICATION FAILED #####"
+        FAIL=$((FAIL+1))
     fi
-    echo "$name: $md5 $verification"
+    TOTAL=$((TOTAL+1))
+    printf "%20s   %s    %s\n" "$name" "$md5" "$verification"
 done
+echo
 
-#rm -rf sddup.tmp
+if [ "$TOTAL" != "$NUM_CARDS" ]; then
+    echo "##### ERROR: Total ($TOTAL) does not equal original num cards ($NUM_CARDS)"
+elif [ "$FAIL" != 0 ]; then
+    echo "##### WARNING: FAILED verification of $FAIL/$TOTAL cards"
+    echo "----- INFO: Remove offending card, and then run:"
+    echo "----- INFO:       sudo ./sddup ver"
+    echo "----- INFO: ...to verify only"
+else
+    echo "----- INFO: All $TOTAL cards passed verification"
+fi
 
-echo "Done"
+rm -rf sddup.tmp
+
+echo
 
