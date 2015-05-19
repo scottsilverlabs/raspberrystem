@@ -255,7 +255,7 @@ def button_recreation():
 def button_invalid_pin():
     passed = False
     try:
-        Button(5)
+        Button(28)
     except ValueError:
         passed = True
     return passed
