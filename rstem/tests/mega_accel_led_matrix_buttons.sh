@@ -4,8 +4,8 @@ echo "Accelerometer / LED Matrix / Buttons / LEDSs / GPIOs Test Lid"
 echo ""
 echo "Lid setup:"
 echo "  - Single LED matrix"
-echo "      - standard mount (cable on left)"
-echo "      - MISO connected"
+echo "      - 90deg mount (cable on top)"
+echo "      - MISO connected via button (normally open)"
 echo "      - SPI Port 0 (CE0)"
 echo "      - Reset unconnected"
 echo "  - Accelerometer: Power, Ground, SCL, SDA"
@@ -19,6 +19,7 @@ echo "  - GPIO shorted from 23 to 24"
 echo "  - Speaker connected to analog audio out"
 echo ""
 echo "###################################################################"
+echo "Press Enter to continue..."
 read
 make auto-accel
 make auto-gpio_loopback_23_to_24
