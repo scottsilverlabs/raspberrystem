@@ -70,6 +70,7 @@ class TestLogger:
             pass_counts_per_test_type = {}
             for t in testing.ordered_test_types:
                 pass_counts_per_test_type[t] = PassCounts()
+            rows = 0
             for row in csv.reader(log):
                 test_name, test_type, exc_name, filename, line_num, func_name, exc_msg = row
                 if test_type:
@@ -80,6 +81,9 @@ class TestLogger:
                     else:
                         pass_counts_per_test_type[test_type].failed += 1
                     pass_counts_per_test_type[test_type].total += 1
+                    rows += 1
+            if not rows:
+                return
             print("TEST SUMMARY:")
             for t in testing.ordered_test_types:
                 if pass_counts_per_test_type[t].total > 0:
@@ -113,11 +117,16 @@ class TestLogger:
         base_fmt = '{pass_fail_char:2}{test_type:5}{test_name:{test_name_length}}'
 
         # Calc longest test_name length
-        test_name_length = 0
+        test_name_length = 1
+        rows = 0
         with open(symlink_name) as log:
             for row in csv.reader(log):
                 test_name, test_type, exc_name, filename, line_num, func_name, exc_msg = row
                 test_name_length = max(test_name_length, len(test_name) + 1)
+                rows += 1
+        if not rows:
+            print("No tests")
+            return
 
         # Header - 2 lines: line of labels, then line of "-" for each label.
         header_fmt = base_fmt + '{exc:40}'
@@ -128,6 +137,8 @@ class TestLogger:
             'test_type' : 'TYPE',
             'exc' : 'EXCEPTION INFO (AND END OF TRACEBACK)',
             }
+        print(header_fmt)
+        print(kwfmt)
         print(header_fmt.format(**kwfmt))
         for key in kwfmt.keys():
             if isinstance(kwfmt[key], str):
