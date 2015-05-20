@@ -1,7 +1,8 @@
+#!/usr/bin/env python3
 from rstem.button import Button
 from rstem.sound import Note
 
-buttons = [Button(14), Button(15), Button(24), Button(23)]
+buttons = [Button(22), Button(23), Button(24), Button(27)]
 notes = [Note('A'), Note('B'), Note('C'), Note('D')]
 
 while True:

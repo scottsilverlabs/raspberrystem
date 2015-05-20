@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 from rstem.accel import Accel
 from rstem.button import Button
 from rstem.led_matrix import FrameBuffer, Sprite
@@ -5,12 +6,12 @@ from rstem.sound import Sound, Note
 import time
 from itertools import cycle
 
-fire_button = Button(22)
-fire_sound = Sound("fire.wav")
-hit_sound = Sound("hit.wav")
+fire_button = Button(24)
+fire_sound = Sound("/home/pi/fire.wav")
+hit_sound = Sound("/home/pi/hit.wav")
 notes = cycle([Note('B3'), Note('G3'), Note('E3'), Note('C3')])
 
-fb = FrameBuffer()
+fb = FrameBuffer([(0,0,90)])
 accel = Accel()
 
 spaceship = Sprite('''
