@@ -24,6 +24,8 @@ import time
 
 PINS = range(2, 28)
 
+PULLUP_CMD = '/usr/local/bin/pullup.sbin'
+
 active_pins = {}
 
 class Pin(object):
@@ -81,7 +83,7 @@ class Pin(object):
         self._write_gpio_file('active_low', '1' if enabled else '0')
 
     def _pullup(self, pin, enable):
-        os.system('pullup.sbin %d %d' % (pin, enable))
+        os.system('%s %d %d' % (PULLUP_CMD, pin, enable))
 
     def _enable_pullup(self, pin):
         self._pullup(pin, self._ARG_PULL_UP)
