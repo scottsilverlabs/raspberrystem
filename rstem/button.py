@@ -73,7 +73,7 @@ class Button(Pin):
 
         self._fvalue = open(self.gpio_dir + "/value", "r")
 
-        self.current = 0
+        self._set_current()
 
         self._button_queue = Queue()
         self._poll_thread_stop = Event()
@@ -81,18 +81,20 @@ class Button(Pin):
         self._poll_thread.daemon = True
         self._poll_thread.start()
 
+    def _set_current(self):
+        self._fvalue.seek(0)
+        read = self._fvalue.read().strip()
+        self.current = 1 if read == '1' else 0
+
     def __button_poll_thread(self):
         previous = -1
 
         bounce_time = 0.030
         while not self._poll_thread_stop.wait(bounce_time):
-            self._fvalue.seek(0)
-            read = self._fvalue.read().strip()
-            if len(read):
-                self.current = 1 if read == '1' else 0
-                if previous >= 0 and self.current != previous:
-                    self._button_queue.put(self.current)
-                previous = self.current
+            self._set_current()
+            if previous >= 0 and self.current != previous:
+                self._button_queue.put(self.current)
+            previous = self.current
 
     def changes(self):
         releases, presses, level = 0, 0, self.current
