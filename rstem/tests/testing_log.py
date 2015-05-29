@@ -137,8 +137,6 @@ class TestLogger:
             'test_type' : 'TYPE',
             'exc' : 'EXCEPTION INFO (AND END OF TRACEBACK)',
             }
-        print(header_fmt)
-        print(kwfmt)
         print(header_fmt.format(**kwfmt))
         for key in kwfmt.keys():
             if isinstance(kwfmt[key], str):
