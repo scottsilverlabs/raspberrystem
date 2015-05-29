@@ -36,7 +36,15 @@ class install(_install):
         self.execute(_post_install, (self.install_lib,), msg='Running post install task...')
 
 # C extension wrappers
-led_driver =  Extension('rstem.led_matrix.led_driver', sources = ['rstem/led_matrix/led_driver.c'])
+led_driver =  Extension(
+    'rstem.led_matrix.led_driver', 
+    sources=['rstem/led_matrix/led_driver.c']
+    )
+mixer =  Extension(
+    'rstem.sound.mixer', 
+    sources=['rstem/sound/mixer.c'],
+    libraries=['asound']
+    )
 
 setup(
     name = read('NAME').strip(),
@@ -59,6 +67,6 @@ setup(
         'Programming Language :: Python :: 3.3',
     ],
     cmdclass={'install': install},  # overload install command
-    ext_modules = [led_driver]  # c extensions defined above
+    ext_modules = [led_driver, mixer]  # c extensions defined above
 
 )

@@ -22,6 +22,7 @@ Additionally, it can be used for any audio out over the analog audio jack.
 import os
 import time
 import re
+from . import mixer     # c extension
 import tempfile
 from threading import Lock
 from subprocess import Popen, PIPE
@@ -121,6 +122,10 @@ class Sound(BaseSound):
             args += ['repeat {}'.format(loops-1)]
             self.sox = SoxPlay(*args)
         return self
+
+    def newplay(self):
+        print(mixer.send(b'Abx'))
+        pass
 
 class Note(BaseSound):
     def __init__(self, pitch):

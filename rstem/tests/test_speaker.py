@@ -24,6 +24,13 @@ def sound_init_with_known_good_sound():
     return isinstance(s, Sound)
 
 @testing.automatic
+def newplay():
+    s = Sound(TEST_SOUND)
+    s.newplay()
+    return True
+
+"""
+@testing.automatic
 def sound_length():
     return Sound(TEST_SOUND).length() == TEST_SOUND_LENGTH
 
@@ -393,3 +400,4 @@ def sound_sound_volume():
     '''
     raise Exception()
 
+"""
