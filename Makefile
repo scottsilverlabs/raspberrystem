@@ -179,36 +179,9 @@ pull:
 	rsync -azP "$(PI):~/rsinstall/*" ./
 
 pi-setup:
-	@echo "Required for this setup sequence to work:"
-	@echo "    - Base NOOBS install"
-	@echo "        - Format SD"
-	@echo "            - See also: https://github.com/raspberrypi/noobs"
-	@echo "            - For Mac: Use SDFormmatter."
-	@echo "        - NOOBS install (tested with v1.3.11):"
-	@echo "            - Extract zip file, copy all to SD card"
-	@echo "           - Boot target with SD card"
-	@echo "            - Install Raspbian (i) - takes a while"
-	@echo "    - Wifi setup"
-	@echo "         - Use startx, Wifi Config (from menu)"
-	@echo "         - Or use wpa_supplicant commands to edit conf file (untested)."
-	@echo "             sudo sh -c 'wpa_passphrase SSID PASS >> /etc/wpa_supplicant/wpa_supplicant.conf'"
-	@echo "                 where SSID/PASS are the actual SSID and password of the Wifi network."
-	@echo "             sudo reboot"
-	@echo "             Use ifconfig to show IP."
-	@echo "    - Note: first few ssh commands will request password"
-	@echo "    - Note: if first ssh fails, its likely because of a strict key checking "
-	@echo "        issue.  Run 'ssh-keygen -R <IP>' to remove the offending key."
-	@read -p "Ready?  Enter to continue, Ctrl-C to cancel> "
-	$(RUNONPI) "mkdir -p ~/.ssh"
-	scp ~/.ssh/id_rsa.pub  $(PI):.ssh/authorized_keys
-	$(RUNONPI) sudo sed -i '/XKBLAYOUT/s/\".*\"/\"us\"/' /etc/default/keyboard
-	$(RUNONPI) sudo apt-get update -y
-	$(RUNONPI) sudo apt-get install -y python3-pip
-	$(RUNONPI) sudo apt-get install -y libi2c-dev
-	$(RUNONPI) sudo apt-get install -y sox
-	$(RUNONPI) sudo apt-get install -y libsox-fmt-mp3
-	$(RUNONPI) sudo apt-get install -y espeak
-	$(RUNONPI) sudo $(PIP) install pdoc
+	@echo "Check the SW Test Plan (Google Docs) for info on SD card setup"
+	@echo "For development, you will also need (on the target):"
+	@echo "    sudo $(PIP) install pdoc"
 
 CLEAN_TARGETS=rstem pydoc ide projects host test
 INSTALL_TARGETS=rstem ide projects
@@ -317,10 +290,14 @@ help:
 	@echo "        make clean #optional"
 	@echo "        make && make install"
 	@echo "    Release:"
-	@echo "        git commit ...   # in each repo to be released"
-	@echo "        git tag M.N.P    # in each repo to be released"
-	@echo "        make"
-	@echo "        make upload"
+	@echo "        In each repo to be released:"
+	@echo "            git commit ..."
+	@echo "            git tag M.N.P"
+	@echo "            git push"
+	@echo "            git push --tags"
+	@echo "        Then once, from this repo:"
+	@echo "            make"
+	@echo "            make upload"
 	@echo "    Install from PyPI"
 	@echo "        From target, to install ide:"
 	@echo "            pip install raspberrystem"
