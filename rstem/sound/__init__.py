@@ -24,7 +24,8 @@ import time
 import re
 from . import mixer     # c extension
 import tempfile
-from threading import Lock
+from threading import RLock, Thread
+from queue import PriorityQueue, Empty
 from subprocess import Popen, PIPE
 
 '''
@@ -35,6 +36,60 @@ from subprocess import Popen, PIPE
             - absolute percentage
             - returns previous position, in seconds
 '''
+class Players(object):
+    def __init__(self):
+        mixer.init()
+        self.mutex = RLock()
+        self.players = set()
+        self.thread = Thread(target=self.daemon)
+        self.thread.daemon = True
+        self.thread.start()
+
+    def add(self, sound):
+        with self.mutex:
+            self.players.add(sound)
+
+    def remove(self, sound):
+        with self.mutex:
+            try:
+                self.players.remove(sound)
+            except KeyError:
+                # Ignore deleting the same sound multiple times (of course,
+                # also means we're ignoring deleting an invalid sound).
+                pass
+
+    def get(self):
+        msgs = []
+        with self.mutex:
+            # For each player, get an audio buffer.
+            for sound in frozenset(self.players):
+                priority, msg = sound.play_q.get()
+                if msg:
+                    msgs.append(msg + (sound,))
+                else:
+                    # No chunk means this is a STOP or EOF message
+                    if priority < 0:
+                        # We just got A high priority STOP message - flush the
+                        # queue unitl we hit EOF.
+                        while True:
+                            try:
+                                sound.play_q.get_nowait()
+                                sound.play_q.task_done()
+                            except Empty:
+                                break
+                    self.remove(sound)
+                    sound.play_q.task_done()
+        return msgs
+
+    def daemon(self):
+        while True:
+            msgs = self.get()
+            if msgs:
+                chunk, gain, sound = msgs[0]
+                mixer.play(chunk)
+                sound.play_q.task_done()
+            else:
+                time.sleep(0.01)
 
 class Sox(Popen):
     def __init__(self, *args, play=False):
@@ -52,40 +107,67 @@ class SoxPlay(Sox):
         super().__init__(*args, play=True, **kwargs)
 
 class BaseSound(object):
+    # Single instance of Players, for all sounds.
+    players = Players()
+
     def __init__(self):
         self._length = 0
-        self.mutex = Lock()
+        self.stop_play_mutex = RLock()
         self.sox = None
+        self.play_q = PriorityQueue()
+        self.__create_play_thread()
+        self.stopped = True
+
+    def __create_play_thread(self):
+        # TBD: thread creation in Python is slow.  Since the current approach
+        # uses a new thread on every play, this is somewhat painful (~1/10
+        # second)
+        self.play_thread = Thread(target=self._play_thread)
 
     def length(self):
         '''Returns the length in seconds of the sound'''
         return self._length
 
     def is_playing(self):
-        with self.mutex:
-            if not self.sox:
-                return False
-            playing = self.sox.poll() == None
-            if not playing:
-                self.sox = None
-            return playing
+        self.play_thread.is_alive()
 
-    def wait(self):
+    def wait(self, timeout=None):
         '''Wait until the sound has finished playing.'''
-        with self.mutex:
-            _sox = self.sox
-            self.sox = None
-        if _sox:
-            _sox.wait()
-
-    def _stop(self):
-        if self.sox:
-            self.sox.kill()
-        self.sox = None
+        if self.play_thread.is_alive():
+            self.play_thread.join(timeout)
+            mixer.flush()
 
     def stop(self):
-        with self.mutex:
-            self._stop()
+        with self.stop_play_mutex:
+            self.play_q.put((-1, None))
+            self.stopped = True
+            mixer.stop()
+            self.play_thread.join()
+            self.__create_play_thread()
+
+    def play(self):
+        with self.stop_play_mutex:
+            if self.play_thread.is_alive():
+                self.stop()
+            self.players.add(self)
+            self.play_thread.start()
+
+    def _play_thread(self):
+        self.stopped = False
+        chunk = self._chunker(1024)
+        chunks = 0
+        try:
+            while not self.stopped:
+                self.play_q.put((chunks, (next(chunk), 1)), timeout=0.01)
+                chunks += 1
+        except StopIteration:
+            pass
+        self.play_q.put((chunks + 1, None)) # EOF
+        self.play_q.join()
+
+    # dummy chunking function
+    def _chunker(chunk_size):
+        return bytes(1024)
 
 class Sound(BaseSound):
     def __init__(self, filename):
@@ -110,22 +192,14 @@ class Sound(BaseSound):
         except IndexError:
             raise IOError("Sox could not get sound file's length")
 
-    def play(self, loops=1, duration=None):
-        with self.mutex:
-            self._stop()
-            args = ['-q', [self.filename]]
-            if duration != None:
-                if duration < 0:
-                    duration = self._length + duration
-                if duration >= 0 and duration <= self._length:
-                    args += ['trim 0 {}'.format(duration)]
-            args += ['repeat {}'.format(loops-1)]
-            self.sox = SoxPlay(*args)
-        return self
-
-    def newplay(self):
-        print(mixer.send(b'Abx'))
-        pass
+    def _chunker(self, chunk_size):
+        with open(self.filename, "rb") as f:
+            while True:
+                chunk = f.read(chunk_size)
+                if chunk:
+                    yield chunk
+                else:
+                    break
 
 class Note(BaseSound):
     def __init__(self, pitch):
