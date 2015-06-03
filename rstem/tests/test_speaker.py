@@ -26,16 +26,17 @@ def sound_init_with_known_good_sound():
 @testing.automatic
 def sound_short_latency():
     s = Sound(TEST_SOUND)
-    #s = Sound('/opt/sonic-pi/etc/samples/loop_garzul.wav')
+    s.stop()
     start = time.time()
     s.play()
+    t = time.time()
     s.wait()
     duration = time.time() - start
     latency = duration - TEST_SOUND_LENGTH
-    print(latency, duration, TEST_SOUND_LENGTH)
     print("Latency: ", latency)
-    return latency < 0.050
+    return latency > 0 and latency < 0.050
 
+"""
 @testing.automatic
 def sound_stop_time():
     #s = Sound(TEST_SOUND_LONG)
@@ -47,9 +48,9 @@ def sound_stop_time():
     duration = time.time() - start
     stop_time = duration - 1
     print("Stop time: ", stop_time)
-    return stop_time < 0.050
-
+    return stop_time > 0 and stop_time < 0.150
 """
+
 @testing.automatic
 def sound_length():
     return Sound(TEST_SOUND).length() == TEST_SOUND_LENGTH
@@ -86,6 +87,11 @@ def sound_not_is_playing_after_play():
 def sound_is_playing_at_play_start():
     s = Sound(TEST_SOUND)
     s.play()
+    '''
+    for i in range(30):
+        print(s.is_playing())
+        time.sleep(0.01)
+        '''
     return s.is_playing()
 
 @testing.automatic
@@ -95,6 +101,7 @@ def sound_is_playing_at_play_middle():
     time.sleep(TEST_SOUND_LENGTH/2)
     return s.is_playing()
 
+"""
 @testing.automatic
 def sound_wait():
     s = Sound(TEST_SOUND)
@@ -419,13 +426,11 @@ def sound_sound_volume():
     each), at 20, 40, 60, 80 and 100% volume.
     '''
     raise Exception()
-
 """
+
 
 '''
 #New tests
 - 2 notes at same time return repeating data
-- latency is short
 - replay note
-- does stop wait for completion?
 '''
