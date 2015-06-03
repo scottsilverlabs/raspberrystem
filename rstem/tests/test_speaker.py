@@ -16,7 +16,30 @@ from rstem.sound import Sound, Note, Speech
 TEST_SOUND='/home/pi/python_games/match1.wav'
 TEST_SOUND_LENGTH=0.565125
 TEST_SOUND_LONG='/usr/share/scratch/Media/Sounds/Music Loops/Techno2.mp3'
+TEST_SOUND_LONG='/opt/sonic-pi/etc/samples/loop_garzul.wav'
 TEST_SOUND_LONG_LENGTH=14.837551
+
+"""
+@testing.automatic
+def abc():
+    import rstem
+    b = [rstem.button.Button(27), rstem.button.Button(17)]
+    s = Sound(TEST_SOUND)
+    while True:
+        press = rstem.button.Button.wait_many(b)
+        if press:
+            s.play()
+        else:
+            s.play()
+    return True
+
+@testing.automatic
+def abc1():
+    s = Sound('/home/pi/foo')
+    s.play(loops=10)
+    s.wait()
+    return True
+"""
 
 @testing.automatic
 def sound_init_with_known_good_sound():
@@ -29,31 +52,33 @@ def sound_short_latency():
     s.stop()
     start = time.time()
     s.play()
-    t = time.time()
     s.wait()
     duration = time.time() - start
     latency = duration - TEST_SOUND_LENGTH
     print("Latency: ", latency)
     return latency > 0 and latency < 0.050
 
-"""
 @testing.automatic
 def sound_stop_time():
     #s = Sound(TEST_SOUND_LONG)
     s = Sound('/opt/sonic-pi/etc/samples/loop_garzul.wav')
     s.play()
-    start = time.time()
     time.sleep(1)
+    start = time.time()
     s.stop()
-    duration = time.time() - start
-    stop_time = duration - 1
-    print("Stop time: ", stop_time)
-    return stop_time > 0 and stop_time < 0.150
-"""
+    end = time.time()
+    duration = end - start
+    print(start, end)
+    print("stop() duration: ", duration)
+    return duration > 0 and duration < 0.150
 
 @testing.automatic
 def sound_length():
-    return Sound(TEST_SOUND).length() == TEST_SOUND_LENGTH
+    expected = Sound(TEST_SOUND).length() 
+    actual = TEST_SOUND_LENGTH
+    print("Expected: ", expected)
+    print("Actual: ", actual)
+    return expected == actual
 
 @testing.automatic
 def sound_init_bad_filename():
@@ -79,19 +104,17 @@ def sound_not_is_playing_before_play():
 @testing.automatic
 def sound_not_is_playing_after_play():
     s = Sound(TEST_SOUND)
+    print("before play")
     s.play()
+    print("after play")
     time.sleep(TEST_SOUND_LENGTH + 0.5)
+    print("after wait: ", s.is_playing())
     return not s.is_playing()
 
 @testing.automatic
 def sound_is_playing_at_play_start():
     s = Sound(TEST_SOUND)
     s.play()
-    '''
-    for i in range(30):
-        print(s.is_playing())
-        time.sleep(0.01)
-        '''
     return s.is_playing()
 
 @testing.automatic
@@ -101,7 +124,6 @@ def sound_is_playing_at_play_middle():
     time.sleep(TEST_SOUND_LENGTH/2)
     return s.is_playing()
 
-"""
 @testing.automatic
 def sound_wait():
     s = Sound(TEST_SOUND)
@@ -133,20 +155,13 @@ def sound_not_playing_after_end_of_duration_play():
     return not s.is_playing()
 
 @testing.automatic
-def sound_playing_before_end_of_negative_duration_play():
+def sound_negative_duration_play_failure():
     s = Sound(TEST_SOUND_LONG)
-    s.play(duration=(1.0-TEST_SOUND_LONG_LENGTH))
-    time.sleep(0.5)
-    playing = s.is_playing()
-    s.stop()
-    return playing
-
-@testing.automatic
-def sound_not_playing_after_end_of_negative_duration_play():
-    s = Sound(TEST_SOUND_LONG)
-    s.play(duration=(1.0-TEST_SOUND_LONG_LENGTH))
-    time.sleep(1.5)
-    return not s.is_playing()
+    try:
+        s.play(duration=-1)
+    except ValueError:
+        return True
+    return False
 
 @testing.automatic
 def sound_playing_before_end_of_2_loops():
@@ -426,8 +441,6 @@ def sound_sound_volume():
     each), at 20, 40, 60, 80 and 100% volume.
     '''
     raise Exception()
-"""
-
 
 '''
 #New tests

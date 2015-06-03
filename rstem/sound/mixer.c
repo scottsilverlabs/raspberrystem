@@ -66,10 +66,6 @@ int audio_init()
 	err = err || snd_pcm_hw_params(handle, params);
 	if (err < 0) return -EIO;
 
-	snd_pcm_hw_params_get_buffer_time(params, &chunk_size, 0);
-    printf("buf: %d\n", chunk_size);
-	snd_pcm_hw_params_get_buffer_size(params, &chunk_size);
-    printf("buf: %d\n", chunk_size);
 	snd_pcm_hw_params_get_period_size(params, &chunk_size, 0);
 	bits_per_sample = snd_pcm_format_physical_width(DEFAULT_FORMAT);
 	bits_per_frame = bits_per_sample * DEFAULT_CHANNELS;
