@@ -53,6 +53,7 @@ ordered_test_types = enum(
     'MANUAL_TEST',
     'MANUAL_OUTPUT_TEST',
     'MANUAL_INPUT_TEST',
+    'DEBUG_TEST',
     )
 
 def test_type_short_name(test_type):
@@ -61,13 +62,17 @@ def test_type_short_name(test_type):
         'MANUAL_TEST' : 'MANU',
         'MANUAL_OUTPUT_TEST' : 'OUT',
         'MANUAL_INPUT_TEST' : 'IN',
+        'DEBUG_TEST' : 'DBG',
     }
     try:
         return test_type_mapping[test_type]
     except KeyError:
         return "ERR"
 
-def automatic(func):
+def debug(func):
+    return automatic(func, debug=True)
+
+def automatic(func, debug=False):
     @wraps(func)
     def wrapper():
         print(SEPARATOR)
@@ -85,7 +90,7 @@ def automatic(func):
             print(traceback.format_exc())
             exc = e
         testing_log.write(func, ordered_test_types[wrapper.test_type], exc)
-    wrapper.test_type = AUTOMATIC_TEST
+    wrapper.test_type = DEBUG_TEST if debug else AUTOMATIC_TEST
     return wrapper
 
 def manual(func):
@@ -229,6 +234,8 @@ if __name__ == '__main__':
         test_types = [AUTOMATIC_TEST]
     elif user_test_type == 'manu':
         test_types = [MANUAL_TEST, MANUAL_OUTPUT_TEST, MANUAL_INPUT_TEST]
+    elif user_test_type == 'debug':
+        test_types = [DEBUG_TEST]
     elif user_test_type == 'help':
         print('#' * 78)
         print()
@@ -237,7 +244,7 @@ if __name__ == '__main__':
         print('#' * 78)
         sys.exit()
     else:
-        test_types = set([test.test_type for test in tests])
+        test_types = [AUTOMATIC_TEST, MANUAL_TEST, MANUAL_OUTPUT_TEST, MANUAL_INPUT_TEST]
 
     # For each test type, in the defined order, run the tests
     testing_log.create()

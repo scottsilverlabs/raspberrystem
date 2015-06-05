@@ -209,9 +209,10 @@ test:
 	@echo "Or, replace 'test-' with:"
 	@echo "    'auto-' to run only automatic tests"
 	@echo "    'manu-' to run only manual tests"
+	@echo "    'debug-' to run only debug tests"
 	@echo "    'help-' to get help on a specific test"
 
-test-% auto-% manu-% help-%: push
+test-% auto-% manu-% debug-% help-%: push
 	$(RUNONPI) "cd rstem/tests; $(PYTHON) -m testing $@ $*"
 
 test-clean:
