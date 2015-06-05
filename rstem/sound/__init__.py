@@ -249,7 +249,6 @@ class Sound(BaseSound):
 
                 # If cached file doesn't exist, create it using sox
                 if not os.path.isfile(raw_name):
-                    print("create")
                     soxcmd = ['sox',
                         '-q',
                         filename,

@@ -240,14 +240,82 @@ def sound_play_then_replay():
 @testing.automatic
 def sound_get_set_volume():
     # Verify Sound volume attribute can be get/set.
-    return False
+    s = Sound(TEST_SOUND_LONG)
+    s.volume = 0
+    s.play(duration=0.5)
+    for i in range(10):
+        s.volume += 10
+        time.sleep(0.05)
+    s.wait()
+    return s.volume == 100
 
 @testing.automatic
 def sound_chaining_test():
-    # Sound should be chainable from init->play->wait add tests for each of
-    # play/wait/stop for each object type (Sound, Note, Speech) to verify they
-    # return themselves.
+    # Sound should be chainable from init->play->wait 
     return False
+    start = time.time()
+    Sound(TEST_SOUND).play().wait().play(duration=0.1).wait().play().stop()
+    duration = time.time() - start
+    expected = TEST_SOUND_LENGTH + 0.1
+    print("Expected: ", expected)
+    print("Actual: ", duration)
+    TOLERANCE = 0.2
+    print('Verifying actual within {} seconds of expected'.format(TOLERANCE))
+    return abs(expected - duration) < TOLERANCE
+
+@testing.automatic
+def sound_play_chainable():
+    Sound(TEST_SOUND).play().play()
+    return True
+
+@testing.automatic
+def sound_stop_chainable():
+    Sound(TEST_SOUND).stop().stop()
+    return True
+
+@testing.automatic
+def sound_wait_chainable():
+    Sound(TEST_SOUND).wait().wait()
+    return True
+
+@testing.automatic
+def note_play_chainable():
+    Note('A').play().play()
+    return True
+
+@testing.automatic
+def note_stop_chainable():
+    Note('A').stop().stop()
+    return True
+
+@testing.automatic
+def note_wait_chainable():
+    Note('A').wait().wait()
+    return True
+
+@testing.automatic
+def speech_play_chainable():
+    Speech("test").play().play()
+    return True
+
+@testing.automatic
+def speech_stop_chainable():
+    Speech("test").stop().stop()
+    return True
+
+@testing.automatic
+def speech_wait_chainable():
+    Speech("test").wait().wait()
+    return True
+
+@testing.automatic
+def sound_play_test_sound_and_note_mixed():
+    n = Note('A')
+    s = Sound(TEST_SOUND)
+    n.play(duration=None)
+    s.play()
+    s.wait()
+    n.stop()
 
 def _note_freq(note, expected_freq):
     # Frequencies from: http://www.phy.mtu.edu/~suits/notefreqs.html
@@ -437,6 +505,20 @@ def speech_play():
     return True
 
 @testing.manual_output
+def sound_play_test_sound_and_note_mixed():
+    '''The sound match1.wav will play TWO TIMES on the speaker, mixed with an
+    'A' note.
+    '''
+    n = Note('A')
+    s = Sound(TEST_SOUND)
+    n.play(duration=None)
+    s.play()
+    s.wait()
+    s.play()
+    s.wait()
+    n.stop()
+
+@testing.manual_output
 def speech_manual_play():
     '''The text "These aren't the droids you're looking for." will play on the speaker.'''
     s = Speech("These aren't the droids you're looking for.")
@@ -446,7 +528,7 @@ def speech_manual_play():
 @testing.manual_output
 def sound_play_test_sound():
     '''The sound match1.wav will play on the speaker (about 0.5 seconds).'''
-    s = Sound(TEST_SOUND).play()
+    s = Sound(TEST_SOUND)
     s.play()
     s.wait()
 
@@ -469,10 +551,9 @@ def sound_master_volume():
     master_volume( 90); Sound(TEST_SOUND).play().wait()
     master_volume(100); Sound(TEST_SOUND).play().wait()
 
-@testing.manual
+@testing.manual_output
 def sound_sound_volume():
-    '''The long test sound will play for 10 second with increasing volume.
-    '''
+    '''The long test sound will play for 10 second with increasing volume.  '''
     master_volume(100)
     s = Sound(TEST_SOUND_LONG)
     s.volume = 0
@@ -481,7 +562,6 @@ def sound_sound_volume():
         s.volume += 15
         time.sleep(0.5)
     s.wait()
-    return True
 
 '''
 #New tests
