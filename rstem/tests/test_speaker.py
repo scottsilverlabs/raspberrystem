@@ -22,25 +22,46 @@ TEST_SOUND_LONG_LENGTH=14.837551
 """
 @testing.automatic
 def abc():
-    import rstem
-    b = [rstem.button.Button(27), rstem.button.Button(17)]
-    s = Sound(TEST_SOUND)
+    from rstem.button import Button
+    from rstem.sound import Note
+
+    buttons = [Button(17), Button(27)]
+    notes = [Note('A'), Note('B')]
+
     while True:
-        press = rstem.button.Button.wait_many(b)
-        if press:
-            s.play()
-        else:
-            s.play()
+        for button, note in zip(buttons, notes):
+            if button.is_pressed():
+                if not note.is_playing():
+                    note.play(duration=None)
+            else:
+                note.stop()
+            time.sleep(0.01)
+    return True
+
+@testing.automatic
+def abc2():
+    from rstem.sound import Note
+    notes = [Note(n) for n in 'CDEFGABC']
+    while True:
+        for note in notes:
+            note.play(duration=2)
+            time.sleep(0.5)
     return True
 
 @testing.automatic
 def abc1():
-    s = Sound('/home/pi/foo')
-    s.play(loops=10)
-    s.wait()
+    s = [Sound('/home/pi/python_games/match0.wav'),
+        Sound('/home/pi/python_games/match1.wav'),
+        Sound('/home/pi/python_games/match2.wav'),
+        Sound('/home/pi/python_games/match3.wav')]
+    s[0].play()
+    s[1].play()
+    s[2].play()
+    s[3].play()
+    time.sleep(2)
     return True
-"""
 
+"""
 @testing.automatic
 def sound_init_with_known_good_sound():
     s = Sound(TEST_SOUND)

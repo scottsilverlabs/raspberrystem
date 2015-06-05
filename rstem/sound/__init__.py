@@ -20,8 +20,11 @@ Additionally, it can be used for any audio out over the analog audio jack.
 '''
 
 import os
+import sys
 import time
 import re
+import io
+from functools import partial
 from . import mixer     # c extension
 import tempfile
 from threading import RLock, Thread, Condition, Event
@@ -40,7 +43,7 @@ import math
 '''
 
 STOP, PLAY, FLUSH = range(3)
-CHUNK_SIZE = 1024
+CHUNK_BYTES = 1024
 SOUND_CACHE = '/home/pi/.rstem_sounds'
 
 def shell_cmd(cmd):
@@ -72,25 +75,27 @@ class Players(object):
     def daemon(self):
         chunk = None
         while True:
-            msgs = []
+            starting_sounds = []
+            chunks = []
+            gains = []
             with self.mutex:
                 # For each player, get an audio buffer.
                 for sound in frozenset(self.players):
                     count, chunk, gain = sound.play_q.get()
                     if count >= 0:
-                        msgs.append((sound, count, chunk, gain))
+                        if count == 0:
+                            starting_sounds.append(sound)
+                        chunks.append(chunk)
+                        gains.append(1.00)
                     else:
                         sound.flush_done.set()
                         self.remove(sound)
-            if msgs:
-                for sound, count, chunk, gain in msgs:
-                    if count == 0:
-                        sound.start_time = time.time()
-                #FIXME: need to implement actual mixer
-                sound, count, chunk, gain = msgs[0]
-                mixer.play(chunk)
+            if chunks:
+                for sound in starting_sounds:
+                    sound.start_time = time.time()
+                mixer.play(chunks, gains)
             else:
-                mixer.play(bytes(CHUNK_SIZE))
+                mixer.play([bytes(CHUNK_BYTES)], [1])
 
 class BaseSound(object):
     # Single instance of Players, for all sounds.
@@ -131,7 +136,6 @@ class BaseSound(object):
             
 
     def stop(self):
-        print("stop()")
         if self.play_state != STOP:
             with self.stop_play_mutex:
                 self.do_stop = True
@@ -167,12 +171,12 @@ class BaseSound(object):
             self.__set_state(PLAY)
 
             chunk = self._chunker(self.loops, self.duration)
-            chunks = 0
+            count = 0
             try:
                 self.do_stop = False
                 while not self.do_stop:
-                    self.play_q.put((chunks, next(chunk), 1), timeout=0.01)
-                    chunks += 1
+                    self.play_q.put((count, next(chunk), 1), timeout=0.01)
+                    count += 1
             except StopIteration:
                 pass
             self.play_q.put((-1, None, None)) # EOF
@@ -193,7 +197,7 @@ class BaseSound(object):
 
     # dummy chunking function
     def _chunker(self, loops, duration):
-        return bytes(CHUNK_SIZE)
+        return bytes(CHUNK_BYTES)
 
 class Sound(BaseSound):
     def __init__(self, filename):
@@ -203,35 +207,43 @@ class Sound(BaseSound):
         '''
         super().__init__()
 
-        # Is it a file?  Not a definitive test here, but used as a courtesy to
-        # give a better error when the filename is wrong.
-        if not os.path.isfile(filename):
-            raise IOError("Sound file '{}' cannot be found".format(filename))
+        self.bytes = None
+        if isinstance(filename, bytes):
+            data = filename 
+            self.file_opener = partial(io.BytesIO, data)
+            byte_length = len(data)
 
-        # Create cached file
-        if not os.path.isdir(SOUND_CACHE):
-            os.makedirs(SOUND_CACHE)
+        else:
+            # Is it a file?  Not a definitive test here, but used as a courtesy to
+            # give a better error when the filename is wrong.
+            if not os.path.isfile(filename):
+                raise IOError("Sound file '{}' cannot be found".format(filename))
+
+            # Create cached file
+            if not os.path.isdir(SOUND_CACHE):
+                os.makedirs(SOUND_CACHE)
         
-        _, file_ext = os.path.splitext(filename)
-        if file_ext != '.raw':
-            # Use sox to convert sound file to raw cached sound
-            elongated_file_name = re.sub('/', '_', filename)
-            raw_name = os.path.join(SOUND_CACHE, elongated_file_name)
+            _, file_ext = os.path.splitext(filename)
+            if file_ext != '.raw':
+                # Use sox to convert sound file to raw cached sound
+                elongated_file_name = re.sub('/', '_', filename)
+                raw_name = os.path.join(SOUND_CACHE, elongated_file_name)
 
-            # If cached file doesn't exist, create it using sox
-            if not os.path.isfile(raw_name):
-                soxcmd = 'sox -q {} -r44100 -L -b 16 -c 1 -t raw {}'.format(filename, raw_name)
-                print(soxcmd)
-                shell_cmd(soxcmd)
-            filename = raw_name
+                # If cached file doesn't exist, create it using sox
+                if not os.path.isfile(raw_name):
+                    soxcmd = 'sox -q {} -r44100 -L -b 16 -c 1 -t raw {}'.format(filename, raw_name)
+                    shell_cmd(soxcmd)
+                    # test error
+                filename = raw_name
 
-        byte_length = os.path.getsize(filename)
+            self.file_opener = partial(open, filename, 'rb')
+
+            byte_length = os.path.getsize(filename)
+
         self._length = round(byte_length / (self._SAMPLE_RATE * self._BYTES_PER_SAMPLE), 6)
 
-        self.filename = filename
-
     def _chunker(self, loops, duration):
-        with open(self.filename, "rb") as f:
+        with self.file_opener() as f:
             duration_bytes = self._time_to_bytes(duration)
             leftover = b''
             for loop in reversed(range(loops)):
@@ -239,29 +251,31 @@ class Sound(BaseSound):
                 bytes_written = 0
                 while duration_bytes == None or bytes_written < duration_bytes:
                     if leftover:
-                        chunk = leftover + f.read(CHUNK_SIZE - len(leftover))
+                        chunk = leftover + f.read(CHUNK_BYTES - len(leftover))
                         leftover = b''
                     else:
-                        chunk = f.read(CHUNK_SIZE)
+                        chunk = f.read(CHUNK_BYTES)
                     if chunk:
-                        if len(chunk) < CHUNK_SIZE and loop > 0:
+                        if len(chunk) < CHUNK_BYTES and loop > 0:
                             # Save partial chunk as leftovers
                             leftover = chunk
                             break
                         else:
                             # Pad silence, if we're on the last loop and it's not a full chunk
                             if loop == 0:
-                                chunk = chunk + bytes(CHUNK_SIZE)[len(chunk):]
-                            bytes_written += CHUNK_SIZE
+                                chunk = chunk + bytes(CHUNK_BYTES)[len(chunk):]
+                            bytes_written += CHUNK_BYTES
                             yield chunk
                     else:
                         # EOF
                         break
 
-class Note(Sound):
+class Note(BaseSound):
     def __init__(self, pitch):
         '''
         '''
+        super().__init__()
+
         try:
             self.frequency = float(pitch)
         except ValueError:
@@ -291,20 +305,17 @@ class Note(Sound):
 
             self.frequency = 2 ** (half_steps / 12.0) * 440.0
 
-        raw_fd, raw_name = tempfile.mkstemp(suffix='.raw')
-        soxcmd = 'sox -q -n -r44100 -L -b 16 -c 1 -t raw {} synth 0.1 sine {} gain 20'.format(
-            raw_name, self.frequency)
-        shell_cmd(soxcmd)
-        os.close(raw_fd)
-        self.raw_name = raw_name
-        super().__init__(raw_name)
-
     def play(self, duration=1):
-        super().play(loops=int(duration/0.1))
+        super().play(duration=duration)
 
-    def __del__(self):
-        os.remove(self.raw_name)
-        
+    def _chunker(self, loops, duration):
+        if duration == None:
+            chunks = 999999999
+        else:
+            chunks = int((self._time_to_bytes(duration) * loops) / CHUNK_BYTES)
+        for chunk in range(chunks):
+            yield mixer.note(chunk, float(self.frequency))
+
 class Speech(Sound):
     def __init__(self, text, espeak_options=''):
         '''

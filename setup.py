@@ -43,7 +43,7 @@ led_driver =  Extension(
 mixer =  Extension(
     'rstem.sound.mixer', 
     sources=['rstem/sound/mixer.c'],
-    libraries=['asound']
+    libraries=['m', 'asound']
     )
 
 setup(
