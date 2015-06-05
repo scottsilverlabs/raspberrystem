@@ -11,15 +11,16 @@ import time
 from threading import Timer
 from functools import wraps
 
-from rstem.sound import Sound, Note, Speech
+from rstem.sound import Sound, Note, Speech, master_volume
 
 TEST_SOUND='/home/pi/python_games/match1.wav'
 TEST_SOUND_LENGTH=0.565125
-TEST_SOUND_LONG='/usr/share/scratch/Media/Sounds/Music Loops/Techno2.mp3'
 TEST_SOUND_LONG='/opt/sonic-pi/etc/samples/loop_garzul.wav'
+TEST_SOUND_LONG='/usr/share/scratch/Media/Sounds/Music Loops/Techno2.mp3'
 TEST_SOUND_LONG_LENGTH=14.837551
 
 """
+
 @testing.automatic
 def abc():
     from rstem.button import Button
@@ -241,6 +242,13 @@ def sound_get_set_volume():
     # Verify Sound volume attribute can be get/set.
     return False
 
+@testing.automatic
+def sound_chaining_test():
+    # Sound should be chainable from init->play->wait add tests for each of
+    # play/wait/stop for each object type (Sound, Note, Speech) to verify they
+    # return themselves.
+    return False
+
 def _note_freq(note, expected_freq):
     # Frequencies from: http://www.phy.mtu.edu/~suits/notefreqs.html
     n = Note(note)
@@ -452,16 +460,28 @@ def sound_play_test_sound_loop_2():
 @testing.manual_output
 def sound_master_volume():
     '''The sound match1.wav will play on the speaker 5 times (about 0.5 seconds
-    each), at 20, 40, 60, 80 and 100% master volume.
+    each), at 60, 70, 80, 90 and 100% master volume.  Lower volumes are too low
+    to hear with an unamplified speaker.
     '''
-    raise Exception()
+    master_volume( 60); Sound(TEST_SOUND).play().wait()
+    master_volume( 70); Sound(TEST_SOUND).play().wait()
+    master_volume( 80); Sound(TEST_SOUND).play().wait()
+    master_volume( 90); Sound(TEST_SOUND).play().wait()
+    master_volume(100); Sound(TEST_SOUND).play().wait()
 
-@testing.manual_output
+@testing.manual
 def sound_sound_volume():
-    '''The sound match1.wav will play on the speaker 5 times (about 0.5 seconds
-    each), at 20, 40, 60, 80 and 100% volume.
+    '''The long test sound will play for 10 second with increasing volume.
     '''
-    raise Exception()
+    master_volume(100)
+    s = Sound(TEST_SOUND_LONG)
+    s.volume = 0
+    s.play(duration=10)
+    for i in range(20):
+        s.volume += 15
+        time.sleep(0.5)
+    s.wait()
+    return True
 
 '''
 #New tests

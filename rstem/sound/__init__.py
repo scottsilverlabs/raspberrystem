@@ -48,7 +48,13 @@ SOUND_CACHE = '/home/pi/.rstem_sounds'
 
 def shell_cmd(cmd):
     with open(os.devnull, "w") as devnull:
-        call(cmd.split(), stdout=devnull, stderr=devnull)
+        call(cmd, stdout=devnull, stderr=devnull)
+
+def master_volume(level):
+    if level < 0 or level > 100:
+        raise ValueError("level must be between 0 and 100.")
+
+    shell_cmd('amixer sset PCM {}%'.format(int(level)).split())
 
 class Players(object):
     def __init__(self):
@@ -86,7 +92,7 @@ class Players(object):
                         if count == 0:
                             starting_sounds.append(sound)
                         chunks.append(chunk)
-                        gains.append(1.00)
+                        gains.append(gain)
                     else:
                         sound.flush_done.set()
                         self.remove(sound)
@@ -106,8 +112,8 @@ class BaseSound(object):
         self._BYTES_PER_SAMPLE = 2
         self._CHANNELS = 1
         self._length = 0
+        self.gain = 1
         self.stop_play_mutex = RLock()
-        self.sox = None
         self.play_state = STOP
         self.state_change = STOP
         self.do_stop = False
@@ -133,6 +139,7 @@ class BaseSound(object):
             wait_time = self._length - (time.time() - self.start_time)
             if wait_time > 0:
                 time.sleep(wait_time)
+        return self
             
 
     def stop(self):
@@ -142,6 +149,7 @@ class BaseSound(object):
                 self.players.remove(self)
                 self.flush_done.set()
                 self.__wait_for_state(STOP)
+        return self
 
     def play(self, loops=1, duration=None):
         if duration and duration < 0:
@@ -155,6 +163,7 @@ class BaseSound(object):
             self.start_time = None
             self.do_play.set()
             self.__wait_for_state(PLAY)
+        return self
 
     def __wait_for_state(self, state):
         with self.cv_play_state:
@@ -175,7 +184,7 @@ class BaseSound(object):
             try:
                 self.do_stop = False
                 while not self.do_stop:
-                    self.play_q.put((count, next(chunk), 1), timeout=0.01)
+                    self.play_q.put((count, next(chunk), self.volume/100), timeout=0.01)
                     count += 1
             except StopIteration:
                 pass
@@ -188,12 +197,21 @@ class BaseSound(object):
             self.flush_done.clear()
             self.__set_state(STOP)
 
-
     def _time_to_bytes(self, duration):
         if duration == None:
             return None
         samples = duration * self._SAMPLE_RATE
         return samples * self._BYTES_PER_SAMPLE
+
+    @property
+    def volume(self):
+        return round(self.gain*100)
+
+    @volume.setter
+    def volume(self, level):
+        if level < 0:
+            raise ValueError("level must be a positive number")
+        self.gain = level/100
 
     # dummy chunking function
     def _chunker(self, loops, duration):
@@ -231,7 +249,16 @@ class Sound(BaseSound):
 
                 # If cached file doesn't exist, create it using sox
                 if not os.path.isfile(raw_name):
-                    soxcmd = 'sox -q {} -r44100 -L -b 16 -c 1 -t raw {}'.format(filename, raw_name)
+                    print("create")
+                    soxcmd = ['sox',
+                        '-q',
+                        filename,
+                        '-L',
+                        '-r44100',
+                        '-b16',
+                        '-c1',
+                        '-traw',
+                        raw_name]
                     shell_cmd(soxcmd)
                     # test error
                 filename = raw_name
@@ -307,6 +334,7 @@ class Note(BaseSound):
 
     def play(self, duration=1):
         super().play(duration=duration)
+        return self
 
     def _chunker(self, loops, duration):
         if duration == None:
@@ -329,4 +357,4 @@ class Speech(Sound):
     def __del__(self):
         os.remove(self.wav_name)
         
-__all__ = ['Sound', 'Note', 'Speech']
+__all__ = ['Sound', 'Note', 'Speech', 'master_volume']
