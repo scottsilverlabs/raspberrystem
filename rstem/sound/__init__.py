@@ -28,7 +28,7 @@ from functools import partial
 from . import mixer     # c extension
 import tempfile
 from threading import RLock, Thread, Condition, Event
-from queue import Queue
+from queue import Queue, Full
 from subprocess import call, check_output
 from struct import pack, unpack
 import math
@@ -181,14 +181,17 @@ class BaseSound(object):
 
             chunk = self._chunker(self.loops, self.duration)
             count = 0
-            try:
-                self.do_stop = False
-                while not self.do_stop:
+
+            self.do_stop = False
+            while not self.do_stop:
+                try:
                     self.play_q.put((count, next(chunk), self.volume/100), timeout=0.01)
-                    count += 1
-            except StopIteration:
-                pass
-            self.play_q.put((-1, None, None)) # EOF
+                except Full:
+                    pass
+                except StopIteration:
+                    self.play_q.put((-1, None, None)) # EOF
+                    break
+                count += 1
 
             self.__set_state(FLUSH)
             self.flush_done.wait()
