@@ -154,7 +154,12 @@ class BaseSound(object):
             with self.stop_play_mutex:
                 self.do_stop = True
                 self.players.remove(self)
+
+                # Flush the Queue.   Doh!  We don't really flush at all -
+                # its too slow of an operation on the Queue.  Instead, we
+                # just let the Queue be gc'ed, and we create a new one.
                 self.flush_done.set()
+
                 self.__wait_for_state(STOP)
         return self
 
@@ -165,7 +170,7 @@ class BaseSound(object):
             self.stop()
             self.loops = loops
             self.duration = duration
-            self.play_q = Queue()
+            self.play_q = Queue(128)
             self.players.add(self)
             self.start_time = None
             self.do_play.set()
