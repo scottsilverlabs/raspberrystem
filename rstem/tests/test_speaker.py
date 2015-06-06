@@ -96,7 +96,7 @@ def sound_stop_time():
 
 @testing.automatic
 def sound_length():
-    expected = Sound(TEST_SOUND).length() 
+    expected = Sound(TEST_SOUND).length()
     actual = TEST_SOUND_LENGTH
     print("Expected: ", expected)
     print("Actual: ", actual)
@@ -152,6 +152,43 @@ def sound_wait():
     s.play()
     s.wait()
     return not s.is_playing()
+
+def verify_duration(start, expected):
+    duration = time.time() - start
+    print("Expected: ", expected)
+    print("Actual: ", duration)
+    TOLERANCE = 0.2
+    print('Verifying actual within {} seconds of expected'.format(TOLERANCE))
+    diff = duration - expected
+    return 0 < diff < TOLERANCE
+
+@testing.automatic
+def sound_wait_verify_duration():
+    s = Sound(TEST_SOUND)
+    start = time.time()
+    s.play().wait()
+    return verify_duration(start, TEST_SOUND_LENGTH)
+
+@testing.automatic
+def sound_wait_verify_duration_with_duration():
+    s = Sound(TEST_SOUND_LONG)
+    start = time.time()
+    s.play(duration=1).wait()
+    return verify_duration(start, 1)
+
+@testing.automatic
+def sound_wait_verify_duration_with_loops():
+    s = Sound(TEST_SOUND)
+    start = time.time()
+    s.play(loops=3).wait()
+    return verify_duration(start, 3*TEST_SOUND_LENGTH)
+
+@testing.automatic
+def sound_wait_verify_duration_with_duration_and_loops():
+    s = Sound(TEST_SOUND_LONG)
+    start = time.time()
+    s.play(duration=1, loops=3).wait()
+    return verify_duration(start, 3)
 
 @testing.automatic
 def sound_stop():
@@ -251,17 +288,10 @@ def sound_get_set_volume():
 
 @testing.automatic
 def sound_chaining_test():
-    # Sound should be chainable from init->play->wait 
-    return False
+    # Sound should be chainable from init->play->wait
     start = time.time()
     Sound(TEST_SOUND).play().wait().play(duration=0.1).wait().play().stop()
-    duration = time.time() - start
-    expected = TEST_SOUND_LENGTH + 0.1
-    print("Expected: ", expected)
-    print("Actual: ", duration)
-    TOLERANCE = 0.2
-    print('Verifying actual within {} seconds of expected'.format(TOLERANCE))
-    return abs(expected - duration) < TOLERANCE
+    return verify_duration(start, TEST_SOUND_LENGTH + 0.1)
 
 @testing.automatic
 def sound_play_chainable():
@@ -325,7 +355,7 @@ def _note_freq(note, expected_freq):
     print('Note: {}, expected frequency: {}'.format(note, expected_freq))
     print('Acutal frequency: {}'.format(actual_freq))
     return abs(expected_freq - actual_freq) < 0.1
-    
+
 @testing.automatic
 def note_play():
     n = Note('A')

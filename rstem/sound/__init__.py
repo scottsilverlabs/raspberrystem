@@ -113,6 +113,8 @@ class BaseSound(object):
         self._CHANNELS = 1
         self._length = 0
         self.gain = 1
+        self.loops = 1
+        self.duration = 0
         self.stop_play_mutex = RLock()
         self.play_state = STOP
         self.state_change = STOP
@@ -136,7 +138,12 @@ class BaseSound(object):
         '''Wait until the sound has finished playing.'''
         self.__wait_for_state(STOP)
         if self.start_time:
-            wait_time = self._length - (time.time() - self.start_time)
+            if self.duration == None:
+                total_time = self._length
+            else:
+                total_time = self.duration
+            total_time *= self.loops
+            wait_time = total_time - (time.time() - self.start_time)
             if wait_time > 0:
                 time.sleep(wait_time)
         return self
