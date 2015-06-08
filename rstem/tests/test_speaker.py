@@ -11,21 +11,96 @@ import time
 from threading import Timer
 from functools import wraps
 
-from rstem.sound import Sound, Note, Speech
+from rstem.sound import Sound, Note, Speech, master_volume
 
 TEST_SOUND='/home/pi/python_games/match1.wav'
 TEST_SOUND_LENGTH=0.565125
+TEST_SOUND_LONG='/opt/sonic-pi/etc/samples/loop_garzul.wav'
 TEST_SOUND_LONG='/usr/share/scratch/Media/Sounds/Music Loops/Techno2.mp3'
 TEST_SOUND_LONG_LENGTH=14.837551
 
+"""
+
+@testing.automatic
+def abc():
+    from rstem.button import Button
+    from rstem.sound import Note
+
+    buttons = [Button(17), Button(27)]
+    notes = [Note('A'), Note('B')]
+
+    while True:
+        for button, note in zip(buttons, notes):
+            if button.is_pressed():
+                if not note.is_playing():
+                    note.play(duration=None)
+            else:
+                note.stop()
+            time.sleep(0.01)
+    return True
+
+@testing.automatic
+def abc2():
+    from rstem.sound import Note
+    notes = [Note(n) for n in 'CDEFGABC']
+    while True:
+        for note in notes:
+            note.play(duration=2)
+            time.sleep(0.5)
+    return True
+
+@testing.automatic
+def abc1():
+    s = [Sound('/home/pi/python_games/match0.wav'),
+        Sound('/home/pi/python_games/match1.wav'),
+        Sound('/home/pi/python_games/match2.wav'),
+        Sound('/home/pi/python_games/match3.wav')]
+    s[0].play()
+    s[1].play()
+    s[2].play()
+    s[3].play()
+    time.sleep(2)
+    return True
+
+"""
 @testing.automatic
 def sound_init_with_known_good_sound():
     s = Sound(TEST_SOUND)
     return isinstance(s, Sound)
 
 @testing.automatic
+def sound_short_latency():
+    s = Sound(TEST_SOUND)
+    s.stop()
+    start = time.time()
+    s.play()
+    s.wait()
+    duration = time.time() - start
+    latency = duration - TEST_SOUND_LENGTH
+    print("Latency: ", latency)
+    return latency > 0 and latency < 0.050
+
+@testing.automatic
+def sound_stop_time():
+    #s = Sound(TEST_SOUND_LONG)
+    s = Sound('/opt/sonic-pi/etc/samples/loop_garzul.wav')
+    s.play()
+    time.sleep(1)
+    start = time.time()
+    s.stop()
+    end = time.time()
+    duration = end - start
+    print(start, end)
+    print("stop() duration: ", duration)
+    return duration > 0 and duration < 0.150
+
+@testing.automatic
 def sound_length():
-    return Sound(TEST_SOUND).length() == TEST_SOUND_LENGTH
+    expected = Sound(TEST_SOUND).length()
+    actual = TEST_SOUND_LENGTH
+    print("Expected: ", expected)
+    print("Actual: ", actual)
+    return expected == actual
 
 @testing.automatic
 def sound_init_bad_filename():
@@ -51,8 +126,11 @@ def sound_not_is_playing_before_play():
 @testing.automatic
 def sound_not_is_playing_after_play():
     s = Sound(TEST_SOUND)
+    print("before play")
     s.play()
+    print("after play")
     time.sleep(TEST_SOUND_LENGTH + 0.5)
+    print("after wait: ", s.is_playing())
     return not s.is_playing()
 
 @testing.automatic
@@ -74,6 +152,43 @@ def sound_wait():
     s.play()
     s.wait()
     return not s.is_playing()
+
+def verify_duration(start, expected):
+    duration = time.time() - start
+    print("Expected: ", expected)
+    print("Actual: ", duration)
+    TOLERANCE = 0.2
+    print('Verifying actual within {} seconds of expected'.format(TOLERANCE))
+    diff = duration - expected
+    return 0 < diff < TOLERANCE
+
+@testing.automatic
+def sound_wait_verify_duration():
+    s = Sound(TEST_SOUND)
+    start = time.time()
+    s.play().wait()
+    return verify_duration(start, TEST_SOUND_LENGTH)
+
+@testing.automatic
+def sound_wait_verify_duration_with_duration():
+    s = Sound(TEST_SOUND_LONG)
+    start = time.time()
+    s.play(duration=1).wait()
+    return verify_duration(start, 1)
+
+@testing.automatic
+def sound_wait_verify_duration_with_loops():
+    s = Sound(TEST_SOUND)
+    start = time.time()
+    s.play(loops=3).wait()
+    return verify_duration(start, 3*TEST_SOUND_LENGTH)
+
+@testing.automatic
+def sound_wait_verify_duration_with_duration_and_loops():
+    s = Sound(TEST_SOUND_LONG)
+    start = time.time()
+    s.play(duration=1, loops=3).wait()
+    return verify_duration(start, 3)
 
 @testing.automatic
 def sound_stop():
@@ -99,20 +214,13 @@ def sound_not_playing_after_end_of_duration_play():
     return not s.is_playing()
 
 @testing.automatic
-def sound_playing_before_end_of_negative_duration_play():
+def sound_negative_duration_play_failure():
     s = Sound(TEST_SOUND_LONG)
-    s.play(duration=(1.0-TEST_SOUND_LONG_LENGTH))
-    time.sleep(0.5)
-    playing = s.is_playing()
-    s.stop()
-    return playing
-
-@testing.automatic
-def sound_not_playing_after_end_of_negative_duration_play():
-    s = Sound(TEST_SOUND_LONG)
-    s.play(duration=(1.0-TEST_SOUND_LONG_LENGTH))
-    time.sleep(1.5)
-    return not s.is_playing()
+    try:
+        s.play(duration=-1)
+    except ValueError:
+        return True
+    return False
 
 @testing.automatic
 def sound_playing_before_end_of_2_loops():
@@ -169,7 +277,75 @@ def sound_play_then_replay():
 @testing.automatic
 def sound_get_set_volume():
     # Verify Sound volume attribute can be get/set.
-    return False
+    s = Sound(TEST_SOUND_LONG)
+    s.volume = 0
+    s.play(duration=0.5)
+    for i in range(10):
+        s.volume += 10
+        time.sleep(0.05)
+    s.wait()
+    return s.volume == 100
+
+@testing.automatic
+def sound_chaining_test():
+    # Sound should be chainable from init->play->wait
+    start = time.time()
+    Sound(TEST_SOUND).play().wait().play(duration=0.1).wait().play().stop()
+    return verify_duration(start, TEST_SOUND_LENGTH + 0.1)
+
+@testing.automatic
+def sound_play_chainable():
+    Sound(TEST_SOUND).play().play()
+    return True
+
+@testing.automatic
+def sound_stop_chainable():
+    Sound(TEST_SOUND).stop().stop()
+    return True
+
+@testing.automatic
+def sound_wait_chainable():
+    Sound(TEST_SOUND).wait().wait()
+    return True
+
+@testing.automatic
+def note_play_chainable():
+    Note('A').play().play()
+    return True
+
+@testing.automatic
+def note_stop_chainable():
+    Note('A').stop().stop()
+    return True
+
+@testing.automatic
+def note_wait_chainable():
+    Note('A').wait().wait()
+    return True
+
+@testing.automatic
+def speech_play_chainable():
+    Speech("test").play().play()
+    return True
+
+@testing.automatic
+def speech_stop_chainable():
+    Speech("test").stop().stop()
+    return True
+
+@testing.automatic
+def speech_wait_chainable():
+    Speech("test").wait().wait()
+    return True
+
+@testing.automatic
+def sound_play_test_sound_and_note_mixed():
+    n = Note('A')
+    s = Sound(TEST_SOUND)
+    n.play(duration=None)
+    s.play()
+    s.wait()
+    n.stop()
 
 def _note_freq(note, expected_freq):
     # Frequencies from: http://www.phy.mtu.edu/~suits/notefreqs.html
@@ -179,7 +355,7 @@ def _note_freq(note, expected_freq):
     print('Note: {}, expected frequency: {}'.format(note, expected_freq))
     print('Acutal frequency: {}'.format(actual_freq))
     return abs(expected_freq - actual_freq) < 0.1
-    
+
 @testing.automatic
 def note_play():
     n = Note('A')
@@ -359,6 +535,20 @@ def speech_play():
     return True
 
 @testing.manual_output
+def sound_play_test_sound_and_note_mixed():
+    '''The sound match1.wav will play TWO TIMES on the speaker, mixed with an
+    'A' note.
+    '''
+    n = Note('A')
+    s = Sound(TEST_SOUND)
+    n.play(duration=None)
+    s.play()
+    s.wait()
+    s.play()
+    s.wait()
+    n.stop()
+
+@testing.manual_output
 def speech_manual_play():
     '''The text "These aren't the droids you're looking for." will play on the speaker.'''
     s = Speech("These aren't the droids you're looking for.")
@@ -368,7 +558,7 @@ def speech_manual_play():
 @testing.manual_output
 def sound_play_test_sound():
     '''The sound match1.wav will play on the speaker (about 0.5 seconds).'''
-    s = Sound(TEST_SOUND).play()
+    s = Sound(TEST_SOUND)
     s.play()
     s.wait()
 
@@ -382,14 +572,29 @@ def sound_play_test_sound_loop_2():
 @testing.manual_output
 def sound_master_volume():
     '''The sound match1.wav will play on the speaker 5 times (about 0.5 seconds
-    each), at 20, 40, 60, 80 and 100% master volume.
+    each), at 60, 70, 80, 90 and 100% master volume.  Lower volumes are too low
+    to hear with an unamplified speaker.
     '''
-    raise Exception()
+    master_volume( 60); Sound(TEST_SOUND).play().wait()
+    master_volume( 70); Sound(TEST_SOUND).play().wait()
+    master_volume( 80); Sound(TEST_SOUND).play().wait()
+    master_volume( 90); Sound(TEST_SOUND).play().wait()
+    master_volume(100); Sound(TEST_SOUND).play().wait()
 
 @testing.manual_output
 def sound_sound_volume():
-    '''The sound match1.wav will play on the speaker 5 times (about 0.5 seconds
-    each), at 20, 40, 60, 80 and 100% volume.
-    '''
-    raise Exception()
+    '''The long test sound will play for 10 second with increasing volume.  '''
+    master_volume(100)
+    s = Sound(TEST_SOUND_LONG)
+    s.volume = 0
+    s.play(duration=10)
+    for i in range(20):
+        s.volume += 15
+        time.sleep(0.5)
+    s.wait()
 
+'''
+#New tests
+- 2 notes at same time return repeating data
+- replay note
+'''
