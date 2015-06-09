@@ -3,7 +3,7 @@ from rstem.button import Button
 from rstem.led_matrix import FrameBuffer, Sprite
 import time
 
-fire_button = Button(22)
+fire_button = Button(25)
 
 fb = FrameBuffer()
 accel = Accel()
