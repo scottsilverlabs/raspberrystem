@@ -117,7 +117,7 @@ class BaseSound(object):
         self.duration = 0
         self.stop_play_mutex = RLock()
         self.play_state = STOP
-        self.state_change = STOP
+        self.play_count = 0
         self.do_stop = False
         self.cv_play_state = Condition()
         self.do_play = Event()
@@ -147,7 +147,6 @@ class BaseSound(object):
             if wait_time > 0:
                 time.sleep(wait_time)
         return self
-            
 
     def stop(self):
         if self.play_state != STOP:
@@ -173,17 +172,28 @@ class BaseSound(object):
             self.play_q = Queue(128)
             self.players.add(self)
             self.start_time = None
+            previous_play_count = self.play_count
             self.do_play.set()
-            self.__wait_for_state(PLAY)
+            self.__wait_for_state(PLAY, previous_play_count=previous_play_count)
         return self
 
-    def __wait_for_state(self, state):
+    def __wait_for_state(self, state, previous_play_count=-1):
+        # Wait until given state is reached.
+        #
+        # We handle the PLAY state in a special way: because a play can be very
+        # short (for a short duration sound), we can't necessarily wait for it.
+        # Instead, we keep a play_count that is incremented on each play, and
+        # we wait for the count to get incremented.
+        #
         with self.cv_play_state:
-            self.cv_play_state.wait_for(lambda:self.play_state == state)
+            self.cv_play_state.wait_for(
+                lambda:self.play_state == state if state != PLAY else self.play_count != previous_play_count)
 
     def __set_state(self, state):
         with self.cv_play_state:
             self.play_state = state
+            if state == PLAY:
+                self.play_count += 1
             self.cv_play_state.notify()
     
     def __play_thread(self):

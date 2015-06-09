@@ -287,6 +287,33 @@ def sound_get_set_volume():
     return s.volume == 100
 
 @testing.automatic
+def sound_play_play():
+    '''Tests race condition case where a very short sound playing could cause a
+    followup wait() to never complete.  The curious call to Note() is there
+    because it caused the race codition to occur more reliably frequently.
+    '''
+    import signal
+
+    class TimeoutException(Exception):
+        pass
+
+    def handler(signum, frame):
+        raise TimeoutException()
+
+    signal.signal(signal.SIGALRM, handler)
+
+    signal.alarm(5)
+    timeout = False
+    try:
+        Note('A').play().play()
+        Sound(TEST_SOUND).play().wait().play(duration=0.001).wait()
+    except TimeoutException:
+        timeout = True
+    signal.alarm(0)
+
+    return not timeout
+
+@testing.automatic
 def sound_chaining_test():
     # Sound should be chainable from init->play->wait
     start = time.time()
