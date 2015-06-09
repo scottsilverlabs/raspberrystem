@@ -178,11 +178,6 @@ push:
 pull:
 	rsync -azP "$(PI):~/rsinstall/*" ./
 
-pi-setup:
-	@echo "Check the SW Test Plan (Google Docs) for info on SD card setup"
-	@echo "For development, you will also need (on the target):"
-	@echo "    sudo $(PIP) install pdoc"
-
 CLEAN_TARGETS=rstem pydoc ide projects host test
 INSTALL_TARGETS=rstem ide projects
 UPLOAD_TARGETS=rstem ide projects
@@ -290,20 +285,6 @@ help:
 	@echo "    Make and install everything"
 	@echo "        make clean #optional"
 	@echo "        make && make install"
-	@echo "    Release:"
-	@echo "        In each repo to be released:"
-	@echo "            git commit ..."
-	@echo "            git tag M.N.P"
-	@echo "            git push"
-	@echo "            git push --tags"
-	@echo "        Then once, from this repo:"
-	@echo "            make"
-	@echo "            make upload"
-	@echo "    Install from PyPI"
-	@echo "        From target, to install ide:"
-	@echo "            pip install raspberrystem"
-	@echo "            pip install raspberrystem-ide"
-	@echo "            pip install raspberrystem-projects"
 	@echo ""
 	@echo "Final targets (copied to 'out' dir):"
 	@echo "    RSTEM API (w/ api_docs) (sdist): $(notdir $(RSTEM_TAR))"
