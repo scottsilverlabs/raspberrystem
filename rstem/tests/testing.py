@@ -29,6 +29,10 @@ There are different types of tests:
         - @testing.manual_output
             - Test can be setup, and user must watch test output to determine
               pass/fail, and framework will query user for the result.
+        - @testing.manual_io
+            - Combination of manual_input and manual_output.  User can provide
+              input, and determines output pass/fail of the test.  Ctrl-C is
+              watched, and will kill this test only.
 '''
 import testing_log
 import traceback
@@ -137,7 +141,13 @@ def manual(func):
     wrapper.test_type = MANUAL_TEST
     return wrapper
 
+def manual_io(func):
+    return manual_io_decorator(func, ctrlc=True)
+
 def manual_output(func):
+    return manual_io_decorator(func, ctrlc=False)
+
+def manual_io_decorator(func, ctrlc):
     @wraps(func)
     def wrapper():
         retry = True
@@ -148,13 +158,21 @@ def manual_output(func):
             print('VERIFY THE FOLLOWING:')
             for line in func.__doc__.split('\n'):
                 print('\t' + line)
+            if ctrlc:
+                print('NOTE: Ctrl-C during this test will stop only this test')
             ret = input('Press Enter to start test (s to skip):').strip()
             if ret and ret[0].lower() == 's':
                 exc = TestSkippedException()
             else:
                 exc = 0
                 try:
-                    func()
+                    if ctrlc:
+                        try:
+                            func()
+                        except KeyboardInterrupt:
+                            pass
+                    else:
+                        func()
                 except Exception as e:
                     print('--> FAILED BY EXCEPTION')
                     print(traceback.format_exc())

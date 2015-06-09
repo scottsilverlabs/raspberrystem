@@ -13,7 +13,7 @@ from functools import wraps
 
 from rstem import accel
 
-def io_setup(output_active_low=False, pull=None):
+def io_setup():
     def decorator(func):
         @wraps(func)
         def wrapper():
