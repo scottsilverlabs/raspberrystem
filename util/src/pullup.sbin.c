@@ -15,7 +15,8 @@
 #include <sys/mman.h>
 
 
-#define MAP_ADDR    0x20200000
+//#define MAP_ADDR    0x20200000
+#define MAP_ADDR    0x3f200000
 #define MAP_SIZE    0x1000
 
 #define GPPUD       (0x94/4)
