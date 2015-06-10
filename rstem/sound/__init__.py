@@ -102,6 +102,7 @@ class Players(object):
                 mixer.play(chunks, gains)
             else:
                 mixer.play([bytes(CHUNK_BYTES)], [1])
+            time.sleep(0.01)
 
 class BaseSound(object):
     # Single instance of Players, for all sounds.
