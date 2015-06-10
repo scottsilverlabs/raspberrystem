@@ -208,6 +208,7 @@ class Button(Pin):
                 button_found = button.wait(press=press, timeout=0)
                 if button_found:
                     return i
+            time.sleep(0.01)
         return None
 
     @staticmethod

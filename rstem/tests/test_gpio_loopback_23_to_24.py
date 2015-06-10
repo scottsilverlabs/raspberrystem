@@ -289,6 +289,7 @@ def button_wait(b, o, press, push_time, timeout_time):
             wait_ret = b.wait(**kwargs)
     finally:
         t.join()
+    print("button wait returned: ", wait_ret)
     return wait_ret
 
 @testing.automatic
