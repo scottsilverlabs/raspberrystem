@@ -7,13 +7,13 @@ PKG_NAME=$2
 for SRC in ./util/bin/*.sbin; do
     DEST=/usr/local/bin/`basename $SRC`
     echo "Installing as setuid root: $DEST"
-    sudo cp $SRC $DEST
-    sudo chown root:root $DEST
-    sudo chmod 4755 $DEST
+    cp $SRC $DEST
+    chown root:root $DEST
+    chmod 4755 $DEST
 done
 
 # Copy udev rule to correct place
-sudo cp ./pkg/90-raspberrystem.rules /etc/udev/rules.d/90-raspberrystem.rules
+cp ./pkg/90-raspberrystem.rules /etc/udev/rules.d/90-raspberrystem.rules
 
 # Set up SPI, I2C, etc...  Taken from http://github.com/asb/raspi-config
 CONFIG=/boot/config.txt
@@ -29,7 +29,6 @@ if ! grep -q -E "^(device_tree_param|dtparam)=([^,]*,)*spi=[^,]*" $CONFIG; then
     printf "dtparam=spi=$SETTING\n" >> $CONFIG
 fi
 sed $BLACKLIST -i -e "s/^\(blacklist[[:space:]]*spi[-_]bcm2708\)/#\1/"
-#modprobe spi-bcm2708
 
 # I2C config
 sed $CONFIG -i -r -e "s/^((device_tree_param|dtparam)=([^,]*,)*i2c(_arm)?)(=[^,]*)?/\1=$SETTING/"
@@ -37,5 +36,8 @@ if ! grep -q -E "^(device_tree_param|dtparam)=([^,]*,)*i2c(_arm)?=[^,]*" $CONFIG
     printf "dtparam=i2c_arm=$SETTING\n" >> $CONFIG
 fi
 sed $BLACKLIST -i -e "s/^\(blacklist[[:space:]]*i2c[-_]bcm2708\)/#\1/"
-#modprobe i2c-bcm2708
 
+# Add i2c-dev to /etc/modules if it doesn't exist
+if ! grep -q '^[[:space:]]*i2c-dev[[:space:]]*$' /etc/modules; then
+    echo i2c-dev >> /etc/modules
+fi
