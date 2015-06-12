@@ -66,6 +66,9 @@ rstem-upload:
 rstem-register:
 	$(SETUP) register
 
+rstem-uninstall: rstem-undev
+	$(RUNONPI) sudo $(PIP) uninstall -y $(RSTEM_NAME)
+
 rstem-install: rstem-undev
 	@if [ ! -e $(RSTEM_TAR) ]; then \
 		echo "Rstem package not built.  Did you run 'make' first?"; \
@@ -180,10 +183,13 @@ pull:
 
 CLEAN_TARGETS=rstem pydoc ide projects host test
 INSTALL_TARGETS=rstem ide projects
+UNINSTALL_TARGETS=$(INSTALL_TARGETS)
 UPLOAD_TARGETS=rstem ide projects
 
 clean: $(addsuffix -clean,$(CLEAN_TARGETS))
 	$(RUNONPI) "cd ~; sudo rm -rf ~/rsinstall"
+
+uninstall: $(addsuffix -uninstall,$(UNINSTALL_TARGETS))
 
 install: $(addsuffix -install,$(INSTALL_TARGETS))
 
@@ -228,22 +234,25 @@ help:
 	@echo "    rstem-register      setup.py register - One-time user register/login on PyPI"
 	@echo "    rstem-upload        setup.py upload - Upload source distribution to PyPI"
 	@echo "    rstem-install     * pip install <tar.gz> - Install from source distribution"
+	@echo "    rstem-uninstall   * pip uninstall <NAME> - Uninstall"
 	@echo "    rstem-clean       * Remove all host and target rstem files"
 	@echo ""
 	@echo "Doc commands (docs are in a separate git repo.  Skip if not found):"
 	@echo "    projects            Create HTML projects"
 	@echo "    projects-register   setup.py register - One-time user register/login on PyPI"
 	@echo "    projects-upload     setup.py upload - Upload source distribution to PyPI"
-	@echo "    projects-install  * Install projects (from Instructor Manual)"
-	@echo "    projects-clean    * Uninstall projects"
+	@echo "    projects-install  * Install projects"
+	@echo "    projects-uninstall* Uninstall projects"
+	@echo "    projects-clean    * Clean projects"
 	@echo ""
 	@echo "IDE commands (IDE is in a separate git repo.  Skip if not found):"
 	@echo "    ide                 Build IDE."
 	@echo "    ide-register        setup.py register - One-time user register/login on PyPI"
 	@echo "    ide-upload          setup.py upload - Upload source distribution to PyPI"
-	@echo "    ide-install       * Install IDE."
-	@echo "    ide-run           * Start IDE server."
-	@echo "    ide-clean         * Clean IDE."
+	@echo "    ide-install       * Install IDE"
+	@echo "    ide-uninstall     * Uninstall IDE"
+	@echo "    ide-run           * Start IDE server"
+	@echo "    ide-clean         * Clean IDE"
 	@echo ""
 	@echo "Top-level commands:"
 	@echo "    [all]               make rstem, projects, ide"
@@ -253,6 +262,7 @@ help:
 	@echo "    pull              * Pull changes on pi back to local onto pi (BE CARFEULL!!)"
 	@echo "    upload              make *-upload, and upload final binaries to <TBD>"
 	@echo "    install           * make *-install"
+	@echo "    uninstall         * make *-uninstall"
 	@echo "    clean             * make *-clean"
 	@echo "    run               * make ide-run"
 	@echo "    dev               * make rstem-dev"
