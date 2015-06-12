@@ -1,12 +1,19 @@
+#!/usr/bin/env python3
+import rstem
 from rstem.button import Button
 from rstem.gpio import Output
 from rstem.sound import Note
 from random import randrange
 import time
 
-buttons = [Button(14), Button(15), Button(24), Button(23)]
-lights = [Output(4), Output(27), Output(17), Output(25)]
+buttons = [Button(27), Button(23), Button(24), Button(22)]
+lights = [Output(4), Output(18), Output(14), Output(15)]
 notes = [Note('A'), Note('B'), Note('C'), Note('D')]
+you_failed_note = Note('E2')
+you_failed_note.volume = 1000
+
+for note in notes:
+    note.volume = 400
 
 for light in lights:
     light.off()
@@ -48,7 +55,7 @@ if button_pressed == None:
         light.on()
 else:
     lights[button_pressed].on()
-Note('E2').play(1.5).wait()
+you_failed_note.play(1.5).wait()
 for light in lights:
     light.off()
 time.sleep(0.5)

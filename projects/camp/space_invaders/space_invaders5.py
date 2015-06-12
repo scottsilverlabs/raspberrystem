@@ -10,7 +10,7 @@ accel = Accel()
 
 spaceship_position = fb.width / 2
 
-aliens = [0, 1, 2, 3]
+alien_columns = [0, 1, 2, 3]
 alien_row = fb.height - 1
 
 missile_x, missile_y = -1, -1
@@ -65,7 +65,7 @@ while True:
     fb.point(round(spaceship_position), 0)
 
     # Draw aliens
-    for column in aliens:
+    for column in alien_columns:
         fb.point(column, alien_row)
 
     # Show FrameBuffer on LED Matrix

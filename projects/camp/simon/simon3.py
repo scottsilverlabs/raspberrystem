@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+import rstem
 from rstem.gpio import Output
 import time
 

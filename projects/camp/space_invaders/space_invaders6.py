@@ -10,7 +10,7 @@ accel = Accel()
 
 spaceship_position = fb.width / 2
 
-aliens = [0, 1, 2, 3]
+alien_columns = [0, 1, 2, 3]
 alien_row = fb.height - 1
 alien_start_time = time.time()
 
@@ -56,14 +56,14 @@ while True:
 
     # Move alien
     if now - alien_start_time > ALIENS_STEP_TIME:
-        aliens = [(column + 1) % fb.width for column in aliens]
+        alien_columns = [(column + 1) % fb.width for column in alien_columns]
         alien_start_time = now
 
     # Check for collision
-    if missile_y == alien_row and missile_x in aliens:
-        aliens.remove(missile_x)
+    if missile_y == alien_row and missile_x in alien_columns:
+        alien_columns.remove(missile_x)
         missile_x, missile_y = -1, -1
-        if not aliens:
+        if not alien_columns:
             break
 
     # ########################################
@@ -80,14 +80,14 @@ while True:
     fb.point(round(spaceship_position), 0)
 
     # Draw aliens
-    for column in aliens:
+    for column in alien_columns:
         fb.point(column, alien_row)
 
     # Show FrameBuffer on LED Matrix
     fb.show()
     time.sleep(0.001)
 
-if aliens:
+if alien_columns:
     print("Ouch!")
 else:
     print("You win!")
