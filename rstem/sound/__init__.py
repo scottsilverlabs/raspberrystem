@@ -108,6 +108,9 @@ class BaseSound(object):
     # Single instance of Players, for all sounds.
     players = Players()
 
+    # Default master volume
+    master_volume(100)
+
     def __init__(self):
         self._SAMPLE_RATE = 44100
         self._BYTES_PER_SAMPLE = 2
