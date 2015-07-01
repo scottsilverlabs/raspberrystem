@@ -45,6 +45,7 @@ import math
 STOP, PLAY, FLUSH = range(3)
 CHUNK_BYTES = 1024
 SOUND_CACHE = '/home/pi/.rstem_sounds'
+SOUND_DIR = '/opt/raspberrystem/sounds'
 
 def shell_cmd(cmd):
     with open(os.devnull, "w") as devnull:
@@ -262,6 +263,12 @@ class Sound(BaseSound):
             byte_length = len(data)
 
         else:
+            # normalize path, raltive to SOUND_DIR
+            try:
+                filename = os.path.normpath(os.path.join(SOUND_DIR, filename))
+            except:
+                raise ValueError("Filename '{}' is not valid".format(filename))
+
             # Is it a file?  Not a definitive test here, but used as a courtesy to
             # give a better error when the filename is wrong.
             if not os.path.isfile(filename):

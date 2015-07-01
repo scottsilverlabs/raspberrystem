@@ -13,11 +13,12 @@ from functools import wraps
 
 from rstem.sound import Sound, Note, Speech, master_volume
 
-TEST_SOUND='/home/pi/python_games/match1.wav'
+TEST_SOUND='raspbian/match1.wav'
 TEST_SOUND_LENGTH=0.565125
-TEST_SOUND_LONG='/opt/sonic-pi/etc/samples/loop_garzul.wav'
-TEST_SOUND_LONG='/usr/share/scratch/Media/Sounds/Music Loops/Techno2.mp3'
+TEST_SOUND_LONG='raspbian/Techno2.mp3'
 TEST_SOUND_LONG_LENGTH=14.837551
+TEST_SOUND_ABS_PATH='/home/pi/python_games/match1.wav'
+TEST_SOUND_REL_PATH='raspbian/match5.wav'
 
 """
 
@@ -103,6 +104,14 @@ def sound_length():
     return expected == actual
 
 @testing.automatic
+def sound_init_rel_filename():
+    return isinstance(Sound(TEST_SOUND_REL_PATH), Sound)
+
+@testing.automatic
+def sound_init_abs_filename():
+    return isinstance(Sound(TEST_SOUND_ABS_PATH), Sound)
+
+@testing.automatic
 def sound_init_bad_filename():
     try:
         s = Sound("qwemceqwncklenqwc")
@@ -114,7 +123,7 @@ def sound_init_bad_filename():
 def sound_init_bad_filename_2():
     try:
         s = Sound([1,2,3])
-    except TypeError:
+    except ValueError:
         return True
     return False
 
