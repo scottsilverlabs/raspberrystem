@@ -13,12 +13,12 @@ from functools import wraps
 
 from rstem.sound import Sound, Note, Speech, master_volume
 
-TEST_SOUND='raspbian/match1.wav'
+TEST_SOUND='match1.wav'
 TEST_SOUND_LENGTH=0.565125
-TEST_SOUND_LONG='raspbian/Techno2.mp3'
+TEST_SOUND_LONG='Techno2.mp3'
 TEST_SOUND_LONG_LENGTH=14.837551
 TEST_SOUND_ABS_PATH='/home/pi/python_games/match1.wav'
-TEST_SOUND_REL_PATH='raspbian/match5.wav'
+TEST_SOUND_REL_PATH='match5.wav'
 
 """
 
@@ -110,6 +110,14 @@ def sound_init_rel_filename():
 @testing.automatic
 def sound_init_abs_filename():
     return isinstance(Sound(TEST_SOUND_ABS_PATH), Sound)
+
+@testing.automatic
+def sound_filename_fire():
+    return isinstance(Sound('fire.wav'), Sound)
+
+@testing.automatic
+def sound_filename_hit():
+    return isinstance(Sound('hit.wav'), Sound)
 
 @testing.automatic
 def sound_init_bad_filename():
