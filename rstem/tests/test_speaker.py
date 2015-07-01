@@ -406,6 +406,34 @@ def note_not_playing_after_end_of_duration_play():
     time.sleep(1.5)
     return not s.is_playing()
 
+def note_volume_check(note, expected):
+    s = Note(note)
+    actual = s.volume
+    print("Note: ", note)
+    print("Expected: ", expected)
+    print("Actual: ", actual)
+    return actual == expected
+
+@testing.automatic
+def note_a7_volume():
+    return note_volume_check('A7', 100)
+
+@testing.automatic
+def note_a6_volume():
+    return note_volume_check('A6', 100)
+
+@testing.automatic
+def note_a5_volume():
+    return note_volume_check('A5', 200)
+
+@testing.automatic
+def note_a4_volume():
+    return note_volume_check('A4', 400)
+
+@testing.automatic
+def note_c_volume():
+    return note_volume_check('C', round(((440*2*2) / 261.63)*100))
+
 @testing.automatic
 def note_bad_note():
     try:

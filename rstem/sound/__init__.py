@@ -117,6 +117,7 @@ class BaseSound(object):
         self._CHANNELS = 1
         self._length = 0
         self.gain = 1
+        self.internal_gain = 1
         self.loops = 1
         self.duration = 0
         self.stop_play_mutex = RLock()
@@ -211,7 +212,7 @@ class BaseSound(object):
             self.do_stop = False
             while not self.do_stop:
                 try:
-                    self.play_q.put((count, next(chunk), self.volume/100), timeout=0.01)
+                    self.play_q.put((count, next(chunk), self.gain), timeout=0.01)
                 except Full:
                     pass
                 except StopIteration:
@@ -234,13 +235,13 @@ class BaseSound(object):
 
     @property
     def volume(self):
-        return round(self.gain*100)
+        return round(self.gain * self.internal_gain * 100)
 
     @volume.setter
     def volume(self, level):
         if level < 0:
             raise ValueError("level must be a positive number")
-        self.gain = level/100
+        self.gain = (level/100)/self.internal_gain
 
     # dummy chunking function
     def _chunker(self, loops, duration):
@@ -331,6 +332,9 @@ class Note(BaseSound):
         '''
         super().__init__()
 
+        A4_frequency = 440
+        A6_frequency = A4_frequency * 2 * 2
+
         try:
             self.frequency = float(pitch)
         except ValueError:
@@ -358,7 +362,12 @@ class Note(BaseSound):
             # Adjust half steps relative to A4 440Hz
             half_steps -= 4 * 12 + 9
 
-            self.frequency = 2 ** (half_steps / 12.0) * 440.0
+            self.frequency = 2 ** (half_steps / 12.0) * A4_frequency
+
+        # Simple bass boost: scale up the volume of lower frequency notes.  For
+        # each octave below a 'A6', double the volume
+        if self.frequency < A6_frequency:
+            self.internal_gain = A6_frequency / self.frequency
 
     def play(self, duration=1):
         super().play(duration=duration)
