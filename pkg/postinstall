@@ -41,3 +41,22 @@ sed $BLACKLIST -i -e "s/^\(blacklist[[:space:]]*i2c[-_]bcm2708\)/#\1/"
 if ! grep -q '^[[:space:]]*i2c-dev[[:space:]]*$' /etc/modules; then
     echo i2c-dev >> /etc/modules
 fi
+
+#
+# Create a sounds directory (and fill it with links to Raspbian sounds
+#
+echo "Create links to default Raspbian sounds..."
+mkdir -p /opt/raspberrystem/sounds/raspbian
+chmod 777 /opt/raspberrystem/sounds
+SOUND_DIRS=(
+    /opt/sonic-pi/etc/samples
+    /usr/share/scratch/Media/Sounds
+    /usr/share/pyshared/pygame/examples/data
+    /home/pi/python_games
+    )
+find "${SOUND_DIRS[@]}" \( -name "*.wav" -o -name "*.mp3" \) \
+    -exec sh -c 'ln -sf "{}" "/opt/raspberrystem/sounds/raspbian/$(basename "{}")"' \;
+# Create names for sounds used in the projects guide
+ln -sf badswap.wav /opt/raspberrystem/sounds/raspbian/hit.wav
+ln -sf match1.wav /opt/raspberrystem/sounds/raspbian/fire.wav
+echo "...done"
