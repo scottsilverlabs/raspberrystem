@@ -14,7 +14,9 @@
 # limitations under the License.
 #
 '''
-This module provides interfaces to the buttons and switches in the Button RaspberrySTEM Cell.
+This module provides interfaces to the Accelerometer RaspberrySTEM Cell.  An
+Accelerometer allows a program to detemine which way the RaspberrySTEM is
+oriented and/or moving.
 '''
 
 import os
