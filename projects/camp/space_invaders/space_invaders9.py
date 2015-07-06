@@ -6,8 +6,8 @@ import time
 from itertools import cycle
 
 fire_button = Button(25)
-fire_sound = Sound("/home/pi/fire.wav")
-hit_sound = Sound("/home/pi/hit.wav")
+fire_sound = Sound("fire.wav")
+hit_sound = Sound("hit.wav")
 notes = cycle([Note('B3'), Note('G3'), Note('E3'), Note('C3')])
 
 fb = FrameBuffer([(0,0,90)])

@@ -10,10 +10,6 @@ buttons = [Button(27), Button(23), Button(24), Button(22)]
 lights = [Output(4), Output(18), Output(14), Output(15)]
 notes = [Note('A'), Note('B'), Note('C'), Note('D')]
 you_failed_note = Note('E2')
-you_failed_note.volume = 1000
-
-for note in notes:
-    note.volume = 400
 
 for light in lights:
     light.off()
