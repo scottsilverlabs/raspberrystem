@@ -20,6 +20,22 @@ TEST_SOUND_LONG_LENGTH=14.837551
 TEST_SOUND_ABS_PATH='/home/pi/python_games/match1.wav'
 TEST_SOUND_REL_PATH='match5.wav'
 
+@testing.debug
+def no_underruns():
+    from threading import Thread
+    from rstem.sound import Note
+    import threading
+
+    start = time.time()
+    def busy_loop():
+        while time.time() - start < 30:
+            pass
+    threads = [Thread(target=busy_loop) for t in range(5)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    return not Note._underrun()
 """
 
 @testing.automatic

@@ -106,7 +106,7 @@ static ssize_t pcm_write(char *data, size_t count)
 	return result;
 }
 
-static void play(void *audio_bytes, int len)
+static int play(void *audio_bytes, int len)
 {
 	int ret;
 
@@ -114,7 +114,7 @@ static void play(void *audio_bytes, int len)
     if (ret < 0) {
 		ret = snd_pcm_recover(handle, ret, 0);
     }
-    if (ret < 0) return;
+    return ret;
 }
 
 static void flush(void)
@@ -157,6 +157,7 @@ static PyObject *py_play(PyObject *self, PyObject *args){
     PyObject* gain;
     int len, gains_len;
     double g;
+    int ret;
 
     if (!PyArg_ParseTuple(args, "OO", &arg1, &arg2)) {
         PyErr_SetString(PyExc_TypeError, "Expected two args");
@@ -193,11 +194,11 @@ static PyObject *py_play(PyObject *self, PyObject *args){
             audio_buf[j] = 0x7FFF;
         }
     }
-    play(audio_buf, 0);
+    ret = play(audio_buf, 0);
     Py_DECREF(gains);
     Py_DECREF(chunks);
 
-    return Py_BuildValue("");
+    return Py_BuildValue("i", ret);
 }
 
 static PyObject *py_note(PyObject *self, PyObject *args){

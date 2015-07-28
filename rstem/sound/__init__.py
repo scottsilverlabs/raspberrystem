@@ -65,6 +65,7 @@ class Players(object):
         self.thread = Thread(target=self.daemon)
         self.thread.daemon = True
         self.thread.start()
+        self._underrun = False
 
     def add(self, sound):
         with self.mutex:
@@ -78,6 +79,18 @@ class Players(object):
                 # Ignore deleting the same sound multiple times (of course,
                 # also means we're ignoring deleting an invalid sound).
                 pass
+
+    @property
+    def underrun(self):
+        with self.mutex:
+            value = self._underrun
+            self._underrun = False
+            return value
+
+    @underrun.setter
+    def underrun(self, value):
+        with self.mutex:
+            self._underrun = value
 
     def daemon(self):
         chunk = None
@@ -100,9 +113,12 @@ class Players(object):
             if chunks:
                 for sound in starting_sounds:
                     sound.start_time = time.time()
-                mixer.play(chunks, gains)
+                mix_chunks, mix_gains = chunks, gains
             else:
-                mixer.play([bytes(CHUNK_BYTES)], [1])
+                mix_chunks, mix_gains = [bytes(CHUNK_BYTES)], [1]
+            if mixer.play(mix_chunks, mix_gains) != 512:
+                # latch underrun flag
+                self.underrun = True
             time.sleep(0.01)
 
 class BaseSound(object):
@@ -247,6 +263,10 @@ class BaseSound(object):
     # dummy chunking function
     def _chunker(self, loops, duration):
         return bytes(CHUNK_BYTES)
+
+    @staticmethod
+    def _underrun():
+        return BaseSound.players.underrun
 
 class Sound(BaseSound):
     def __init__(self, filename):
