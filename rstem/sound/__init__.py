@@ -24,14 +24,15 @@ import sys
 import time
 import re
 import io
+import select
 from functools import partial
 from . import mixer     # c extension
 import tempfile
 from threading import RLock, Thread, Condition, Event
-from queue import Queue, Full
+from queue import Queue, Full, Empty
 from subprocess import call, check_output
 from struct import pack, unpack
-import math
+import socket
 
 '''
     Future Sound class member function:
@@ -46,87 +47,51 @@ STOP, PLAY, FLUSH = range(3)
 CHUNK_BYTES = 1024
 SOUND_CACHE = '/home/pi/.rstem_sounds'
 SOUND_DIR = '/opt/raspberrystem/sounds'
+MIXER_EXE_BASENAME = 'rstem_mixer'
+MIXER_EXE_DIRNAME = '/opt/raspberrystem/bin'
+MIXER_EXE = os.path.join(MIXER_EXE_DIRNAME, MIXER_EXE_BASENAME)
+SERVER_PORT = 8888
 
 def shell_cmd(cmd):
     with open(os.devnull, "w") as devnull:
-        call(cmd, stdout=devnull, stderr=devnull)
+        call(cmd, stdout=devnull, stderr=devnull, shell=True)
+
+def start_server():
+    # start server (if it is not already running)
+    shell_cmd('pgrep -c {} || {} &'.format(MIXER_EXE_BASENAME, MIXER_EXE))
+
+    # Wait until server is up
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    for tries in range(30):
+        try:
+            sock.connect(("localhost", SERVER_PORT))
+        except socket.error:
+            pass
+        else:
+            sock.close()
+            break
+        time.sleep(0.1)
 
 def master_volume(level):
     if level < 0 or level > 100:
         raise ValueError("level must be between 0 and 100.")
 
-    shell_cmd('amixer sset PCM {}%'.format(int(level)).split())
+    shell_cmd('amixer sset PCM {}%'.format(int(level)))
 
-class Players(object):
-    def __init__(self):
-        mixer.init()
-        self.mutex = RLock()
-        self.players = set()
-        self.thread = Thread(target=self.daemon)
-        self.thread.daemon = True
-        self.thread.start()
-        self._underrun = False
-
-    def add(self, sound):
-        with self.mutex:
-            self.players.add(sound)
-
-    def remove(self, sound):
-        with self.mutex:
-            try:
-                self.players.remove(sound)
-            except KeyError:
-                # Ignore deleting the same sound multiple times (of course,
-                # also means we're ignoring deleting an invalid sound).
-                pass
-
-    @property
-    def underrun(self):
-        with self.mutex:
-            value = self._underrun
-            self._underrun = False
-            return value
-
-    @underrun.setter
-    def underrun(self, value):
-        with self.mutex:
-            self._underrun = value
-
-    def daemon(self):
-        chunk = None
-        while True:
-            starting_sounds = []
-            chunks = []
-            gains = []
-            with self.mutex:
-                # For each player, get an audio buffer.
-                for sound in frozenset(self.players):
-                    count, chunk, gain = sound.play_q.get()
-                    if count >= 0:
-                        if count == 0:
-                            starting_sounds.append(sound)
-                        chunks.append(chunk)
-                        gains.append(gain)
-                    else:
-                        sound.flush_done.set()
-                        self.remove(sound)
-            if chunks:
-                for sound in starting_sounds:
-                    sound.start_time = time.time()
-                mix_chunks, mix_gains = chunks, gains
-            else:
-                mix_chunks, mix_gains = [bytes(CHUNK_BYTES)], [1]
-            if mixer.play(mix_chunks, mix_gains) != 512:
-                # latch underrun flag
-                self.underrun = True
-            time.sleep(0.01)
+def clean_close(sock):
+    try:
+        sock.shutdown(socket.SHUT_RDWR)
+    except socket.error:
+        pass
+    try:
+        sock.close()
+    except socket.error:
+        pass
 
 class BaseSound(object):
-    # Single instance of Players, for all sounds.
-    players = Players()
-
     # Default master volume
     master_volume(100)
+    start_server()
 
     def __init__(self):
         self._SAMPLE_RATE = 44100
@@ -135,16 +100,12 @@ class BaseSound(object):
         self._length = 0
         self.gain = 1
         self.internal_gain = 1
-        self.loops = 1
-        self.duration = 0
-        self.stop_play_mutex = RLock()
-        self.play_state = STOP
-        self.play_count = 0
-        self.do_stop = False
-        self.cv_play_state = Condition()
-        self.do_play = Event()
-        self.flush_done = Event()
         self.start_time = None
+        self.stop_play_mutex = RLock()
+        self.stopped = Event()
+        self.stopped.set()
+        self.play_msg = Queue()
+        self.play_count = 0
         self.play_thread = Thread(target=self.__play_thread)
         self.play_thread.daemon = True
         self.play_thread.start()
@@ -154,95 +115,95 @@ class BaseSound(object):
         return self._length
 
     def is_playing(self):
-        return self.play_state != STOP
+        return not self.stopped.is_set()
 
     def wait(self, timeout=None):
         '''Wait until the sound has finished playing.'''
-        self.__wait_for_state(STOP)
-        if self.start_time:
-            if self.duration == None:
-                total_time = self._length
-            else:
-                total_time = self.duration
-            total_time *= self.loops
-            wait_time = total_time - (time.time() - self.start_time)
-            if wait_time > 0:
-                time.sleep(wait_time)
+        assert self.play_thread.is_alive()
+        self.stopped.wait(timeout)
         return self
 
     def stop(self):
-        if self.play_state != STOP:
-            with self.stop_play_mutex:
-                self.do_stop = True
-                self.players.remove(self)
-
-                # Flush the Queue.   Doh!  We don't really flush at all -
-                # its too slow of an operation on the Queue.  Instead, we
-                # just let the Queue be gc'ed, and we create a new one.
-                self.flush_done.set()
-
-                self.__wait_for_state(STOP)
+        assert self.play_thread.is_alive()
+        with self.stop_play_mutex:
+            self.play_msg.put((STOP, None))
+            self.wait()
         return self
 
     def play(self, loops=1, duration=None):
+        assert self.play_thread.is_alive()
         if duration and duration < 0:
             raise ValueError("duration must be a positive number")
         with self.stop_play_mutex:
             self.stop()
-            self.loops = loops
-            self.duration = duration
-            self.play_q = Queue(128)
-            self.players.add(self)
-            self.start_time = None
+            self.end_time = time.time() 
             previous_play_count = self.play_count
-            self.do_play.set()
-            self.__wait_for_state(PLAY, previous_play_count=previous_play_count)
+            self.play_msg.put((PLAY, (loops, duration)))
+
+            # Wait until we know the play has started (i.e., the state ===
+            # PLAY).  Ugly (polled), but simple.
+            while previous_play_count == self.play_count:
+                time.sleep(0.001)
         return self
 
-    def __wait_for_state(self, state, previous_play_count=-1):
-        # Wait until given state is reached.
-        #
-        # We handle the PLAY state in a special way: because a play can be very
-        # short (for a short duration sound), we can't necessarily wait for it.
-        # Instead, we keep a play_count that is incremented on each play, and
-        # we wait for the count to get incremented.
-        #
-        with self.cv_play_state:
-            self.cv_play_state.wait_for(
-                lambda:self.play_state == state if state != PLAY else self.play_count != previous_play_count)
-
-    def __set_state(self, state):
-        with self.cv_play_state:
-            self.play_state = state
-            if state == PLAY:
-                self.play_count += 1
-            self.cv_play_state.notify()
-    
     def __play_thread(self):
+        state = STOP
         while True:
-            self.do_play.wait()
-            self.__set_state(PLAY)
+            if state == STOP:
+                msg, payload = self.play_msg.get()
+                if msg == PLAY:
+                    self.stopped.clear()
+                    self.play_count += 1
+                    loops, duration = payload
+                    chunk = self._chunker(loops, duration)
+                    count = 0
+                    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    sock.connect(("localhost", SERVER_PORT))
+                    state = PLAY
 
-            chunk = self._chunker(self.loops, self.duration)
-            count = 0
-
-            self.do_stop = False
-            while not self.do_stop:
+            elif state == PLAY:
                 try:
-                    self.play_q.put((count, next(chunk), self.gain), timeout=0.01)
-                except Full:
+                    msg, payload = self.play_msg.get_nowait()
+                except Empty:
+                    msg = None
+
+                if msg == STOP:
+                    clean_close(sock)
+                    self.stopped.set()
+                    state = STOP
+                else:
+                    try:
+                        try:
+                            header = pack('if', count, self.gain)
+                            sock.send(header + next(chunk))
+                            count += 1
+                        except StopIteration:
+                            header = pack('if', -1, 0)
+                            sock.send(header)
+                            state = FLUSH
+
+                        readable, writable, exceptional = select.select([sock], [], [sock], 0)
+                        if readable:
+                            c = sock.recv(1)
+                            eof = not c or ord(c)
+                            if eof:
+                                state = FLUSH
+                        if exceptional:
+                            state = FLUSH
+                    except socket.error:
+                        clean_close(sock)
+                        self.stopped.set()
+                        state = STOP
+
+                # Throttle
+                time.sleep(0.005)
+
+            elif state == FLUSH:
+                while sock.recv(1):
                     pass
-                except StopIteration:
-                    self.play_q.put((-1, None, None)) # EOF
-                    break
-                count += 1
-
-            self.__set_state(FLUSH)
-            self.flush_done.wait()
-
-            self.do_play.clear()
-            self.flush_done.clear()
-            self.__set_state(STOP)
+                clean_close(sock)
+                self.stopped.set()
+                state = STOP
 
     def _time_to_bytes(self, duration):
         if duration == None:
@@ -263,10 +224,6 @@ class BaseSound(object):
     # dummy chunking function
     def _chunker(self, loops, duration):
         return bytes(CHUNK_BYTES)
-
-    @staticmethod
-    def _underrun():
-        return BaseSound.players.underrun
 
 class Sound(BaseSound):
     def __init__(self, filename):
@@ -306,15 +263,7 @@ class Sound(BaseSound):
 
                 # If cached file doesn't exist, create it using sox
                 if not os.path.isfile(raw_name):
-                    soxcmd = ['sox',
-                        '-q',
-                        filename,
-                        '-L',
-                        '-r44100',
-                        '-b16',
-                        '-c1',
-                        '-traw',
-                        raw_name]
+                    soxcmd = 'sox -q {} -L -r44100 -b16 -c1 -traw {}'.format(filename, raw_name)
                     shell_cmd(soxcmd)
                     # test error
                 filename = raw_name

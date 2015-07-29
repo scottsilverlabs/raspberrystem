@@ -20,7 +20,8 @@ TEST_SOUND_LONG_LENGTH=14.837551
 TEST_SOUND_ABS_PATH='/home/pi/python_games/match1.wav'
 TEST_SOUND_REL_PATH='match5.wav'
 
-@testing.debug
+"""
+@testing.automatic
 def no_underruns():
     from threading import Thread
     from rstem.sound import Note
@@ -38,48 +39,17 @@ def no_underruns():
     return not Note._underrun()
 """
 
-@testing.automatic
-def abc():
-    from rstem.button import Button
-    from rstem.sound import Note
-
-    buttons = [Button(17), Button(27)]
-    notes = [Note('A'), Note('B')]
-
-    while True:
-        for button, note in zip(buttons, notes):
-            if button.is_pressed():
-                if not note.is_playing():
-                    note.play(duration=None)
-            else:
-                note.stop()
-            time.sleep(0.01)
-    return True
 
 @testing.automatic
-def abc2():
-    from rstem.sound import Note
-    notes = [Note(n) for n in 'CDEFGABC']
-    while True:
-        for note in notes:
-            note.play(duration=2)
-            time.sleep(0.5)
+def sound_flood_test():
+    sounds = [Sound('fire.wav') for i in range(10)]
+
+    for i in range(10):
+        for s in sounds:
+            s.play()
+            time.sleep(0.05)
     return True
 
-@testing.automatic
-def abc1():
-    s = [Sound('/home/pi/python_games/match0.wav'),
-        Sound('/home/pi/python_games/match1.wav'),
-        Sound('/home/pi/python_games/match2.wav'),
-        Sound('/home/pi/python_games/match3.wav')]
-    s[0].play()
-    s[1].play()
-    s[2].play()
-    s[3].play()
-    time.sleep(2)
-    return True
-
-"""
 @testing.automatic
 def sound_init_with_known_good_sound():
     s = Sound(TEST_SOUND)
@@ -190,10 +160,13 @@ def verify_duration(start, expected):
     duration = time.time() - start
     print("Expected: ", expected)
     print("Actual: ", duration)
-    TOLERANCE = 0.2
-    print('Verifying actual within {} seconds of expected'.format(TOLERANCE))
+    POSITIVE_TOLERANCE = 0.1
+    # Up to one ALSA buffer size of data can still be sent out after the sound
+    # appears done.
+    NEGATIVE_TOLERANCE = - 4096 / 44100
+    print('Verifying duration {} < (actual - expected) < {}'.format(NEGATIVE_TOLERANCE, POSITIVE_TOLERANCE))
     diff = duration - expected
-    return 0 < diff < TOLERANCE
+    return NEGATIVE_TOLERANCE < diff < POSITIVE_TOLERANCE
 
 @testing.automatic
 def sound_wait_verify_duration():
@@ -349,8 +322,16 @@ def sound_play_play():
 @testing.automatic
 def sound_chaining_test():
     # Sound should be chainable from init->play->wait
-    start = time.time()
     Sound(TEST_SOUND).play().wait().play(duration=0.1).wait().play().stop()
+    return True
+
+@testing.automatic
+def sound_chaining_test_timed():
+    # Same as sound_chaining_test(), but time it.  Does not include Sound()
+    # time, as it may take a while to load an uncached sound.
+    s = Sound(TEST_SOUND)
+    start = time.time()
+    s.play().wait().play(duration=0.1).wait().play().stop()
     return verify_duration(start, TEST_SOUND_LENGTH + 0.1)
 
 @testing.automatic
@@ -406,6 +387,7 @@ def sound_play_test_sound_and_note_mixed():
     s.play()
     s.wait()
     n.stop()
+    return True
 
 def _note_freq(note, expected_freq):
     # Frequencies from: http://www.phy.mtu.edu/~suits/notefreqs.html
@@ -623,7 +605,7 @@ def speech_play():
     return True
 
 @testing.manual_output
-def sound_play_test_sound_and_note_mixed():
+def sound_manual_play_test_sound_and_note_mixed():
     '''The sound match1.wav will play TWO TIMES on the speaker, mixed with an
     'A' note.
     '''

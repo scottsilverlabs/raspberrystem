@@ -42,7 +42,7 @@
 #define MAX_SAMPLES 4096
 
 static snd_pcm_t *handle;
-static snd_pcm_uframes_t chunk_size = 0;
+static snd_pcm_uframes_t chunk_size = 512;
 static size_t bits_per_sample, bits_per_frame;
 static size_t chunk_bytes;
 static int audio_mix_buf[MAX_SAMPLES];
