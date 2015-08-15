@@ -11,7 +11,7 @@ import time
 from threading import Timer
 from functools import wraps
 
-from rstem.sound import Sound, Note, Speech, master_volume
+from rstem.sound import Sound, Note, Speech, master_volume, sound_dir
 
 TEST_SOUND='match1.wav'
 TEST_SOUND_LENGTH=0.565125
@@ -20,25 +20,17 @@ TEST_SOUND_LONG_LENGTH=14.837551
 TEST_SOUND_ABS_PATH='/home/pi/python_games/match1.wav'
 TEST_SOUND_REL_PATH='match5.wav'
 
-"""
 @testing.automatic
-def no_underruns():
-    from threading import Thread
-    from rstem.sound import Note
-    import threading
+def sound_dir_test():
+    return sound_dir() == '/opt/raspberrystem/sounds'
 
-    start = time.time()
-    def busy_loop():
-        while time.time() - start < 30:
-            pass
-    threads = [Thread(target=busy_loop) for t in range(5)]
-    for t in threads:
-        t.start()
-    for t in threads:
-        t.join()
-    return not Note._underrun()
-"""
-
+@testing.automatic
+def sound_dir_list_is_long():
+    # There should be a whole bunch of sound files
+    import os
+    length = len(os.listdir(sound_dir())) 
+    print("Sound dir files: ", length)
+    return length > 100
 
 @testing.automatic
 def sound_flood_test():

@@ -72,6 +72,10 @@ def start_server():
             break
         time.sleep(0.1)
 
+def sound_dir():
+    """Returns sound dir"""
+    return SOUND_DIR
+
 def master_volume(level):
     if level < 0 or level > 100:
         raise ValueError("level must be between 0 and 100.")
@@ -370,4 +374,4 @@ class Speech(Sound):
     def __del__(self):
         os.remove(self.wav_name)
         
-__all__ = ['Sound', 'Note', 'Speech', 'master_volume']
+__all__ = ['Sound', 'Note', 'Speech', 'master_volume' 'sound_dir']
