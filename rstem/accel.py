@@ -14,9 +14,9 @@
 # limitations under the License.
 #
 '''
-This module provides interfaces to the Accelerometer RaspberrySTEM Cell.  An
+This module provides interfaces to the Accelerometer RaspberrySTEM Cell.  The
 Accelerometer allows a program to detemine which way the RaspberrySTEM is
-oriented and/or moving.
+tilted and/or moving.
 '''
 
 import os
@@ -88,6 +88,11 @@ FULL_SCALE = 4
 
 class Accel(object):
     def __init__(self):
+        """
+        Initialize the Accelerometer and returns an Accelerometer object.
+
+        Throws an `IOError` if the Accelerometer is does not respond.
+        """
         # i2c_bcm2708 driver only support repeated-start transactions (which
         # the MMA8653 requires) if the 'combined' parameter is set.
         with  open('/sys/module/i2c_bcm2708/parameters/combined', 'w') as f:

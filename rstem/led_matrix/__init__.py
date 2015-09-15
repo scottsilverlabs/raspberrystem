@@ -14,6 +14,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+'''
+This module provides interfaces to the LED Matrix RaspberrySTEM Cell.
+'''
+
 
 import os
 import re
@@ -59,22 +63,34 @@ def _quarter_clockwise_rotations(angle):
     return int(angle/90) % 4
 
 class Sprite(object):
-    '''Allows the creation of a LED Sprite that is defined in a text file.
-    @note: The text file must only contain hex numbers 0-9, a-f, A-F, or - (dash)
-    @note: The hex number indicates pixel color and "-" indicates a transparent pixel
+    '''A Sprite (2-dimensional bitmapped image) object.
+
+    A `Sprite` is drawable on the LED Matrix `FrameBuffer` with the
+    `FrameBuffer`'s `draw()` function.  `Sprite`s support tranparency.
+
+    Two sprites of the same hieght can be added togther, creating a new
+    horizontally concatenated composite sprite.
     '''
     def __init__(self, image_string):
-        '''Creates a L{Sprite} object from the given .spr file or image file or creates an empty sprite of given
-        height and width if filename == None.
+        '''Creates a `Sprite` object from the given `image_string`.
         
-        @param filename: The full path location of a .spr sprite file or image file
-        @type: string
-        @param height: The height of given sprite if creating an empty sprite or want to resize a sprite from and image file.
-        @type height: int
-        @param width: The width of given sprite if creating an empty sprite or want to resize a sprite from and image file.
-        @type width: int
-        @param color: Color to display at point
-        @type color: int or string (0-F or 16 or '-' for transparent)
+        The `image_string` defines the bitmap of the `Sprite`.  It is a string
+        that contains one line for each row in the `Sprite`.  Each line should
+        contains the same number of valid color characters.  All whitespace,
+        including blank lines, is ignored.  
+
+        Each character in the `image_string` represents one pixel of the
+        `Sprite`.  The characters must be either single hex digits representing
+        the color (0-9, a-f, A-F) or - (dash) to represent transparency.
+
+        For example, the following string would define a 3x5 letter P, with a transparent center
+        of the P:
+
+            f f f
+            f - f
+            f f f
+            f 0 0
+            f 0 0
         '''
         # Remove whitespace from lines
         lines = (re.sub('\s', '', line) for line in image_string.splitlines())
@@ -98,10 +114,14 @@ class Sprite(object):
 
     @property
     def width(self):
+        '''Returns the width of the sprite.
+        '''
         return len(self.bitmap)
 
     @property
     def height(self):
+        '''Returns the height of the sprite.
+        '''
         return len(self.bitmap[0])
 
     def __add__(self, sprite):
@@ -115,6 +135,10 @@ class Sprite(object):
         self.bitmap = [[self.bitmap[x][y] for y in yrange] for x in xrange]
 
     def crop(self, origin=(0,0), dimensions=None):
+        '''In-place crop of the sprite.
+
+        Returns itself, so this function can be chained.
+        '''
         x, y = origin
         if x >= self.width:
             raise IndexError('Origin X is greater than Sprite width')
@@ -132,18 +156,11 @@ class Sprite(object):
         return self
 
     def rotate(self, angle=90):
-        '''Rotates sprite at 90 degree intervals. 
-        
-        @returns: self
-        @rtype: L{Sprite}
-        
-        @param angle: angle to rotate self in an interval of 90 degrees
-        @type angle: int
-        
-        @returns: self
-        @rtype: L{Sprite}
-        @raises ValueError: If angle is not multiple of 90
-        @note: If no angle given, will rotate sprite 90 degrees.
+        '''In-place rotation of the sprite.
+
+        `angle` must be a multiple of 90.
+
+        Returns itself, so this function can be chained.
         '''
         quarter_clockwise_rotations = _quarter_clockwise_rotations(angle)
         if quarter_clockwise_rotations == 0:
@@ -166,7 +183,9 @@ class Sprite(object):
         return self
         
     def flip(self, vertical=False):
-        '''Flips the sprite horizontally.
+        '''In-place horizontal (default) or vertical flip of the sprite.
+
+        Returns itself, so this function can be chained.
         '''
         if vertical:
             xrange, yrange = range(self.width), reversed(range(self.height))
@@ -180,12 +199,29 @@ class Sprite(object):
 
     def reset(self):
         '''Undoes previous flip/rotate/crop/etc actions
+
+        Returns itself, so this function can be chained.
         '''
         self.bitmap = self.original_bitmap
         return self
         
 class Text(Sprite):
+    '''A string of text writable to the framebuffer.
+
+    `Text` is composed of a concatenated string of `Sprite`s, and as such can
+    use all the functions available to `Sprite`s.
+    '''
     def __init__(self, message, char_spacing=1, font_name='5x7', font_dir=None):
+        '''Create a `Text` object from a string.
+
+        `message` is the text string.  Two fonts are supported: '3x5' and
+        '5x7'.  Custom fonts can be created by making one sprite file for each
+        letter in the font.  The `font_dir` can be changed from the default to
+        point to a custom font.
+
+        `char_spacing` is the number of blank pixels that are put between two
+        characters in a string.
+        '''
         with open(self._font_path(font_dir, font_name, message[0])) as f:
             super().__init__(f.read())
         if len(message) > 1:
@@ -233,13 +269,84 @@ class Text(Sprite):
         return font_path
 
 class FrameBuffer(object):
+    ''' A framebuffer that maps to a chain of LED Matrix RaspberrySTEM Cells.  
+    
+    The LED Matrices are connected over the SPI bus.  The `FrameBuffer` object
+    provides a set of functions for drawing on the framebuffer, and for
+    writting the framebuffer to the LED Matrices.  All drawing happens on the
+    framebuffer only, until the `show()` function is called.
+
+    The LED Matrices can be mapped to any location in the framebuffer, and can
+    also have any rotation (0, 90, 180, 270 deg).  The size of the framebuffer
+    is the minimum size rectangle that will include all 8x8 LED Matrices in the
+    given matrix_layout.  LED Matrices can be mapped on the same or overlapping
+    coordinates in the framebuffer.
+
+    The framebuffer uses Cartesian coordinates: the origin (0,0) is at the
+    lower left of the framebuffer.
+
+    The framebuffer uses colors from 0-15 for each pixel, where 0 is off, and
+    15 is the highest brightness.
+    '''
+
     def __init__(self, matrix_layout=None, spi_port=0):
+        ''' Initialize the `rstem.led_matrix.FrameBuffer`.  
+        
+        If `matrix_layout` is not given (the default), then the LED Matrix
+        chain is autodetected.  To do the autodetection, the LED Matrix chain
+        requires that MISO be hooked up, and then the length of the chain can
+        be determined.  In this case, the actual layout of the LED Matrices is
+        determined from the number of matrices.  The follwing table shows the
+        assumed order of the matrices for a given chain length.  The arrows
+        show the direction of the input to each matrix in the chain:
+
+            1 matrix:
+                --> 1
+            2 matrices:
+                --> 1 --> 2
+            3 matrices:
+                --> 1 --> 2 --> 3
+            4 matrices:
+                --> 1 --> 2 --\\
+                              |
+                    4 <-- 3 <-/
+            5 matrices:
+                --> 1 --> 2 --> 3 --> 4 --> 5
+            6 matrices:
+                --> 1 --> 2 --> 3 --\\
+                                    |
+                    6 <-- 5 <-- 4 <-/
+            7 matrices:
+                --> 1 --> 2 --> 3 --> 4 --\\
+                                          |
+                          7 <-- 6 <-- 5 <-/
+            8 matrices:
+                --> 1 --> 2 --> 3 --> 4 --\\
+                                          |
+                    8 <-- 7 <-- 6 <-- 5 <-/
+            More than 8 matrices: IOError()
+
+        For arbitrary layouts of matrices, a list of 3-tuples can be provided
+        in `matrix_layout`.  There should be one 3-tuple for each LED Matrix in
+        the chain, starting with the first matrix.  The 3-tuple should be (x,
+        y, rotation), where x/y define the position of the lower left corner
+        (after rotation) of the LED Matrix in the Framebuffer.  The rotation is
+        a clockwise angle (0, 90, 180, 270) that the LED Matrix is rotated.
+
+        Note that when `matrix_layout` is provided, MISO is not required to be
+        hooked up, as it is not used.  This means that the chain will work even
+        if the correct number of LED Matrices is not actually hooked up
+        (however, not all of the framebuffer data will necessarily be displayed).
+
+        The `spi_port` defines which SPI CE is used: 0 for CE0, 1 for CE1.
+        '''
         if not matrix_layout:
             num_matrices = self.detect(spi_port)
             if num_matrices == 0:
-                raise('No LED Matrices connected')
+                raise IOError('No LED Matrices connected')
             elif num_matrices > 8:
-                raise('More than 8 LED Matrices connected - you must define the matrix_layout')
+                raise IOError(
+                    'More than 8 LED Matrices connected - you must define the matrix_layout')
             else:
                 matrix_layout = {
                     1 : [(x*8,0,0) for x in range(1)],
@@ -270,6 +377,19 @@ class FrameBuffer(object):
         return self.fb
 
     def point(self, x, y=None, color=0xF):
+        ''' Draw point (`x`, `y`) in the framebuffer, using the given `color`.
+
+        For convenience, this function accepts a 2-tuple point as `x` if `y` is
+        None.  So, for example, both of the following are allowed:
+
+            fb.point(2,3)
+
+        or
+
+            fb.point((2,3))
+
+        The point is drawn in the given `color`.
+        '''
         try:
             if y == None:
                 x, y = x
@@ -281,17 +401,21 @@ class FrameBuffer(object):
             pass
 
     def erase(self, color=0):
+        '''Erase all pixels in the framebuffer
+
+        `color`, if given, can fill the framebuffer with a specific color.
+        '''
         for x in range(self.width):
             for y in range(self.height):
                 self.fb[x][y] = color
 
     def line(self, point_a, point_b, color=0xF):
-        '''Create a line from point_a to point_b.
-        Uses Bresenham's Line Algorithm U{http://en.wikipedia.org/wiki/Bresenham's_line_algorithm}
-        @type point_a, point_b: (x,y) tuple
-        @param color: Color to display at point
-        @type color: int or string (0-F or 16 or '-' for transparent)
+        '''Draw a line in the framebuffer from `point_a` to `point_b`.
+
+        The line is drawn with the given `color`.
         '''
+        # Uses Bresenham's Line Algorithm
+        # http://en.wikipedia.org/wiki/Bresenham's_line_algorithm
         x1, y1 = point_a
         x2, y2 = point_b
         dx = abs(x2 - x1)
@@ -312,15 +436,15 @@ class FrameBuffer(object):
                 y1 += sy
 
     def rect(self, origin, dimensions, fill=False, color=0xF):
-        '''Creates a rectangle from start point using given dimensions
-        
-        @type origin: (x,y) tuple
-        @param dimensions: width and height of rectangle
-        @type dimensions: (width, height) tuple
-        @param fill: Whether to fill the rectangle or make it hollow
-        @type fill: boolean
-        @param color: Color to display at point
-        @type color: int or string (0-F or 16 or '-' for transparent)
+        '''Draws a rectangle in the framebuffer.
+
+        The `origin` is the lower left position of the rectangle.  The
+        `dimensions` is a 2-tuple of the width and height.  A width and height
+        of 1 would be a 1 point rectangle.
+
+        If `fill` is True, then the interior of the rectanle will be filled.
+        Otherwise, only the outside edge of the rectandle will be drawn.  The
+        rectangle is drawn in the given `color`.
         '''
         x, y = origin
         width, height = dimensions
@@ -335,6 +459,12 @@ class FrameBuffer(object):
             self.line((x + width - 1, y), (x, y), color)
         
     def show(self):
+        '''Send the framebuffer to the LED Matrices.
+
+        Sends the current framebuffer to the LED Matrices over the SPI bus,
+        according to the layout defined when the framebuffer was initialized.
+        This will cause the framebuffer to be displayed on the LED Matrix(es).
+        '''
         bitstream = b''
         for xoff, yoff, quarter_clockwise_rotations in reversed(self.matrix_layout):
             forward = range(8)
@@ -387,17 +517,27 @@ class FrameBuffer(object):
 
     @property
     def width(self):
+        '''Returns the width of the framebuffer.
+
+        The width depends upon the matrix layout.
+        '''
         return len(self.fb)
 
     @property
     def height(self):
+        '''Returns the height of the framebuffer.
+
+        The height depends upon the matrix layout.
+        '''
         return len(self.fb[0])
 
     def __str__(self):
         return _color_array_to_str(self.fb, self.height, self.width)
 
     def draw(self, drawable, origin=(0,0)):
-        '''Sets given sprite into the framebuffer.
+        '''Draw `drawable` into the framebuffer, at given origin.
+
+        `drawable` is either a `Sprite` or `Text` object.
         '''
         xorig, yorig = origin
         bitmap = drawable._bitmap()
@@ -408,5 +548,5 @@ class FrameBuffer(object):
             for y in range(height):
                 self.point(xorig + x, yorig + y, bitmap[x][y])
 
-__all__ = ['FrameBuffer', 'Sprite']
+__all__ = ['FrameBuffer', 'Sprite', 'Text']
         

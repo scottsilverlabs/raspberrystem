@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 """
-This module provides interfaces to the buttons and switches in the Button RaspberrySTEM Cell.
+This module provides interfaces to the buttons in the I/O RaspberrySTEM Cell.
 """
 
 from threading import Thread, Event
@@ -26,13 +26,14 @@ class Button(Pin):
     """A button from a GPIO port.
 
     A `rstem.button.Button` configures a physical button hooked up to a GPIO
-    pin.  The physical button should be connected from the GPIO pin to ground.
+    pin.  The physical button, when pressed, should connect the GPIO pin to
+    ground.
 
-    `rstem.button.Button` provides a set of functions that make it easy to check
-    if and when a button is pressed.  The `rstem.button.Button`
-    object reads button presses in the background so that the calling program
-    won't lose presses.  Presses and releases are kept in a queue that the
-    caller can read at any time.
+    `rstem.button.Button` provides a set of functions that make it easy to
+    check if and when a button is pressed.  The `rstem.button.Button` object
+    reads button presses in the background so that the calling program won't
+    lose presses.  Presses and releases are kept in a queue that the caller can
+    read at any time.
 
     More details: The GPIO is configured with an internal pullup so that when
     the button is NOT pressed, the GPIO input is high, and when the button is
@@ -58,11 +59,11 @@ class Button(Pin):
     """GPIO number of the 'SELECT' button on the GAMER keypad."""
 
     def __init__(self, pin):
-        """Create a new `Button`.
+        """Create a new `rstem.button.Button`.
 
         `pin` is the number of the GPIO as labeled on the RaspberrySTEM Lid
-        connector.  It is the GPIO number used by the Broadcom processor on
-        the Raspberry Pi.
+        Connector Board.  It is the same as the GPIO number used by the
+        Broadcom processor on the Raspberry Pi.
         """
 
         super().__init__(pin)
@@ -96,7 +97,7 @@ class Button(Pin):
                 self._button_queue.put(self.current)
             previous = self.current
 
-    def changes(self):
+    def _changes(self):
         releases, presses, level = 0, 0, self.current
         try:
             while True:
@@ -132,17 +133,15 @@ class Button(Pin):
     def is_pressed(self, press=True):
         """Reports if the button is pressed.
 
-        Returns `True` if the button is pressed, otherwise `False`.  If `press`
-        is `False`, then the function returns the opposite - that is, it
-        reports if the button released instead of pressed.
+        Returns `True` if the button is pressed, otherwise `False`.
         """
-        releases, presses, level = self.changes()
-        return not level if press else bool(level)
+        releases, presses, level = self._changes()
+        return not level
 
     def is_released(self):
         """Reports if the button is released.
 
-        Equivalent to `not is_pressed()`.
+        Equivalent to `not`&nbsp;`rstem.button.Button.is_pressed``()`.
         """
         return not self.is_pressed()
 
@@ -157,13 +156,13 @@ class Button(Pin):
         Alternatively, if `press` is `False`, this function returns the number
         of releases since presses/releases were last queried.
         """
-        releases, presses, level = self.changes()
+        releases, presses, level = self._changes()
         return presses if press else releases
 
     def releases(self):
         """Returns the number of releases since presses/releases were last queried.
 
-        Equivalent to `presses(press=False)`.
+        Equivalent to `rstem.button.Button.presses``(press=False)`.
         """
         return self.presses(press=False)
 

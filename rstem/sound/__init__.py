@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 '''
-This module provides interfaces to the Speaker RaspberrySTEM Cell.
+This module provides interfaces to the RaspberrySTEM CREATOR Kit speaker.
 
 Additionally, it can be used for any audio out over the analog audio jack.
 '''
@@ -73,7 +73,6 @@ def start_server():
         time.sleep(0.1)
 
 def sound_dir():
-    """Returns sound dir"""
     return SOUND_DIR
 
 def master_volume(level):
@@ -119,15 +118,28 @@ class BaseSound(object):
         return self._length
 
     def is_playing(self):
+        '''Returns `True` if the sound is currently playing'''
         return not self.stopped.is_set()
 
     def wait(self, timeout=None):
-        '''Wait until the sound has finished playing.'''
+        '''Wait until the sound has finished playing.
+        
+        If timeout is given (seconds), will return early (after the timeout
+        time) even if the sound is not finished playing.
+
+        Returns itself, so this function can be chained.
+        '''
         assert self.play_thread.is_alive()
         self.stopped.wait(timeout)
         return self
 
     def stop(self):
+        '''Immediately stop the sound from playing.
+
+        Does nothing if the sound is not currently playing.
+
+        Returns itself, so this function can be chained.
+        '''
         assert self.play_thread.is_alive()
         with self.stop_play_mutex:
             self.play_msg.put((STOP, None))
@@ -135,6 +147,21 @@ class BaseSound(object):
         return self
 
     def play(self, loops=1, duration=None):
+        '''Starts playing the sound.
+
+        This function starts playing the sound, and returns immediately - the
+        sound plays in the background.  To wait for the sound, use `wait()`.
+        Because sound functions can be chained, to create, play and wait for a
+        sound to complete can be done in one compound command.  For example:
+
+            Sound('mysound.wav').play().wait()
+
+        `loops` is the number of times the sound should be played.  `duration`
+        is the length of the sound to play (or `None` to play forever, or until
+        the sound ends).
+
+        Returns itself, so this function can be chained.
+        '''
         assert self.play_thread.is_alive()
         if duration and duration < 0:
             raise ValueError("duration must be a positive number")
@@ -217,6 +244,13 @@ class BaseSound(object):
 
     @property
     def volume(self):
+        '''The volume of the sound object
+        
+        Each sound object has an volume (idpendent of the `master_volume()`),
+        between 0 (muted) and 100 (loudest).
+
+        The volume is readable/writeable.
+        '''
         return round(self.gain * self.internal_gain * 100)
 
     @volume.setter
@@ -230,6 +264,21 @@ class BaseSound(object):
         return bytes(CHUNK_BYTES)
 
 class Sound(BaseSound):
+    '''
+    A Sound object, that plays sounds read in from sound files.
+
+    In addition to the Sound object, this module provides some useful global
+    functions:
+
+        master_volume(level):
+            Sets the master volume (between 0 and 100) 
+            of the audio out.
+
+        sound_dir():
+            Returns the sounds dir, where all sound 
+            files are stored.
+    '''
+    
     def __init__(self, filename):
         '''A playable sound backed by the sound file `filename` on disk.
         
@@ -307,8 +356,10 @@ class Sound(BaseSound):
                         break
 
 class Note(BaseSound):
+    '''A sine wave sound object. '''
+
     def __init__(self, pitch):
-        '''
+        '''Create a sound object that is a sine wave of the given `pitch`.
         '''
         super().__init__()
 
@@ -362,8 +413,13 @@ class Note(BaseSound):
             yield mixer.note(chunk, float(self.frequency))
 
 class Speech(Sound):
+    '''A text-to-speech sound object.'''
+
     def __init__(self, text, espeak_options=''):
-        '''
+        '''Create a sound object that is text-to-speech of the given `text`.
+
+        The sound is created using the espeak engine (an external program).
+        Command line options to espeak can be added using `espeak_options`.
         '''
         wav_fd, wav_name = tempfile.mkstemp(suffix='.wav')
         os.system('espeak {} -w {} "{}"'.format(espeak_options, wav_name, text))

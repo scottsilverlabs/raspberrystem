@@ -15,7 +15,7 @@
 # limitations under the License.
 #
 '''
-This module provides interfaces to GPIOs - useful for the lighting LEDs in the LED RaspberrySTEM
+This module provides interfaces to GPIOs - useful for the lighting LEDs in the I/O RaspberrySTEM
 Cell, and other RaspberrySTEM Cells.
 '''
 
