@@ -26,7 +26,7 @@ import re
 import io
 import select
 from functools import partial
-from . import mixer     # c extension
+from . import soundutil     # c extension
 import tempfile
 from threading import RLock, Thread, Condition, Event
 from queue import Queue, Full, Empty
@@ -423,7 +423,7 @@ class Note(BaseSound):
         else:
             chunks = int((self._time_to_bytes(duration) * loops) / CHUNK_BYTES)
         for chunk in range(chunks):
-            yield mixer.note(chunk, float(self.frequency))
+            yield soundutil.note(chunk, float(self.frequency))
 
 class Speech(Sound):
     '''A text-to-speech sound object.'''

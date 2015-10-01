@@ -40,9 +40,9 @@ led_driver =  Extension(
     'rstem.led_matrix.led_driver', 
     sources=['rstem/led_matrix/led_driver.c']
     )
-mixer =  Extension(
-    'rstem.sound.mixer', 
-    sources=['rstem/sound/mixer.c'],
+soundutil =  Extension(
+    'rstem.sound.soundutil', 
+    sources=['rstem/sound/soundutil.c'],
     libraries=['m', 'asound']
     )
 
@@ -67,6 +67,6 @@ setup(
         'Programming Language :: Python :: 3.3',
     ],
     cmdclass={'install': install},  # overload install command
-    ext_modules = [led_driver, mixer]  # c extensions defined above
+    ext_modules = [led_driver, soundutil]  # c extensions defined above
 
 )
