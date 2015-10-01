@@ -107,7 +107,17 @@ class BaseSound(object):
         self.stop_play_mutex = RLock()
         self.stopped = Event()
         self.stopped.set()
+
+        # Create play msg queue, with added member function that allows a
+        # get_nowait() that can return empty if nothing is available.
         self.play_msg = Queue()
+        def get_nowait_noempty():
+            try:
+                return self.play_msg.get_nowait()
+            except Empty:
+                return (None, None)
+        self.play_msg.get_nowait_noempty = get_nowait_noempty
+
         self.play_count = 0
         self.play_thread = Thread(target=self.__play_thread)
         self.play_thread.daemon = True
@@ -193,11 +203,7 @@ class BaseSound(object):
                     state = PLAY
 
             elif state == PLAY:
-                try:
-                    msg, payload = self.play_msg.get_nowait()
-                except Empty:
-                    msg = None
-
+                msg, payload = self.play_msg.get_nowait_noempty()
                 if msg == STOP:
                     clean_close(sock)
                     self.stopped.set()
