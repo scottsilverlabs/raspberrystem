@@ -160,7 +160,7 @@ def verify_duration(start, expected):
     diff = duration - expected
     return NEGATIVE_TOLERANCE < diff < POSITIVE_TOLERANCE
 
-@testing.debug
+@testing.automatic
 def sound_flushing_sound_wont_stop_bugfix():
     note = Note('A')
     start = time.time()

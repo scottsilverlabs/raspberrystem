@@ -43,7 +43,7 @@ import socket
             - returns previous position, in seconds
 '''
 
-STOP, PLAY, FLUSH = range(3)
+STOP, PLAY, FLUSH, STOPPING = range(4)
 CHUNK_BYTES = 1024
 SOUND_CACHE = '/home/pi/.rstem_sounds'
 SOUND_DIR = '/opt/raspberrystem/sounds'
@@ -205,9 +205,7 @@ class BaseSound(object):
             elif state == PLAY:
                 msg, payload = self.play_msg.get_nowait_noempty()
                 if msg == STOP:
-                    clean_close(sock)
-                    self.stopped.set()
-                    state = STOP
+                    state = STOPPING
                 else:
                     try:
                         try:
@@ -228,16 +226,25 @@ class BaseSound(object):
                         if exceptional:
                             state = FLUSH
                     except socket.error:
-                        clean_close(sock)
-                        self.stopped.set()
-                        state = STOP
+                        state = STOPPING
 
                 # Throttle
                 time.sleep(0.005)
 
             elif state == FLUSH:
-                while sock.recv(1):
-                    pass
+                msg, payload = self.play_msg.get_nowait_noempty()
+                if msg == STOP:
+                    state = STOPPING
+                else:
+                    # Server will play sound to end and close socket.
+                    eof_ack = sock.recv(1)
+                    if not eof_ack:
+                        state = STOPPING
+
+                # Throttle
+                time.sleep(0.005)
+
+            elif state == STOPPING:
                 clean_close(sock)
                 self.stopped.set()
                 state = STOP
