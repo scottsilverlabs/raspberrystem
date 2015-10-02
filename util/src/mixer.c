@@ -35,11 +35,18 @@
 #define MAX_PLAYERS         8
 #define MAX_AUDIO_BUF       1024
 
+#define NONE    0
+#define START   1
+#define MIDDLE  2
+#define END     3
+
 static snd_pcm_t *handle;
 static snd_pcm_uframes_t chunk_size = 0;
 static size_t bits_per_sample, bits_per_frame;
 static size_t chunk_bytes;
 static int client_sockets[MAX_PLAYERS];
+static short client_buffers1[MAX_PLAYERS][MAX_AUDIO_BUF];
+static short client_buffers2[MAX_PLAYERS][MAX_AUDIO_BUF];
 static pthread_mutex_t mutex;
 
 //
@@ -122,6 +129,21 @@ static ssize_t pcm_write(u_char *data, size_t count)
 
 
 //
+// Triangular time window for pop suppresion.
+//
+static inline float window(int pos, int i)
+{
+    if (pos == MIDDLE) return 1.0;
+
+    if (pos == START) {
+        return (float) i / chunk_size;
+    } else { // Must be END
+        return (float) (chunk_size - i) / chunk_size;
+    }
+}
+
+
+//
 // mixer() thread mixes incoming audio bufs from multiple sockets and outputs to ALSA.
 //
 void * mixer()
@@ -130,74 +152,111 @@ void * mixer()
     int read_size;
     int r;
     int i, j;
-    float g = 1.0;
-    short inbuf[MAX_AUDIO_BUF];
+    short (*pcurrbufs)[MAX_PLAYERS][MAX_AUDIO_BUF];
+    short (*pprevbufs)[MAX_PLAYERS][MAX_AUDIO_BUF];
     short outbuf[MAX_AUDIO_BUF];
     int audio_mix_buf[MAX_AUDIO_BUF];
     struct {
         int count;
         float gain;
     } header;
+    int broken_socket;
+    int count;
+    int client_position[MAX_PLAYERS];
+    float prev_gain[MAX_PLAYERS];
+    float curr_gain[MAX_PLAYERS];
 
     signal(SIGPIPE, SIG_IGN);
 
-    int count = 0;
+    pcurrbufs = &client_buffers1;
+    pprevbufs = &client_buffers2;
 
     for(;;) {
         //
         // Run through list of connected sockets - for each one, read an audio
-        // buffer, and mix them all together.
+        // buffer.
         //
         // Must use client_sockets[] array mutex-ly
         //
-        count = 0;
-        // move memset() only to occur if data is available
+        // To support time-windowing for pop-suppression, we delay audio by one
+        // frame (using ping-pong buffers).  We need to be one buffer delayed
+        // so that we can modify the previous buffer if the connection ends
+        // abruptly (e.g., by error).
+        //
         pthread_mutex_lock(&mutex);
         for (i = 0; i < MAX_PLAYERS; i++) {
+            client_position[i] = NONE;
             if (client_sockets[i]) {
-                // 
-                // Before first client, init the audio buffer.
-                //
-                if (! count) {
-                    memset(audio_mix_buf, 0, chunk_size * sizeof(int));
-                }
-                count++;
+                broken_socket = 0;
+                eof = 0;
 
                 //
                 // Read header
                 //
                 r = full_read(client_sockets[i], &header, sizeof(header));
                 if (r <= 0) {
-                    break;
+                    broken_socket = 1;
+                } else {
+                    eof = header.count < 0;
                 }
-                eof = header.count < 0;
 
                 //
-                // Read audio buffer (if given), and mix it.
+                // Read audio buffer (if given)
                 //
-                if (! eof) {
-                    r = full_read(client_sockets[i], inbuf, chunk_bytes);
-                    if (r <= 0) break;
-
-                    for (j = 0; j < chunk_size; j++) {
-                        audio_mix_buf[j] += inbuf[j] * header.gain;
+                if (! (eof || broken_socket)) {
+                    r = full_read(client_sockets[i], (*pcurrbufs)[i], chunk_bytes);
+                    if (r <= 0) {
+                        broken_socket = 1;
                     }
                 }
 
                 //
                 // ACK client
                 //
-                r = write(client_sockets[i], &eof, 1);
-                if (eof || r < 0 && errno == EPIPE) break;
+                if (! broken_socket) {
+                    r = write(client_sockets[i], &eof, 1);
+                    if (r < 0 && errno == EPIPE) {
+                        broken_socket = 1;
+                    }
+                }
+                if (eof || broken_socket) {
+                    close(client_sockets[i]);
+                    client_sockets[i] = 0;
+                }
+
+                //
+                // Save position of buffer in stream (unstarted/start/middle/end)
+                //
+                if (eof || broken_socket) {
+                    client_position[i] = END;
+                } else if (header.count > 1) {
+                    client_position[i] = MIDDLE;
+                } else if (header.count == 1) {
+                    client_position[i] = START;
+                }
+                prev_gain[i] = curr_gain[i];
+                curr_gain[i] = header.gain;
             }
         }
 
         //
-        // If the loop for players broke early, close the socket.
+        // Mix audio buffers.  Use (int) mix buffer to avoid overflow
         //
-        if (i != MAX_PLAYERS) {
-            close(client_sockets[i]);
-            client_sockets[i] = 0;
+        // Audio is mixed with user supplied gain, and start/end bufferes are
+        // time windowed for pop-suppresion.  
+        //
+        memset(audio_mix_buf, 0, chunk_size * sizeof(int));
+        count = 0;
+        for (i = 0; i < MAX_PLAYERS; i++) {
+            if (client_position[i]) {
+                count++;
+                for (j = 0; j < chunk_size; j++) {
+                    audio_mix_buf[j] += 
+                        (*pprevbufs)[i][j] 
+                        * prev_gain[i]
+                        * window(client_position[i], j);
+                }
+            }
         }
         pthread_mutex_unlock(&mutex);
 
@@ -227,6 +286,14 @@ void * mixer()
             assert(r == chunk_size);
         }
         usleep(2000);
+
+        //
+        // Flip buffers
+        //
+        void * p;
+        p = pprevbufs;
+        pprevbufs = pcurrbufs;
+        pcurrbufs = p;
     }
 
     // Should never exit, but exit cleanly just in case
