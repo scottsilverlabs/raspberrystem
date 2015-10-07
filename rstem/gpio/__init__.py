@@ -25,53 +25,67 @@ import time
 PINS = range(2, 28)
 
 PULLUP_CMD = '/usr/local/bin/pullup.sbin'
+GPIO_EXPORT_FILE = '/sys/class/gpio/export'
+GPIO_UNEXPORT_FILE = '/sys/class/gpio/unexport'
+GPIO_PIN_FORMAT_STRING = '/sys/class/gpio/gpio%d'
 
-active_pins = {}
+PULL_DISABLE = 0
+PULL_DOWN = 1
+PULL_UP = 2
 
+def _global_pin_init():
+    # Disable all GPIOs to start.  Note that unexporting a GPIO if it hasn't
+    # been exported will fail - but we will ignore it.
+    for pin in PINS:
+        try:
+            with open(GPIO_UNEXPORT_FILE, 'w') as f:
+                f.write('%d' % pin)
+        except IOError:
+            pass
+    
 class Pin(object):
-    _ARG_PULL_DISABLE = 0
-    _ARG_PULL_DOWN = 1
-    _ARG_PULL_UP = 2
+    _global_pin_init()
 
     def __init__(self, pin):
-        self.gpio_dir = '/sys/class/gpio/gpio%d' % pin
+        self.gpio_dir = GPIO_PIN_FORMAT_STRING % pin
         self.pin = pin
         if pin in PINS:
-            if not os.path.exists(self.gpio_dir):
-                with open('/sys/class/gpio/export', 'w') as f:
-                    f.write('%d\n' % pin)
+            if os.path.exists(self.gpio_dir):
+                raise IOError('GPIO pin already in use')
 
-                # Repeat trying to configure GPIO as input (default).  Repeats
-                # required because this can fail when run right after the pin
-                # is exported in /sys.  Once it passes, we know the pin is
-                # ready to use.
-                TRIES = 12
-                SLEEP = 0.01
-                while TRIES:
-                    try:
-                        self._set_dir(output=False)
-                    except IOError:
-                        # Reraise the error if that was our last try
-                        if TRIES == 1:
-                            raise
-                        time.sleep(SLEEP)
-                    else:
-                        break
-                    TRIES -= 1
-                    SLEEP *= 2
+            with open(GPIO_EXPORT_FILE, 'w') as f:
+                f.write('%d\n' % pin)
+
+            # Repeat trying to configure GPIO as input (default).  Repeats
+            # required because this can fail when run right after the pin
+            # is exported in /sys.  Once it passes, we know the pin is
+            # ready to use.
+            TRIES = 12
+            SLEEP = 0.01
+            while TRIES:
+                try:
+                    self._set_output(False)
+                except IOError:
+                    # Reraise the error if that was our last try
+                    if TRIES == 1:
+                        raise
+                    time.sleep(SLEEP)
+                else:
+                    break
+                TRIES -= 1
+                SLEEP *= 2
         else:
             raise ValueError('Invalid GPIO pin')
-
-        global active_pins
-        if pin in active_pins:
-            active_pins[pin]._deactivate()
-        active_pins[pin] = self
+        self._write_gpio_file('direction', 'in')
+        self._write_gpio_file('active_low', '0')
+        self._write_gpio_file('edge', 'none')
+        self._set_pull(PULL_DISABLE)
 
     def _write_gpio_file(self, filename, value):
         with open(self.gpio_dir + '/' + filename, 'w') as f:
             f.write(value)
 
-    def _set_dir(self, output=False, starts_off=True):
+    def _set_output(self, output, starts_off=True):
         if output:
             is_low = self._active_low and not starts_off or not self._active_low and starts_off
             direction = 'low' if is_low else 'high'
@@ -79,26 +93,15 @@ class Pin(object):
             direction = 'in'
         self._write_gpio_file('direction', direction)
 
-    def _set_active_low(self, enabled=True):
-        self._write_gpio_file('active_low', '1' if enabled else '0')
+    def _set_pull(self, pull):
+        if not pull in [PULL_UP, PULL_DOWN, PULL_DISABLE]:
+            raise ValueError('Invalid pull type')
+        os.system('%s %d %d' % (PULLUP_CMD, self.pin, pull))
 
-    def _pullup(self, pin, enable):
-        os.system('%s %d %d' % (PULLUP_CMD, pin, enable))
-
-    def _enable_pullup(self, pin):
-        self._pullup(pin, self._ARG_PULL_UP)
-
-    def _disable_pullup(self, pin):
-        self._pullup(pin, self._ARG_PULL_DISABLE)
-
-    def _enable_pulldown(self, pin):
-        self._pullup(pin, self._ARG_PULL_DOWN)
-
-    def _disable_pulldown(self, pin):
-        self._pullup(pin, self._ARG_PULL_DISABLE)
-
-    def _deactivate(self):
-        del active_pins[self.pin]
+    def disable(self):
+        '''Disable the GPIO pin.'''
+        with open(GPIO_UNEXPORT_FILE, 'w') as f:
+            f.write('%d\n' % self.pin)
 
 
 class Output(Pin):
@@ -121,7 +124,7 @@ class Output(Pin):
         '''
         super().__init__(pin)
         self._active_low = active_low
-        self._set_dir(output=True)
+        self._set_output(True)
         self._fvalue = open(self.gpio_dir + '/value', 'w')
 
     def _set(self, level):
@@ -137,21 +140,58 @@ class Output(Pin):
         '''Turn the GPIO output off (repects `active_low` setting).'''
         self._set(self._active_low)
 
-class DisablePin(Pin):
-    '''Disable a previously used GPIO pin.'''
+    def disable(self):
+        self._fvalue.close()
+        super().disable()
 
-    def __init__(self, *args, **kwargs):
-        '''Disable a previously used GPIO pin.
+class Input(Pin):
+    '''A GPIO input.
+
+    An `rstem.gpio.Input` configures a GPIO pin as an input.  The pin can then
+    used as to read the logic level of the pin - useful for reading the state
+    of switches, sensors, and other electronics.
+    '''
+    def __init__(self, pin, active_low=False, pull=PULL_DISABLE):
+        '''Create a new `Input`.
 
         `pin` is the number of the GPIO as labeled on the RaspberrySTEM Lid
         connector.  It is the GPIO number used by the Broadcom processor on
         the Raspberry Pi.
+
+        If `active_low=True` (the default), then when the input is externally
+        set LOW (grounded, i.e. 0 volts), it is considered `on`.  If
+        `active_low=False`, then when the input is externally set HIGH (the
+        supply voltage, i.e. 3.3 volts), it is considered `on`.
+
+        `pull` is the state of the GPIO internal pullup/down.  
+        If `pull` is `PULL_DISABLE`, then the internal pullup is diabled.
+        If `pull` is `PULL_UP`, then the internal pullup is enabled.
+        If `pull` is `PULL_DOWN`, then the internal pulldown is enabled.
         '''
-        super().__init__(*args, **kwargs)
+        super().__init__(pin)
+        self._active_low = active_low
+        self._set_output(False)
+        self._set_pull(pull)
+        self._fvalue = open(self.gpio_dir + '/value', 'r')
 
-    def _deactivate(self):
-        self._set_dir(output=False)
-        super()._deactivate()
+    def configure(self, pull=None):
+        self._set_pull(pull)
 
-__all__ = ['Output', 'DisablePin']
+    def _get(self):
+        self._fvalue.seek(0)
+        return 1 if self._fvalue.read().strip() == '1' else 0
+
+    def is_on(self):
+        '''Return the GPIO input state (repects `active_low` setting).'''
+        return bool(not self._get() if self._active_low else self._get())
+
+    def is_off(self):
+        '''Return the GPIO input state (repects `active_low` setting).'''
+        return not self.is_on()
+
+    def disable(self):
+        self._fvalue.close()
+        super().disable()
+
+__all__ = ['Output', 'Input', PULL_DISABLE, PULL_UP, PULL_DOWN]
 

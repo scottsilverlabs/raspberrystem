@@ -20,9 +20,9 @@ This module provides interfaces to the buttons in the I/O RaspberrySTEM Cell.
 from threading import Thread, Event
 from queue import Queue, Empty
 import time
-from rstem.gpio import Pin
+from rstem.gpio import Input, PULL_UP
 
-class Button(Pin):
+class Button(Input):
     """A button from a GPIO port.
 
     A `rstem.button.Button` configures a physical button hooked up to a GPIO
@@ -66,15 +66,9 @@ class Button(Pin):
         Broadcom processor on the Raspberry Pi.
         """
 
-        super().__init__(pin)
+        super().__init__(pin, pull=PULL_UP)
 
-        self._set_dir(output=False)
-
-        self._enable_pullup(self.pin)
-
-        self._fvalue = open(self.gpio_dir + "/value", "r")
-
-        self._set_current()
+        self.current = self._get()
 
         self._button_queue = Queue()
         self._poll_thread_stop = Event()
@@ -82,17 +76,12 @@ class Button(Pin):
         self._poll_thread.daemon = True
         self._poll_thread.start()
 
-    def _set_current(self):
-        self._fvalue.seek(0)
-        read = self._fvalue.read().strip()
-        self.current = 1 if read == '1' else 0
-
     def __button_poll_thread(self):
         previous = -1
 
         bounce_time = 0.030
         while not self._poll_thread_stop.wait(bounce_time):
-            self._set_current()
+            self.current = self._get()
             if previous >= 0 and self.current != previous:
                 self._button_queue.put(self.current)
             previous = self.current
@@ -124,11 +113,16 @@ class Button(Pin):
         except Empty:
             return False
 
-    def _deactivate(self):
+    def configure(self, pull=None):
+        if pull != None:
+            raise AttributeError('Buttons cannout configure the pullup')
+        super().configure(self, pull=pull)
+
+    def disable(self):
         if self._poll_thread:
             self._poll_thread_stop.set()
             self._poll_thread.join()
-        super()._deactivate()
+        super().disable()
 
     def is_pressed(self, press=True):
         """Reports if the button is pressed.
