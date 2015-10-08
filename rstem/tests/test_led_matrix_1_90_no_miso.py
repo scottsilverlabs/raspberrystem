@@ -782,3 +782,7 @@ def diagonal_wave_animation():
         colors = colors[1:] + colors[:1]
         time.sleep(0.04)
 
+@testing.automatic
+def verify_cpu():
+    fb = FrameBuffer(matrix_layout=[(0,0,0)])
+    return testing.verify_cpu()

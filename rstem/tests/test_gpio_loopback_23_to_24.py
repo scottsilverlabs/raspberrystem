@@ -475,3 +475,7 @@ def input_pull_disable_via_configure():
     stayed_on, stayed_off = input_pull_test(PULL_DISABLE, configure=True)
     return stayed_on and stayed_off
     
+@testing.automatic
+@io_setup()
+def verify_cpu(i, o):
+    return testing.verify_cpu()

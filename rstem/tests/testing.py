@@ -223,6 +223,16 @@ def manual_input(func):
     wrapper.test_type = MANUAL_INPUT_TEST
     return wrapper
 
+# Helper function
+def verify_cpu(max_cpu=10):
+    from subprocess import Popen, PIPE
+    cmd = "top -b -n2 | awk 'on {cpu+=$9} /PID/ {hdr++; if (hdr==2) on=1} END{print cpu}'"
+    proc = Popen(cmd, shell=True, stdout=PIPE)
+    cpu = float(proc.communicate()[0])
+    print("ACTUAL CPU:", cpu)
+    print("MAXIMUM CPU:", max_cpu)
+    return cpu < max_cpu
+
 if __name__ == '__main__':
     #
     # Usage: python -m testing user_test_type user_test_name
@@ -282,4 +292,3 @@ if __name__ == '__main__':
 
     print(SEPARATOR)
     testing_log.print_summary()
-

@@ -664,8 +664,12 @@ def sound_sound_volume():
         time.sleep(0.5)
     s.wait()
 
-'''
-#New tests
-- 2 notes at same time return repeating data
-- replay note
-'''
+@testing.automatic
+def verify_cpu():
+    s = Sound(TEST_SOUND_LONG)
+    return testing.verify_cpu()
+
+@testing.automatic
+def verify_cpu_while_playing():
+    Sound(TEST_SOUND_LONG).play()
+    return testing.verify_cpu(15)

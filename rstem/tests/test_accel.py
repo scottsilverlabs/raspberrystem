@@ -67,3 +67,7 @@ def accel_vertical(a):
     print("Z: {}".format(z))
     return x_good and y_good and z_good
 
+@testing.automatic
+@io_setup()
+def verify_cpu(a):
+    return testing.verify_cpu()
