@@ -226,12 +226,17 @@ def manual_input(func):
 # Helper function
 def verify_cpu(max_cpu=10):
     from subprocess import Popen, PIPE
-    cmd = "top -b -n2 | awk 'on {cpu+=$9} /PID/ {hdr++; if (hdr==2) on=1} END{print cpu}'"
-    proc = Popen(cmd, shell=True, stdout=PIPE)
-    cpu = float(proc.communicate()[0])
-    print("ACTUAL CPU:", cpu)
-    print("MAXIMUM CPU:", max_cpu)
-    return cpu < max_cpu
+    for i in range(5):
+        cmd = "top -b -n2 | awk 'on {cpu+=$9} /PID/ {hdr++; if (hdr==2) on=1} END{print cpu}'"
+        proc = Popen(cmd, shell=True, stdout=PIPE)
+        cpu = float(proc.communicate()[0])
+        print("ACTUAL CPU:", cpu)
+        print("MAXIMUM CPU:", max_cpu)
+        if cpu < max_cpu:
+            return True
+        print("RETRYING...")
+    print("TOO MANY RETRIES!")
+    return False
 
 if __name__ == '__main__':
     #
