@@ -15,25 +15,34 @@
 #include <sys/mman.h>
 
 
-//#define MAP_ADDR    0x20200000
-#define MAP_ADDR    0x3f200000
-#define MAP_SIZE    0x1000
+#define MAP_ADDR_RPI1   0x20200000
+#define MAP_ADDR_RPI2   0x3f200000
+#define MAP_SIZE        0x1000
+#define FIRST_RPI2_REV  0x1000
 
 #define GPPUD       (0x94/4)
 #define GPPUDCLK0   (0x98/4)
 
 int main(int argc, char *argv[])
 {
-
-    if (argc != 3){
-        perror("argument error");
-        exit(1);
-    }
-
     int fd;
     unsigned long * map_base;
     unsigned long pin;
     unsigned long pullup;
+    int rpi2;
+    off_t map_addr;
+
+    if (argc < 3) {
+        perror("argument error");
+        exit(1);
+    }
+
+    pin = atoi(argv[1]);
+    pullup = atoi(argv[2]);
+    rpi2 = 1;
+    if (argc >= 3 && atoi(argv[3]) < FIRST_RPI2_REV) {
+        rpi2 = 0;
+    }
 
     if((fd = open("/dev/mem", O_RDWR | O_SYNC)) == -1) {
         perror("open");
@@ -41,14 +50,13 @@ int main(int argc, char *argv[])
     }
 
     /* Map one page */
-    map_base = mmap(0, MAP_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, MAP_ADDR);
+    map_addr = rpi2 ? MAP_ADDR_RPI2 : MAP_ADDR_RPI1;
+    map_base = mmap(0, MAP_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, map_addr);
     if(map_base == (void *) -1) {
         perror("mmap");
         exit(1);
     }
 
-    pin = atoi(argv[1]);
-    pullup = atoi(argv[2]);
     map_base[GPPUD] = pullup;
     usleep(1000);
     map_base[GPPUDCLK0] = 1 << pin;

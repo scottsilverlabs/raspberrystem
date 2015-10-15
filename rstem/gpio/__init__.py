@@ -22,6 +22,7 @@ Cell, and other RaspberrySTEM Cells.
 import os
 import time
 from functools import partial
+import re
 
 PINS = range(2, 28)
 
@@ -61,6 +62,7 @@ class Pin(object):
     _global_pin_init()
 
     def __init__(self, pin):
+        self._board_rev = self.board_rev()
         self.gpio_dir = GPIO_PIN_FORMAT_STRING % pin
         self.pin = pin
         if pin in PINS:
@@ -82,6 +84,18 @@ class Pin(object):
         self._write_gpio_file('edge', 'none')
         self._set_pull(PULL_DISABLE)
 
+    @staticmethod
+    def board_rev():
+        with open('/proc/cpuinfo') as f:
+            cpuinfo = f.read()
+        matches = re.findall(
+            '^Revision.*([0-9A-F]{4})$',
+            cpuinfo,
+            flags=(re.MULTILINE|re.IGNORECASE)
+            )
+        board_rev = int(matches[0], 16)
+        return board_rev
+
     def _write_gpio_file(self, filename, value):
         def write_val(filename, value):
             with open(self.gpio_dir + '/' + filename, 'w') as f:
@@ -99,7 +113,7 @@ class Pin(object):
     def _set_pull(self, pull):
         if not pull in [PULL_UP, PULL_DOWN, PULL_DISABLE]:
             raise ValueError('Invalid pull type')
-        os.system('%s %d %d' % (PULLUP_CMD, self.pin, pull))
+        os.system('%s %d %d %d' % (PULLUP_CMD, self.pin, pull, self._board_rev))
 
     def disable(self):
         '''Disable the GPIO pin.'''
@@ -166,7 +180,7 @@ class Input(Pin):
         `active_low=False`, then when the input is externally set HIGH (the
         supply voltage, i.e. 3.3 volts), it is considered `on`.
 
-        `pull` is the state of the GPIO internal pullup/down.  
+        `pull` is the state of the GPIO internal pullup/down.
         If `pull` is `PULL_DISABLE`, then the internal pullup is diabled.
         If `pull` is `PULL_UP`, then the internal pullup is enabled.
         If `pull` is `PULL_DOWN`, then the internal pulldown is enabled.
