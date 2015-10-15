@@ -21,6 +21,7 @@ Cell, and other RaspberrySTEM Cells.
 
 import os
 import time
+from functools import partial
 
 PINS = range(2, 28)
 
@@ -42,7 +43,20 @@ def _global_pin_init():
                 f.write('%d' % pin)
         except IOError:
             pass
-    
+
+def retry_func_on_error(func, tries=10, sleep=0.01, exc=IOError):
+    for i in range(tries):
+        try:
+            ret = func()
+        except exc as err:
+            time.sleep(sleep)
+            sleep *= 2
+        else:
+            break
+    else:
+        raise err
+    return ret
+
 class Pin(object):
     _global_pin_init()
 
@@ -60,20 +74,7 @@ class Pin(object):
             # required because this can fail when run right after the pin
             # is exported in /sys.  Once it passes, we know the pin is
             # ready to use.
-            TRIES = 12
-            SLEEP = 0.01
-            while TRIES:
-                try:
-                    self._set_output(False)
-                except IOError:
-                    # Reraise the error if that was our last try
-                    if TRIES == 1:
-                        raise
-                    time.sleep(SLEEP)
-                else:
-                    break
-                TRIES -= 1
-                SLEEP *= 2
+            retry_func_on_error(partial(self._set_output, False))
         else:
             raise ValueError('Invalid GPIO pin')
         self._write_gpio_file('direction', 'in')
@@ -82,8 +83,10 @@ class Pin(object):
         self._set_pull(PULL_DISABLE)
 
     def _write_gpio_file(self, filename, value):
-        with open(self.gpio_dir + '/' + filename, 'w') as f:
-            f.write(value)
+        def write_val(filename, value):
+            with open(self.gpio_dir + '/' + filename, 'w') as f:
+                f.write(value)
+        retry_func_on_error(partial(write_val, filename, value))
 
     def _set_output(self, output, starts_off=True):
         if output:
@@ -125,7 +128,7 @@ class Output(Pin):
         super().__init__(pin)
         self._active_low = active_low
         self._set_output(True)
-        self._fvalue = open(self.gpio_dir + '/value', 'w')
+        self._fvalue = retry_func_on_error(partial(open, self.gpio_dir + '/value', 'w'))
 
     def _set(self, level):
         self._fvalue.seek(0)
@@ -172,7 +175,7 @@ class Input(Pin):
         self._active_low = active_low
         self._set_output(False)
         self._set_pull(pull)
-        self._fvalue = open(self.gpio_dir + '/value', 'r')
+        self._fvalue = retry_func_on_error(partial(open, self.gpio_dir + '/value', 'r'))
 
     def configure(self, pull=None):
         self._set_pull(pull)
