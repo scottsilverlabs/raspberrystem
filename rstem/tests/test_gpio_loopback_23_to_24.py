@@ -245,10 +245,10 @@ def button_wait(b, o, press, push_time, timeout_time):
     kwargs = {}
     if timeout_time:
         kwargs['timeout'] = timeout_time
-    if press:
-        kwargs['press'] = False
+    kwargs['press'] = press
 
     o.on()
+    time.sleep(MINIMUM_BUTTON_PRESS_PERIOD)
     # clear queue
     if isinstance(b, list):
         for button in b:
