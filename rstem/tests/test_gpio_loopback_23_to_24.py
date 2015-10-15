@@ -428,52 +428,52 @@ def time_output(i, o):
     print("Output test running at: {:.2f}Hz (MINIMUM_RATE: {}Hz)".format(rate, MINIMUM_RATE))
     return rate > MINIMUM_RATE
 
-def input_pull_test(pull, configure=False):
-    if configure:
-        i = Input(INPUT_PIN)
-        i.configure(pull=pull)
-    else:
-        i = Input(INPUT_PIN, pull=pull)
-    o = Output(OUTPUT_PIN, active_low=False)
-    o.on()
-    o.disable()
-    stayed_on = i.is_on()
-    o = Output(OUTPUT_PIN, active_low=False)
-    o.off()
-    o.disable()
-    stayed_off = i.is_off()
-    i.disable()
-    return (stayed_on, stayed_off)
+def input_pull_test(pull, stayed_on, stayed_off, configure=False):
+    for n in range(5):
+        if configure:
+            i = Input(INPUT_PIN)
+            i.configure(pull=pull)
+        else:
+            i = Input(INPUT_PIN, pull=pull)
+        o = Output(OUTPUT_PIN, active_low=False)
+        o.on()
+        o.disable()
+        actually_stayed_on = i.is_on()
+        o = Output(OUTPUT_PIN, active_low=False)
+        o.off()
+        o.disable()
+        actually_stayed_off = i.is_off()
+        i.disable()
+        if stayed_on == actually_stayed_on and stayed_off == actually_stayed_off:
+            return True
+        time.sleep(0.5)
+        print("FAILED, RETRYING...")
+    print("TOO MANY RETRIES!")
+    return False
 
 @testing.automatic
 def input_pull_down():
-    stayed_on, stayed_off = input_pull_test(PULL_DOWN)
-    return not stayed_on and stayed_off
+    return input_pull_test(PULL_DOWN, stayed_on=False, stayed_off=True)
     
 @testing.automatic
 def input_pull_up():
-    stayed_on, stayed_off = input_pull_test(PULL_UP)
-    return stayed_on and not stayed_off
+    return input_pull_test(PULL_UP, stayed_on=True, stayed_off=False)
 
 @testing.automatic
 def input_pull_disable():
-    stayed_on, stayed_off = input_pull_test(PULL_DISABLE)
-    return stayed_on and stayed_off
+    return input_pull_test(PULL_DISABLE, stayed_on=True, stayed_off=True)
     
 @testing.automatic
 def input_pull_down_via_configure():
-    stayed_on, stayed_off = input_pull_test(PULL_DOWN, configure=True)
-    return not stayed_on and stayed_off
+    return input_pull_test(PULL_DOWN, stayed_on=False, stayed_off=True, configure=True)
     
 @testing.automatic
 def input_pull_up_via_configure():
-    stayed_on, stayed_off = input_pull_test(PULL_UP, configure=True)
-    return stayed_on and not stayed_off
+    return input_pull_test(PULL_UP, stayed_on=True, stayed_off=False, configure=True)
 
 @testing.automatic
 def input_pull_disable_via_configure():
-    stayed_on, stayed_off = input_pull_test(PULL_DISABLE, configure=True)
-    return stayed_on and stayed_off
+    return input_pull_test(PULL_DISABLE, stayed_on=True, stayed_off=True, configure=True)
     
 @testing.automatic
 @io_setup()
