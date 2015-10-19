@@ -60,8 +60,10 @@ setup(
     long_description = read('README.md'),
     # use https://pypi.python.org/pypi?%3Aaction=list_classifiers as help when editing this
     classifiers=[
-        'Development Status :: 4 - Beta',
+        'Development Status :: 5 - Production/Stable',
         'Topic :: Education',
+        'Topic :: Scientific/Engineering',
+        'Topic :: Software Development :: Embedded Systems',
         'License :: OSI Approved :: Apache Software License',
         'Programming Language :: Python :: 3.2',
         'Programming Language :: Python :: 3.3',
