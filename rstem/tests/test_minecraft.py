@@ -5,13 +5,48 @@ No hardware requirements.  Minecraft must be started and in-world before running
 '''
 import testing
 from subprocess import call, Popen, PIPE
-from functools import partial
+from functools import partial, wraps
 from rstem.mcpi import minecraft
 from rstem.mcpi import control
 import time
 
 shcall = partial(call, shell=True)
 shopen = partial(Popen, stdin=PIPE, stderr=PIPE, stdout=PIPE, close_fds=True, shell=True)
+
+def start_minecraft():
+    def decorator(func):
+        @wraps(func)
+        def wrapper():
+            # Setup
+            shcall(KILL_MINECRAFT_CMD)
+            shcall(MINECRAFT_CMD)
+            time.sleep(0.5)
+
+            passed = func()
+
+            # Teardown
+            shcall(KILL_MINECRAFT_CMD)
+
+            return passed
+        return wrapper
+    return decorator
+
+def show_minecraft():
+    def decorator(func):
+        @wraps(func)
+        def wrapper():
+            # Setup
+            show(True)
+            time.sleep(0.5)
+
+            passed = func()
+
+            # Teardown
+            show(False)
+
+            return passed
+        return wrapper
+    return decorator
 
 def window_visible(wid):
     cmd = "DISPLAY=:0 xwininfo -stats -id {:d} | awk -F: '/Map State/{{print $2}}'".format(wid)
@@ -35,7 +70,7 @@ def show(show):
 @testing.automatic
 def show_fails_if_minecraft_not_running():
     shcall(KILL_MINECRAFT_CMD)
-    time.sleep(1)
+    time.sleep(0.5)
 
     try:
         control.show()
@@ -45,10 +80,8 @@ def show_fails_if_minecraft_not_running():
     return False
 
 @testing.automatic
+@start_minecraft()
 def show_opens():
-    shcall(KILL_MINECRAFT_CMD)
-    shcall(MINECRAFT_CMD)
-    time.sleep(1)
     wid = get_wid()
     show(False)
 
@@ -71,10 +104,8 @@ def show_opens():
     return True
 
 @testing.automatic
+@start_minecraft()
 def hide_closes():
-    shcall(KILL_MINECRAFT_CMD)
-    shcall(MINECRAFT_CMD)
-    time.sleep(1)
     wid = get_wid()
     show(True)
 
