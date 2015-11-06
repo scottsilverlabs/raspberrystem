@@ -48,9 +48,15 @@ keys = [
     uinput.KEY_SPACE,
     uinput.KEY_ENTER,
     uinput.KEY_LEFTSHIFT,
+    uinput.BTN_LEFT,
+    uinput.BTN_RIGHT,
+    uinput.REL_X,
+    uinput.REL_Y,
     ]
 device = uinput.Device(keys)
 time.sleep(0.5)
+
+item_keys = [eval('uinput.KEY_{:d}'.format(item+1)) for item in range(8)]
 
 def show(show=True):
     ret = shcall(SHOW_WIN_CMD if show else HIDE_WIN_CMD)
@@ -60,40 +66,82 @@ def show(show=True):
 def hide():
     show(show=False)
 
-def key_press(key, duration=None):
-    global device
-    device.emit(key, 1)
-    if duration != None:
-        Timer(duration,device.emit,args=[key, 0]).start()
+def key_release(key):
+    key_press(key, release=True)
 
-def backward(duration=None):
-    key_press(uinput.KEY_S, duration)
-
-def forward(duration=None):
-    key_press(uinput.KEY_W, duration)
-
-def left(duration=None):
-    key_press(uinput.KEY_A, duration)
-
-def right(duration=None):
-    key_press(uinput.KEY_D, duration)
-
-def jump(duration=None):
-    key_press(uinput.KEY_SPACE, duration)
-
-def crouch(duration=None):
-    key_press(uinput.KEY_LEFTSHIFT, duration)
-
-def ascend(duration=None):
-    jump(duration)
-
-def descend(duration=None):
-    crouch(duration)
-
-def stop(duration=None):
-    for key in keys:
+def key_press(key, duration=None, release=False, wait=True):
+    if release:
         device.emit(key, 0)
+    else:
+        if duration == None:
+            device.emit(key, 1)
+        elif duration > 0:
+            if wait:
+                device.emit(key, 1)
+                time.sleep(duration)
+                device.emit(key, 0)
+            else:
+                device.emit(key, 1)
+                Timer(duration, key_release, args=[key]).start()
+                
+        else:
+            device.emit_click(key)
+
+def backward(duration=None, release=False, wait=True):
+    key_press(uinput.KEY_S, duration, release, wait)
+
+def forward(duration=None, release=False, wait=True):
+    key_press(uinput.KEY_W, duration, release, wait)
+
+def left(duration=None, release=False, wait=True):
+    key_press(uinput.KEY_A, duration, release, wait)
+
+def right(duration=None, release=False, wait=True):
+    key_press(uinput.KEY_D, duration, release, wait)
+
+def jump(duration=None, release=False, wait=True):
+    key_press(uinput.KEY_SPACE, duration, release, wait)
+
+def crouch(duration=None, release=False, wait=True):
+    key_press(uinput.KEY_LEFTSHIFT, duration, release, wait)
+
+def ascend(duration=None, release=False, wait=True):
+    jump(duration, release, wait)
+
+def descend(duration=None, release=False, wait=True):
+    crouch(duration, release, wait)
+
+def stop():
+    for key in keys:
+        key_release(key)
         
+def smash(duration=None, release=False, wait=True):
+    key_press(uinput.BTN_LEFT, duration, release, wait)
+
+def place(duration=0, release=False, wait=True):
+    key_press(uinput.BTN_RIGHT, duration, release, wait)
+
+def toggle_fly_mode():
+    for i in range(2):
+        jump(duration=0.1)
+    time.sleep(0.5)
+
+def item(choice):
+    if not (1 <= choice <= 8):
+        raise ValueError('choice must be from 1 to 8')
+    key_press(item_keys[choice-1], duration=0)
+
+def enter():
+    key_press(uinput.KEY_ENTER, duration=0)
+    
+def inventory():
+    key_press(uinput.KEY_E, duration=0)
+    
+def look(left=0, right=0, up=0, down=0):
+    device.emit(uinput.REL_X, right-left, syn=False)
+    device.emit(uinput.REL_Y, down-up)
+    # throttling to prevent key overruns
+    time.sleep(0.05)
 
 __all__ = [
     'show',
