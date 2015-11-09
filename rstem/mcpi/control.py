@@ -83,7 +83,6 @@ def key_press(key, duration=None, release=False, wait=True):
             else:
                 device.emit(key, 1)
                 Timer(duration, key_release, args=[key]).start()
-                
         else:
             device.emit_click(key)
 
@@ -124,7 +123,6 @@ def place(duration=0, release=False, wait=True):
 def toggle_fly_mode():
     for i in range(2):
         jump(duration=0.1)
-    time.sleep(0.5)
 
 def item(choice):
     if not (1 <= choice <= 8):

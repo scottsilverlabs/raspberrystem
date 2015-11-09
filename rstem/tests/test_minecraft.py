@@ -169,15 +169,95 @@ def action_toggle_fly():
     control.toggle_fly_mode()
     time.sleep(5)
 
-@testing.debug
+def move_test(move, expected_pos):
+    mc = minecraft.Minecraft.create()
+    if move:
+        move(1.5)
+    vec = mc.player.getTilePos()
+    actual_pos = (vec.x, vec.y, vec.z) 
+    print("Actual pos: ", actual_pos)
+    print("Expected pos: ", expected_pos)
+    return actual_pos == expected_pos
+
+@testing.automatic
+@start_minecraft(quit=False, in_box=True)
+def move_nowhere():
+    return move_test(None, (int(BOX_WIDTH/2), 1, int(BOX_WIDTH/2)))
+
+@testing.automatic
 @start_minecraft(quit=False, in_box=True)
 def move_backward():
+    return move_test(control.backward, (int(BOX_WIDTH/2), 1, 1))
+
+@testing.automatic
+@start_minecraft(quit=False, in_box=True)
+def move_left():
+    return move_test(control.left, (BOX_WIDTH-1, 1, int(BOX_WIDTH/2)))
+
+@testing.automatic
+@start_minecraft(quit=False, in_box=True)
+def move_right():
+    return move_test(control.right, (1, 1, int(BOX_WIDTH/2)))
+
+@testing.automatic
+@start_minecraft(quit=False, in_box=True)
+def move_forward():
+    return move_test(control.forward, (int(BOX_WIDTH/2), 1, BOX_WIDTH-1))
+
+@testing.automatic
+@start_minecraft(quit=False, in_box=True)
+def move_forward_via_stop():
+    def custom_move(duration):
+        control.forward()
+        time.sleep(0.1)
+        control.stop()
+    return move_test(custom_move, (int(BOX_WIDTH/2), 1, int(BOX_WIDTH/2)+1))
+
+@testing.automatic
+@start_minecraft(quit=False, in_box=True)
+def move_forward_via_release():
+    def custom_move(duration):
+        control.forward()
+        time.sleep(0.1)
+        control.forward(release=True)
+    return move_test(custom_move, (int(BOX_WIDTH/2), 1, int(BOX_WIDTH/2)+1))
+
+@testing.automatic
+@start_minecraft(quit=False, in_box=True)
+def move_forward_for_fixed_duration():
+    def custom_move(duration):
+        control.forward(duration=0.1)
+    return move_test(custom_move, (int(BOX_WIDTH/2), 1, int(BOX_WIDTH/2)+1))
+
+@testing.automatic
+@start_minecraft(quit=False, in_box=True)
+def move_forward_nowait():
+    expected_pos = {
+        0       : 1.5,
+        0.60736 : 3.84862,
+        0.95726 : 5.35945,
+        1.50655 : 5.83429,
+        2.00    : 5.83488,
+    }
+    actual_pos = {}
+
     mc = minecraft.Minecraft.create()
-    control.backward(1.5)
-    pos = mc.player.getTilePos()
-    print(pos)
-    return (pos.x, pos.y, pos.z) == (5, 1, 1)
-
-
-
+    mc.player.setTilePos(1, 1, 1)
+    start = time.time()
+    control.forward(duration=1, wait=False)
+    func_time = time.time() - start
+    print("func_time: ", func_time)
+    for t in sorted(expected_pos.keys()):
+        if t > 0:
+            time_since_start = time.time() - start
+            time.sleep(t - time_since_start)
+        actual_pos[t] = mc.player.getPos().z
+    failed = False
+    for t in sorted(expected_pos.keys()):
+        print("Actual Pos: {:2.3f}    Expected Pos: {:2.3f}".format(
+            actual_pos[t], expected_pos[t]))
+        if abs(expected_pos[t]-actual_pos[t])/expected_pos[t] > 0.01:
+            failed = True
+            print("FAILED: position not within 1%")
+    return func_time > 0.02 or failed
 
