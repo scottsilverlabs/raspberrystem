@@ -22,7 +22,10 @@ MINECRAFT_CMD = "DISPLAY=:0 /usr/bin/minecraft-pi >/dev/null &"
 KILL_MINECRAFT_CMD = "killall minecraft-pi 2>/dev/null"
 IS_RUNNING_MINECRAFT_CMD = "pgrep '^minecraft-pi$' >/dev/null"
 
-BOX_WIDTH = 10
+BOX_WIDTH = 9
+assert(BOX_WIDTH % 2 == 1)
+BOX_MIDDLE = BOX_WIDTH/2 + 1
+BOX_MIDDLE_TILE = int(BOX_MIDDLE)
 BOX_HEIGHT = 3
 
 shcall(KILL_MINECRAFT_CMD)
@@ -47,10 +50,10 @@ def start_minecraft(quit=True, in_box=False):
             if in_box:
                 mc = minecraft.Minecraft.create()
 
-                mc.setBlocks(0, 0, 0, BOX_WIDTH, BOX_HEIGHT-1, BOX_WIDTH, block.BRICK_BLOCK)
-                mc.setBlocks(0, BOX_HEIGHT, 0, BOX_WIDTH, 128, BOX_WIDTH, block.AIR)
-                mc.setBlocks(1, 1, 1, BOX_WIDTH-1, BOX_HEIGHT, BOX_WIDTH-1, block.AIR)
-                mc.player.setTilePos(int(BOX_WIDTH)/2, 1, int(BOX_WIDTH)/2)
+                mc.setBlocks(0, 0, 0, BOX_WIDTH+1, BOX_HEIGHT-1, BOX_WIDTH+1, block.BRICK_BLOCK)
+                mc.setBlocks(0, BOX_HEIGHT, 0, BOX_WIDTH+1, 128, BOX_WIDTH+1, block.AIR)
+                mc.setBlocks(1, 1, 1, BOX_WIDTH, BOX_HEIGHT, BOX_WIDTH, block.AIR)
+                mc.player.setPos(BOX_MIDDLE, 1, BOX_MIDDLE)
             
                 a = mc.player.getPos()
                 angle_to_x = 999
@@ -64,6 +67,11 @@ def start_minecraft(quit=True, in_box=False):
                 LOOK_UP_MAX = 2000
                 control.look(up=LOOK_UP_MAX)
                 control.look(up=-LOOK_TO_CENTER_DIST)
+                control.stop()
+
+                # Must reset position to center, as look()ing may have shifted
+                # us off-center.
+                mc.player.setPos(BOX_MIDDLE, 1, BOX_MIDDLE)
 
             passed = func()
 
@@ -176,72 +184,80 @@ def move_test(move, expected_pos):
     vec = mc.player.getTilePos()
     actual_pos = (vec.x, vec.y, vec.z) 
     print("Actual pos: ", actual_pos)
+    print("Actual (exact) pos: ", mc.player.getPos())
     print("Expected pos: ", expected_pos)
     return actual_pos == expected_pos
 
 @testing.automatic
 @start_minecraft(quit=False, in_box=True)
 def move_nowhere():
-    return move_test(None, (int(BOX_WIDTH/2), 1, int(BOX_WIDTH/2)))
+    return move_test(None, (BOX_MIDDLE_TILE, 1, BOX_MIDDLE_TILE))
 
 @testing.automatic
 @start_minecraft(quit=False, in_box=True)
 def move_backward():
-    return move_test(control.backward, (int(BOX_WIDTH/2), 1, 1))
+    return move_test(control.backward, (BOX_MIDDLE_TILE, 1, 1))
 
 @testing.automatic
 @start_minecraft(quit=False, in_box=True)
 def move_left():
-    return move_test(control.left, (BOX_WIDTH-1, 1, int(BOX_WIDTH/2)))
+    return move_test(control.left, (BOX_WIDTH, 1, BOX_MIDDLE_TILE))
 
 @testing.automatic
 @start_minecraft(quit=False, in_box=True)
 def move_right():
-    return move_test(control.right, (1, 1, int(BOX_WIDTH/2)))
+    return move_test(control.right, (1, 1, BOX_MIDDLE_TILE))
 
 @testing.automatic
 @start_minecraft(quit=False, in_box=True)
 def move_forward():
-    return move_test(control.forward, (int(BOX_WIDTH/2), 1, BOX_WIDTH-1))
+    return move_test(control.forward, (BOX_MIDDLE_TILE, 1, BOX_WIDTH))
 
 @testing.automatic
 @start_minecraft(quit=False, in_box=True)
 def move_forward_via_stop():
     def custom_move(duration):
         control.forward()
-        time.sleep(0.1)
+        time.sleep(0.25)
         control.stop()
-    return move_test(custom_move, (int(BOX_WIDTH/2), 1, int(BOX_WIDTH/2)+1))
+    return move_test(custom_move, (BOX_MIDDLE_TILE, 1, BOX_MIDDLE_TILE+1))
 
 @testing.automatic
 @start_minecraft(quit=False, in_box=True)
 def move_forward_via_release():
     def custom_move(duration):
         control.forward()
-        time.sleep(0.1)
+        time.sleep(0.25)
         control.forward(release=True)
-    return move_test(custom_move, (int(BOX_WIDTH/2), 1, int(BOX_WIDTH/2)+1))
+    return move_test(custom_move, (BOX_MIDDLE_TILE, 1, BOX_MIDDLE_TILE+1))
 
 @testing.automatic
 @start_minecraft(quit=False, in_box=True)
 def move_forward_for_fixed_duration():
     def custom_move(duration):
-        control.forward(duration=0.1)
-    return move_test(custom_move, (int(BOX_WIDTH/2), 1, int(BOX_WIDTH/2)+1))
+        control.forward(duration=0.25)
+    return move_test(custom_move, (BOX_MIDDLE_TILE, 1, BOX_MIDDLE_TILE+1))
 
 @testing.automatic
 @start_minecraft(quit=False, in_box=True)
 def move_forward_nowait():
+    """
+    Test the wait=False parameter of the move functions, by running forward()
+    with no wait, and testing that the expected position over time is correct.
+    expected positions were determined experimentally, but start in the middle
+    of tile 1, and increase until the player stops moving.
+    """
     expected_pos = {
-        0       : 1.5,
-        0.60736 : 3.84862,
-        0.95726 : 5.35945,
-        1.50655 : 5.83429,
-        2.00    : 5.83488,
+        0.00 : 1.50000,
+        0.50 : 3.39960,
+        0.90 : 5.12587,
+        1.50 : 5.81656,
+        2.00 : 5.81715,
     }
     actual_pos = {}
 
     mc = minecraft.Minecraft.create()
+    time.sleep(1)
     mc.player.setTilePos(1, 1, 1)
     start = time.time()
     control.forward(duration=1, wait=False)
@@ -254,8 +270,8 @@ def move_forward_nowait():
         actual_pos[t] = mc.player.getPos().z
     failed = False
     for t in sorted(expected_pos.keys()):
-        print("Actual Pos: {:2.3f}    Expected Pos: {:2.3f}".format(
-            actual_pos[t], expected_pos[t]))
+        print("Time: {:1.2f}    Actual Pos: {:2.5f}    Expected Pos: {:2.5f}".format(
+            t, actual_pos[t], expected_pos[t]))
         if abs(expected_pos[t]-actual_pos[t])/expected_pos[t] > 0.01:
             failed = True
             print("FAILED: position not within 1%")
