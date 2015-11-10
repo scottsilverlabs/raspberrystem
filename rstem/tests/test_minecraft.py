@@ -29,11 +29,14 @@ BOX_MIDDLE_TILE = int(BOX_MIDDLE)
 BOX_HEIGHT = 3
 
 shcall(KILL_MINECRAFT_CMD)
-def start_minecraft(quit=True, in_box=False):
+def start_minecraft(separate_session=True, in_box=False):
     def decorator(func):
         @wraps(func)
         def wrapper():
             # Setup
+            if separate_session:
+                shcall(KILL_MINECRAFT_CMD)
+
             time.sleep(0.5)
             if shcall(IS_RUNNING_MINECRAFT_CMD):
                 shcall(MINECRAFT_CMD)
@@ -76,7 +79,7 @@ def start_minecraft(quit=True, in_box=False):
             passed = func()
 
             # Teardown
-            if quit:
+            if separate_session:
                 show(False)
                 shcall(KILL_MINECRAFT_CMD)
 
@@ -171,32 +174,32 @@ def move_test(move, expected_pos):
     return actual_pos == expected_pos
 
 @testing.automatic
-@start_minecraft(quit=False, in_box=True)
+@start_minecraft(separate_session=False, in_box=True)
 def move_nowhere():
     return move_test(None, (BOX_MIDDLE_TILE, 1, BOX_MIDDLE_TILE))
 
 @testing.automatic
-@start_minecraft(quit=False, in_box=True)
+@start_minecraft(separate_session=False, in_box=True)
 def move_backward():
     return move_test(control.backward, (BOX_MIDDLE_TILE, 1, 1))
 
 @testing.automatic
-@start_minecraft(quit=False, in_box=True)
+@start_minecraft(separate_session=False, in_box=True)
 def move_left():
     return move_test(control.left, (BOX_WIDTH, 1, BOX_MIDDLE_TILE))
 
 @testing.automatic
-@start_minecraft(quit=False, in_box=True)
+@start_minecraft(separate_session=False, in_box=True)
 def move_right():
     return move_test(control.right, (1, 1, BOX_MIDDLE_TILE))
 
 @testing.automatic
-@start_minecraft(quit=False, in_box=True)
+@start_minecraft(separate_session=False, in_box=True)
 def move_forward():
     return move_test(control.forward, (BOX_MIDDLE_TILE, 1, BOX_WIDTH))
 
 @testing.automatic
-@start_minecraft(quit=False, in_box=True)
+@start_minecraft(separate_session=False, in_box=True)
 def move_forward_via_stop():
     def custom_move(duration):
         control.forward()
@@ -205,7 +208,7 @@ def move_forward_via_stop():
     return move_test(custom_move, (BOX_MIDDLE_TILE, 1, BOX_MIDDLE_TILE+1))
 
 @testing.automatic
-@start_minecraft(quit=False, in_box=True)
+@start_minecraft(separate_session=False, in_box=True)
 def move_forward_via_release():
     def custom_move(duration):
         control.forward()
@@ -214,14 +217,14 @@ def move_forward_via_release():
     return move_test(custom_move, (BOX_MIDDLE_TILE, 1, BOX_MIDDLE_TILE+1))
 
 @testing.automatic
-@start_minecraft(quit=False, in_box=True)
+@start_minecraft(separate_session=False, in_box=True)
 def move_forward_for_fixed_duration():
     def custom_move(duration):
         control.forward(duration=0.25)
     return move_test(custom_move, (BOX_MIDDLE_TILE, 1, BOX_MIDDLE_TILE+1))
 
 @testing.automatic
-@start_minecraft(quit=False, in_box=True)
+@start_minecraft(separate_session=False, in_box=True)
 def move_forward_nowait():
     '''
     Test the wait=False parameter of the move functions, by running forward()
@@ -260,7 +263,7 @@ def move_forward_nowait():
     return func_time < 0.02 and not failed
 
 @testing.automatic
-@start_minecraft(quit=False, in_box=True)
+@start_minecraft(separate_session=False, in_box=True)
 def move_crouch():
     '''
     Test crouching.  Crouching has the effect that a player can't
@@ -279,8 +282,14 @@ def move_crouch():
     return move_test(control.forward, (BOX_MIDDLE_TILE, 0, BOX_MIDDLE_TILE+2))
 
 @testing.automatic
-@start_minecraft(quit=False, in_box=True)
+@start_minecraft(separate_session=True, in_box=True)
 def action_place_item():
+    '''
+    Place different block on top of another, using item() to select items.
+
+    Uses control.item(), which is only consistent when used from program start
+    (i.e., separate_session=True)
+    '''
     mc = minecraft.Minecraft.create()
 
     # Place bottom block
@@ -307,39 +316,39 @@ def action_place_item():
 LOOK_HORIZ_90_DEG=420
 
 @testing.automatic
-@start_minecraft(quit=False, in_box=True)
+@start_minecraft(separate_session=False, in_box=True)
 def look_left():
     control.look(left=LOOK_HORIZ_90_DEG)
     return move_test(control.forward, (BOX_WIDTH, 1, BOX_MIDDLE_TILE))
 
 @testing.automatic
-@start_minecraft(quit=False, in_box=True)
+@start_minecraft(separate_session=False, in_box=True)
 def look_right():
     control.look(right=LOOK_HORIZ_90_DEG)
     return move_test(control.forward, (1, 1, BOX_MIDDLE_TILE))
 
 @testing.automatic
-@start_minecraft(quit=False, in_box=True)
+@start_minecraft(separate_session=False, in_box=True)
 def look_180():
     for i in range(2):
         control.look(left=LOOK_HORIZ_90_DEG)
     return move_test(control.forward, (BOX_MIDDLE_TILE, 1, 1))
 
 @testing.automatic
-@start_minecraft(quit=False, in_box=True)
+@start_minecraft(separate_session=False, in_box=True)
 def look_360():
     for i in range(4):
         control.look(left=LOOK_HORIZ_90_DEG)
     return move_test(control.forward, (BOX_MIDDLE_TILE, 1, BOX_WIDTH))
 
 @testing.automatic
-@start_minecraft(quit=False, in_box=True)
+@start_minecraft(separate_session=False, in_box=True)
 def look_leftright():
     control.look(left=(LOOK_HORIZ_90_DEG*2), right=LOOK_HORIZ_90_DEG)
     return move_test(control.forward, (BOX_WIDTH, 1, BOX_MIDDLE_TILE))
 
 @testing.automatic
-@start_minecraft(quit=False)
+@start_minecraft(separate_session=False)
 def item_low():
     try:
         control.item(0)
@@ -348,7 +357,7 @@ def item_low():
     return False
 
 @testing.automatic
-@start_minecraft(quit=False)
+@start_minecraft(separate_session=False)
 def item_high():
     try:
         control.item(9)
@@ -357,7 +366,7 @@ def item_high():
     return False
 
 @testing.automatic
-@start_minecraft(quit=False)
+@start_minecraft(separate_session=False)
 def item_typeerror():
     try:
         control.item("string")
@@ -366,14 +375,14 @@ def item_typeerror():
     return False
 
 @testing.automatic
-@start_minecraft(quit=True, in_box=True)
+@start_minecraft(separate_session=True, in_box=True)
 def z_move_fly_up():
     '''
     Fly up until you hit a fixed block, and verify position
 
     Because toggle_fly_mode() is called, this test is called independent of
-    other move tests (i.e.  quit=True).  If fly mode stays on, it affects other
-    tests.
+    other move tests (i.e.  separate_session=True).  If fly mode stays on, it
+    affects other tests.
     '''
     mc = minecraft.Minecraft.create()
     HEIGHT = 10
@@ -382,10 +391,13 @@ def z_move_fly_up():
     return move_test(control.ascend, (BOX_MIDDLE_TILE, HEIGHT-2, BOX_MIDDLE_TILE))
 
 @testing.automatic
-@start_minecraft(quit=False, in_box=True)
+@start_minecraft(separate_session=True, in_box=True)
 def action_smash():
     '''
     Place block and smash it
+
+    Uses control.item(), which is only consistent when used from program start
+    (i.e., separate_session=True)
     '''
     mc = minecraft.Minecraft.create()
     control.item(2) # Cobblestone
@@ -400,4 +412,49 @@ def action_smash():
     print("Before", "PASSED" if before_passed else "FAILED")
     print("After", "PASSED" if after_passed else "FAILED")
     return before_passed and after_passed
+
+@testing.automatic
+@start_minecraft(separate_session=False, in_box=True)
+def action_inventory():
+    '''
+    Test inventory by selecting and placing one block, and then repeating with
+    a different block.
+    '''
+    INVENTORY_WIDTH=13
+    INVENTORY_HEIGHT=8
+    DURATION=0.1
+    def inventory_move(move, times):
+        for i in range(times):
+            move(duration=DURATION)
+            time.sleep(DURATION)
+
+    mc = minecraft.Minecraft.create()
+
+    # Select and place WOOD
+    control.inventory()
+    inventory_move(control.left, INVENTORY_WIDTH)
+    inventory_move(control.forward, INVENTORY_HEIGHT)
+    inventory_move(control.right, 3)
+    inventory_move(control.backward, 1)
+    control.enter()
+    control.place()
+
+    # Select and place SNOW_BLOCK
+    control.inventory()
+    inventory_move(control.left, INVENTORY_WIDTH)
+    inventory_move(control.forward, INVENTORY_HEIGHT)
+    inventory_move(control.right, 9)
+    inventory_move(control.backward, 3)
+    control.enter()
+    control.place()
+
+    block_1 = mc.getBlock(BOX_MIDDLE_TILE, 2, BOX_WIDTH)
+    block_2 = mc.getBlock(BOX_MIDDLE_TILE, 2, BOX_WIDTH-1)
+    print("Block 1:", block_1)
+    print("Block 2:", block_2)
+    passed_1 = block.Block(block_1) == block.WOOD
+    passed_2 = block.Block(block_2) == block.SNOW_BLOCK
+    print("Block 1", "PASSED" if passed_1 else "FAILED")
+    print("Block 2", "PASSED" if passed_2 else "FAILED")
+    return passed_1 and passed_2
 

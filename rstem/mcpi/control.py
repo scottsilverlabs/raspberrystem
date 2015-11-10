@@ -58,6 +58,8 @@ time.sleep(0.5)
 
 item_keys = [eval('uinput.KEY_{:d}'.format(item+1)) for item in range(8)]
 
+MIN_DURATION_PRESS = 0.1
+
 def show(show=True):
     ret = shcall(SHOW_WIN_CMD if show else HIDE_WIN_CMD)
     if ret:
@@ -112,33 +114,33 @@ def stop():
     for key in keys:
         key_release(key)
         
-def smash(duration=0.1, release=False, wait=True):
+def smash(duration=MIN_DURATION_PRESS, release=False, wait=True):
     key_press(uinput.BTN_LEFT, duration, release, wait)
 
-def place(duration=0.1, release=False, wait=True):
+def place(duration=MIN_DURATION_PRESS, release=False, wait=True):
     key_press(uinput.BTN_RIGHT, duration, release, wait)
 
 def toggle_fly_mode():
     for i in range(2):
-        jump(duration=0.1)
-        time.sleep(0.1)
+        jump(duration=MIN_DURATION_PRESS)
+        time.sleep(MIN_DURATION_PRESS)
 
 def item(choice):
     if not (1 <= choice <= 8):
         raise ValueError('choice must be from 1 to 8')
-    key_press(item_keys[choice-1], duration=0)
+    key_press(item_keys[choice-1], duration=MIN_DURATION_PRESS)
 
 def enter():
-    key_press(uinput.KEY_ENTER, duration=0)
+    key_press(uinput.KEY_ENTER, duration=MIN_DURATION_PRESS)
     
 def inventory():
-    key_press(uinput.KEY_E, duration=0)
+    key_press(uinput.KEY_E, duration=MIN_DURATION_PRESS)
     
 def look(left=0, right=0, up=0, down=0):
+    # requires throttling to prevent look() overruns
     device.emit(uinput.REL_X, right-left, syn=False)
     device.emit(uinput.REL_Y, down-up)
-    # throttling to prevent key overruns
-    time.sleep(0.25)
+    time.sleep(0.2)
 
 __all__ = [
     'show',
