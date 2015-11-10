@@ -302,16 +302,12 @@ def action_place_item():
     mc = minecraft.Minecraft.create()
 
     # Place bottom block
-    time.sleep(0.1)
     control.look(down=300)
-    time.sleep(0.1)
     control.item(2) # Cobblestone
     control.place()
 
     # Place top block
-    time.sleep(0.1)
     control.look(up=150)
-    time.sleep(0.1)
     control.item(5) # Dirt
     control.place()
 
@@ -325,4 +321,65 @@ def action_place_item():
     print("Bottom", "PASSED" if bottom_passed else "FAILED")
     print("Top", "PASSED" if top_passed else "FAILED")
     return bottom_passed and top_passed
+
+LOOK_HORIZ_90_DEG=420
+
+@testing.automatic
+@start_minecraft(quit=False, in_box=True)
+def look_left():
+    control.look(left=LOOK_HORIZ_90_DEG)
+    return move_test(control.forward, (BOX_WIDTH, 1, BOX_MIDDLE_TILE))
+
+@testing.automatic
+@start_minecraft(quit=False, in_box=True)
+def look_right():
+    control.look(right=LOOK_HORIZ_90_DEG)
+    return move_test(control.forward, (1, 1, BOX_MIDDLE_TILE))
+
+@testing.automatic
+@start_minecraft(quit=False, in_box=True)
+def look_180():
+    for i in range(2):
+        control.look(left=LOOK_HORIZ_90_DEG)
+    return move_test(control.forward, (BOX_MIDDLE_TILE, 1, 1))
+
+@testing.automatic
+@start_minecraft(quit=False, in_box=True)
+def look_360():
+    for i in range(4):
+        control.look(left=LOOK_HORIZ_90_DEG)
+    return move_test(control.forward, (BOX_MIDDLE_TILE, 1, BOX_WIDTH))
+
+@testing.debug
+@start_minecraft(quit=False, in_box=True)
+def look_leftright():
+    control.look(left=(LOOK_HORIZ_90_DEG*2), right=LOOK_HORIZ_90_DEG)
+    return move_test(control.forward, (BOX_WIDTH, 1, BOX_MIDDLE_TILE))
+
+@testing.debug
+@start_minecraft(quit=False)
+def item_low():
+    try:
+        control.item(0)
+    except ValueError:
+        return True
+    return False
+
+@testing.debug
+@start_minecraft(quit=False)
+def item_high():
+    try:
+        control.item(9)
+    except ValueError:
+        return True
+    return False
+
+@testing.debug
+@start_minecraft(quit=False)
+def item_typeerror():
+    try:
+        control.item("string")
+    except TypeError:
+        return True
+    return False
 

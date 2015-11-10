@@ -137,7 +137,7 @@ def look(left=0, right=0, up=0, down=0):
     device.emit(uinput.REL_X, right-left, syn=False)
     device.emit(uinput.REL_Y, down-up)
     # throttling to prevent key overruns
-    time.sleep(0.05)
+    time.sleep(0.25)
 
 __all__ = [
     'show',
