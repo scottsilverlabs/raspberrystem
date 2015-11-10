@@ -159,24 +159,6 @@ def hide_closes():
 
     return True
 
-@testing.manual_output
-@start_minecraft(quit=False)
-def action_toggle_fly():
-    '''Verify that the player flies up and then drops'''
-    mc = minecraft.Minecraft.create()
-
-    # Create tower of air above us
-    pos = mc.player.getTilePos()
-    for y in range(30):
-        mc.setBlock(vec3.Vec3(0, y, 0) + pos, block.AIR)
-    time.sleep(1)
-
-    control.toggle_fly_mode()
-    control.jump(duration=1)
-    time.sleep(1.2)
-    control.toggle_fly_mode()
-    time.sleep(5)
-
 def move_test(move, expected_pos):
     mc = minecraft.Minecraft.create()
     if move:
@@ -241,12 +223,12 @@ def move_forward_for_fixed_duration():
 @testing.automatic
 @start_minecraft(quit=False, in_box=True)
 def move_forward_nowait():
-    """
+    '''
     Test the wait=False parameter of the move functions, by running forward()
     with no wait, and testing that the expected position over time is correct.
     expected positions were determined experimentally, but start in the middle
     of tile 1, and increase until the player stops moving.
-    """
+    '''
     expected_pos = {
         0.00 : 1.50000,
         0.50 : 3.39960,
@@ -280,10 +262,10 @@ def move_forward_nowait():
 @testing.automatic
 @start_minecraft(quit=False, in_box=True)
 def move_crouch():
-    """
+    '''
     Test crouching.  Crouching has the effect that a player can't
     fall into a hole, and we'll test that.
-    """
+    '''
     # Make hole for player to fall into
     mc = minecraft.Minecraft.create()
     mc.setBlock(BOX_MIDDLE_TILE, 0, BOX_MIDDLE_TILE+2, block.AIR)
@@ -316,7 +298,7 @@ def action_place_item():
     top_block = mc.getBlock(BOX_MIDDLE_TILE, 2, BOX_MIDDLE_TILE+1)
     print("Bottom Block:", bottom_block)
     print("Top Block:", top_block)
-    bottom_passed = block.Block(bottom_block) == block.Block(4) 
+    bottom_passed = block.Block(bottom_block) == block.COBBLESTONE
     top_passed = block.Block(top_block) == block.DIRT
     print("Bottom", "PASSED" if bottom_passed else "FAILED")
     print("Top", "PASSED" if top_passed else "FAILED")
@@ -350,13 +332,13 @@ def look_360():
         control.look(left=LOOK_HORIZ_90_DEG)
     return move_test(control.forward, (BOX_MIDDLE_TILE, 1, BOX_WIDTH))
 
-@testing.debug
+@testing.automatic
 @start_minecraft(quit=False, in_box=True)
 def look_leftright():
     control.look(left=(LOOK_HORIZ_90_DEG*2), right=LOOK_HORIZ_90_DEG)
     return move_test(control.forward, (BOX_WIDTH, 1, BOX_MIDDLE_TILE))
 
-@testing.debug
+@testing.automatic
 @start_minecraft(quit=False)
 def item_low():
     try:
@@ -365,7 +347,7 @@ def item_low():
         return True
     return False
 
-@testing.debug
+@testing.automatic
 @start_minecraft(quit=False)
 def item_high():
     try:
@@ -374,7 +356,7 @@ def item_high():
         return True
     return False
 
-@testing.debug
+@testing.automatic
 @start_minecraft(quit=False)
 def item_typeerror():
     try:
@@ -382,4 +364,40 @@ def item_typeerror():
     except TypeError:
         return True
     return False
+
+@testing.automatic
+@start_minecraft(quit=True, in_box=True)
+def z_move_fly_up():
+    '''
+    Fly up until you hit a fixed block, and verify position
+
+    Because toggle_fly_mode() is called, this test is called independent of
+    other move tests (i.e.  quit=True).  If fly mode stays on, it affects other
+    tests.
+    '''
+    mc = minecraft.Minecraft.create()
+    HEIGHT = 10
+    mc.setBlock(BOX_MIDDLE_TILE, HEIGHT, BOX_MIDDLE_TILE, block.STONE)
+    control.toggle_fly_mode()
+    return move_test(control.ascend, (BOX_MIDDLE_TILE, HEIGHT-2, BOX_MIDDLE_TILE))
+
+@testing.automatic
+@start_minecraft(quit=False, in_box=True)
+def action_smash():
+    '''
+    Place block and smash it
+    '''
+    mc = minecraft.Minecraft.create()
+    control.item(2) # Cobblestone
+    control.place()
+    block_before = mc.getBlock(BOX_MIDDLE_TILE, 2, BOX_WIDTH)
+    control.smash()
+    block_after = mc.getBlock(BOX_MIDDLE_TILE, 2, BOX_WIDTH)
+    print("Block Before:", block_before)
+    print("Block After:", block_after)
+    before_passed = block.Block(block_before) == block.COBBLESTONE
+    after_passed = block.Block(block_after) == block.AIR
+    print("Before", "PASSED" if before_passed else "FAILED")
+    print("After", "PASSED" if after_passed else "FAILED")
+    return before_passed and after_passed
 

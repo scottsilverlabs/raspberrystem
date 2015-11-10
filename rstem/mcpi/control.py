@@ -121,6 +121,7 @@ def place(duration=0.1, release=False, wait=True):
 def toggle_fly_mode():
     for i in range(2):
         jump(duration=0.1)
+        time.sleep(0.1)
 
 def item(choice):
     if not (1 <= choice <= 8):
