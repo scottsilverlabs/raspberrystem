@@ -4,11 +4,8 @@ class Block:
         self.id = id
         self.data = data
 
-    def __cmp__(self, rhs):
-        return hash(self) - hash(rhs)
-
-    def __hash__(self):
-        return (self.id << 8) + self.data
+    def __eq__(self, rhs):
+        return (self.id, self.data) == (rhs.id, rhs.data)
 
     def withData(self, data):
         return Block(self.id, data)
@@ -16,7 +13,7 @@ class Block:
     def __iter__(self):
         """Allows a Block to be sent whenever id [and data] is needed"""
         return iter((self.id, self.data))
-        
+
     def __repr__(self):
         return "Block(%d, %d)"%(self.id, self.data)
 
