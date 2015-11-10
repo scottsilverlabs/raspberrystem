@@ -275,5 +275,54 @@ def move_forward_nowait():
         if abs(expected_pos[t]-actual_pos[t])/expected_pos[t] > 0.01:
             failed = True
             print("FAILED: position not within 1%")
-    return func_time > 0.02 or failed
+    return func_time < 0.02 and not failed
+
+@testing.automatic
+@start_minecraft(quit=False, in_box=True)
+def move_crouch():
+    """
+    Test crouching.  Crouching has the effect that a player can't
+    fall into a hole, and we'll test that.
+    """
+    # Make hole for player to fall into
+    mc = minecraft.Minecraft.create()
+    mc.setBlock(BOX_MIDDLE_TILE, 0, BOX_MIDDLE_TILE+2, block.AIR)
+    mc.setBlock(BOX_MIDDLE_TILE, -1, BOX_MIDDLE_TILE+2, block.AIR)
+    mc.setBlock(BOX_MIDDLE_TILE, -2, BOX_MIDDLE_TILE+2, block.STONE)
+
+    # Note: when crouching over a hole, your position rounds to be in the hole
+    # (your vertical position is 0.8 when crouching, and your are nearly in the
+    # hole center)
+    control.crouch()
+    return move_test(control.forward, (BOX_MIDDLE_TILE, 0, BOX_MIDDLE_TILE+2))
+
+@testing.automatic
+@start_minecraft(quit=False, in_box=True)
+def action_place_item():
+    mc = minecraft.Minecraft.create()
+
+    # Place bottom block
+    time.sleep(0.1)
+    control.look(down=300)
+    time.sleep(0.1)
+    control.item(2) # Cobblestone
+    control.place()
+
+    # Place top block
+    time.sleep(0.1)
+    control.look(up=150)
+    time.sleep(0.1)
+    control.item(5) # Dirt
+    control.place()
+
+    # Verify blocks
+    bottom_block = mc.getBlock(BOX_MIDDLE_TILE, 1, BOX_MIDDLE_TILE+1)
+    top_block = mc.getBlock(BOX_MIDDLE_TILE, 2, BOX_MIDDLE_TILE+1)
+    print("Bottom Block:", bottom_block)
+    print("Top Block:", top_block)
+    bottom_passed = block.Block(bottom_block) == block.Block(4) 
+    top_passed = block.Block(top_block) == block.DIRT
+    print("Bottom", "PASSED" if bottom_passed else "FAILED")
+    print("Top", "PASSED" if top_passed else "FAILED")
+    return bottom_passed and top_passed
 

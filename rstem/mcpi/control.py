@@ -73,9 +73,9 @@ def key_press(key, duration=None, release=False, wait=True):
     if release:
         device.emit(key, 0)
     else:
-        if duration == None:
+        if not duration:
             device.emit(key, 1)
-        elif duration > 0:
+        else:
             if wait:
                 device.emit(key, 1)
                 time.sleep(duration)
@@ -83,8 +83,6 @@ def key_press(key, duration=None, release=False, wait=True):
             else:
                 device.emit(key, 1)
                 Timer(duration, key_release, args=[key]).start()
-        else:
-            device.emit_click(key)
 
 def backward(duration=None, release=False, wait=True):
     key_press(uinput.KEY_S, duration, release, wait)
@@ -98,7 +96,7 @@ def left(duration=None, release=False, wait=True):
 def right(duration=None, release=False, wait=True):
     key_press(uinput.KEY_D, duration, release, wait)
 
-def jump(duration=None, release=False, wait=True):
+def jump(duration=0.5, release=False, wait=True):
     key_press(uinput.KEY_SPACE, duration, release, wait)
 
 def crouch(duration=None, release=False, wait=True):
@@ -114,10 +112,10 @@ def stop():
     for key in keys:
         key_release(key)
         
-def smash(duration=None, release=False, wait=True):
+def smash(duration=0.1, release=False, wait=True):
     key_press(uinput.BTN_LEFT, duration, release, wait)
 
-def place(duration=0, release=False, wait=True):
+def place(duration=0.1, release=False, wait=True):
     key_press(uinput.BTN_RIGHT, duration, release, wait)
 
 def toggle_fly_mode():
