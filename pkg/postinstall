@@ -42,10 +42,13 @@ if ! grep -q -E "^(device_tree_param|dtparam)=([^,]*,)*i2c(_arm)?=[^,]*" $CONFIG
 fi
 sed $BLACKLIST -i -e "s/^\(blacklist[[:space:]]*i2c[-_]bcm2708\)/#\1/"
 
-# Add i2c-dev to /etc/modules if it doesn't exist
-if ! grep -q '^[[:space:]]*i2c-dev[[:space:]]*$' /etc/modules; then
-    echo i2c-dev >> /etc/modules
-fi
+# Add MODULES to /etc/modules if they don't exist
+MODULES="i2c-dev uinput"
+for m in $MODULES; do
+    if ! grep -q "^[[:space:]]*${m}[[:space:]]*$" /etc/modules; then
+        echo $m >> /etc/modules
+    fi
+done
 
 #
 # Create a sounds directory (and fill it with links to Raspbian sounds
