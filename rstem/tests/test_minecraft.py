@@ -120,7 +120,7 @@ def show_opens():
     wid = get_wid()
     show(False)
 
-    time.sleep(0.5)
+    time.sleep(2)
     if window_visible(wid):
         print('FAILED: Window should NOT be viewable, but it is')
         return False
@@ -129,7 +129,7 @@ def show_opens():
 
     control.show()
 
-    time.sleep(0.5)
+    time.sleep(2)
     if window_visible(wid):
         print('PASSED: Window SHOULD be viewable, and it is')
     else:
@@ -144,7 +144,7 @@ def hide_closes():
     wid = get_wid()
     show(True)
 
-    time.sleep(0.5)
+    time.sleep(2)
     if window_visible(wid):
         print('PASSED: Window SHOULD be viewable, and it is')
     else:
@@ -153,7 +153,7 @@ def hide_closes():
 
     control.hide()
 
-    time.sleep(0.5)
+    time.sleep(2)
     if window_visible(wid):
         print('FAILED: Window should NOT be viewable, but it is')
         return False
