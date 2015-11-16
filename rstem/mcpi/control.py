@@ -23,6 +23,9 @@ from subprocess import call, Popen, PIPE
 from functools import partial
 import uinput
 from threading import Timer
+from .vec3 import Vec3
+from . import block
+from math import atan2, degrees, sqrt, floor
 
 shcall = partial(call, shell=True)
 shopen = partial(Popen, stdin=PIPE, stderr=PIPE, stdout=PIPE, close_fds=True, shell=True)
@@ -120,6 +123,9 @@ def smash(duration=MIN_DURATION_PRESS, release=False, wait=True):
 def place(duration=MIN_DURATION_PRESS, release=False, wait=True):
     key_press(uinput.BTN_RIGHT, duration, release, wait)
 
+def hit(*args, **kwargs):
+    place(*args, **kwargs)
+
 def toggle_fly_mode():
     for i in range(2):
         jump(duration=MIN_DURATION_PRESS)
@@ -141,6 +147,85 @@ def look(left=0, right=0, up=0, down=0):
     device.emit(uinput.REL_X, right-left, syn=False)
     device.emit(uinput.REL_Y, down-up)
     time.sleep(0.2)
+
+def _wait_until_stopped(mc):
+    prev = None
+    cur = mc.player.getPos()
+    while cur != prev:
+        prev = cur
+        cur = mc.player.getPos()
+        time.sleep(0.05)
+    return cur
+
+def _make_platform(mc, erase=False, height=58, half_width=3):
+    if erase:
+        bottom_block = block.AIR
+        top_block = block.AIR
+    else:
+        bottom_block = block.STONE
+        top_block = block.COBWEB
+
+    mc.setBlocks(
+        Vec3(-half_width, height, -half_width), 
+        Vec3(half_width, height+0, half_width), 
+        bottom_block)
+    mc.setBlocks(
+        Vec3(-half_width, height+1, -half_width), 
+        Vec3(half_width, height+3, half_width), 
+        top_block)
+
+    return Vec3(0, height+1, 0)
+
+def get_heading(mc):
+    original_pos = mc.player.getPos()
+    center_of_platform = _make_platform(mc)
+    mc.player.setPos(center_of_platform)
+    forward(0.1)
+    end = _wait_until_stopped(mc)
+    _make_platform(mc, erase=True)
+
+    mc.player.setPos(original_pos)
+
+    angle_to_z = degrees(atan2((end.x - center_of_platform.x),(end.z - center_of_platform.z)))
+    return angle_to_z
+
+def _circle(mc, origin, radius, blk):
+    for delta_x in range(-int(radius), int(radius)+1):
+        z_vector = Vec3(0, 0, floor(sqrt(radius**2 - delta_x**2)))
+        v = origin + Vec3(delta_x,0,0)
+        mc.setBlocks(v - z_vector, v + z_vector, blk)
+        
+def _sphere(mc, origin, radius, blk):
+    for delta_y in range(-int(radius), int(radius)+1):
+        _circle(mc, origin + Vec3(0,delta_y,0), sqrt(radius**2 - delta_y**2), blk)
+
+def get_direction(mc):
+    origin = Vec3(0,58,0)
+    radius = 3.9
+    box_offset = Vec3(radius+1, radius+1, radius+1)
+    mc.setBlocks(origin - box_offset, origin + box_offset, block.GLASS)
+    _sphere(mc, origin, radius, block.AIR)
+    mc.setBlocks(origin, origin + Vec3(0, radius, 0), block.AIR)
+    mc.setBlock(origin + Vec3(0, -2, 0), block.STONE)
+
+    pos = mc.player.getPos()
+    mc.player.setTilePos(origin + Vec3(0, -1, 0))
+    tries = 3
+    while tries:
+        time.sleep(0.1)
+        hit(0.2)
+        hits = mc.events.pollBlockHits()
+        if hits:
+            break
+        look(left=1)
+        tries -= 1
+    mc.player.setPos(pos)
+    mc.setBlocks(origin - box_offset, origin + box_offset, block.AIR)
+    hit_pos = hits[0].pos
+    direction = hit_pos - origin
+    theta = degrees(atan2(direction.x, direction.z))
+    phi = degrees(atan2(direction.y, sqrt(direction.z**2 + direction.x**2)))
+    return (theta, phi)
 
 __all__ = [
     'show',

@@ -11,6 +11,8 @@ from rstem.mcpi import control
 import time
 from math import atan2, degrees
 
+mc_create = minecraft.Minecraft.create
+
 shcall = partial(call, shell=True)
 shopen = partial(Popen, stdin=PIPE, stderr=PIPE, stdout=PIPE, close_fds=True, shell=True)
 
@@ -51,7 +53,7 @@ def start_minecraft(separate_session=True, in_box=False):
                 time.sleep(3)
 
             if in_box:
-                mc = minecraft.Minecraft.create()
+                mc = mc_create()
 
                 mc.setBlocks(0, 0, 0, BOX_WIDTH+1, BOX_HEIGHT-1, BOX_WIDTH+1, block.BRICK_BLOCK)
                 mc.setBlocks(0, BOX_HEIGHT, 0, BOX_WIDTH+1, 128, BOX_WIDTH+1, block.AIR)
@@ -163,7 +165,7 @@ def hide_closes():
     return True
 
 def move_test(move, expected_pos):
-    mc = minecraft.Minecraft.create()
+    mc = mc_create()
     if move:
         move(1.5)
     vec = mc.player.getTilePos()
@@ -241,7 +243,7 @@ def move_forward_nowait():
     }
     actual_pos = {}
 
-    mc = minecraft.Minecraft.create()
+    mc = mc_create()
     time.sleep(1)
     mc.player.setTilePos(1, 1, 1)
     start = time.time()
@@ -270,7 +272,7 @@ def move_crouch():
     fall into a hole, and we'll test that.
     '''
     # Make hole for player to fall into
-    mc = minecraft.Minecraft.create()
+    mc = mc_create()
     mc.setBlock(BOX_MIDDLE_TILE, 0, BOX_MIDDLE_TILE+2, block.AIR)
     mc.setBlock(BOX_MIDDLE_TILE, -1, BOX_MIDDLE_TILE+2, block.AIR)
     mc.setBlock(BOX_MIDDLE_TILE, -2, BOX_MIDDLE_TILE+2, block.STONE)
@@ -290,7 +292,7 @@ def action_place_item():
     Uses control.item(), which is only consistent when used from program start
     (i.e., separate_session=True)
     '''
-    mc = minecraft.Minecraft.create()
+    mc = mc_create()
 
     # Place bottom block
     control.look(down=300)
@@ -384,7 +386,7 @@ def z_move_fly_up():
     other move tests (i.e.  separate_session=True).  If fly mode stays on, it
     affects other tests.
     '''
-    mc = minecraft.Minecraft.create()
+    mc = mc_create()
     HEIGHT = 10
     mc.setBlock(BOX_MIDDLE_TILE, HEIGHT, BOX_MIDDLE_TILE, block.STONE)
     control.toggle_fly_mode()
@@ -399,7 +401,7 @@ def action_smash():
     Uses control.item(), which is only consistent when used from program start
     (i.e., separate_session=True)
     '''
-    mc = minecraft.Minecraft.create()
+    mc = mc_create()
     control.item(2) # Cobblestone
     control.place()
     block_before = mc.getBlock(BOX_MIDDLE_TILE, 2, BOX_WIDTH)
@@ -428,7 +430,7 @@ def action_inventory():
             move(duration=DURATION)
             time.sleep(DURATION)
 
-    mc = minecraft.Minecraft.create()
+    mc = mc_create()
 
     # Select and place WOOD
     control.inventory()
@@ -457,4 +459,68 @@ def action_inventory():
     print("Block 1", "PASSED" if passed_1 else "FAILED")
     print("Block 2", "PASSED" if passed_2 else "FAILED")
     return passed_1 and passed_2
+
+def is_close(actual, expected, epsilon=0.1):
+    print("Actual: ", actual)
+    print("Expected: ", expected)
+    try:
+        for a, b in zip(actual, expected):
+            if abs(a - b) > epsilon:
+                return False
+    except TypeError:
+        if abs(actual - expected) > epsilon:
+            return False
+    return True
+
+@testing.automatic
+@start_minecraft(separate_session=False, in_box=True)
+def direction_starts_on_z_axis():
+    return is_close(control.get_direction(mc_create()), (0, 0))
+
+@testing.automatic
+@start_minecraft(separate_session=False, in_box=True)
+def direction_after_look_up():
+    control.look(up=1000)
+    return is_close(control.get_direction(mc_create()), (0, 90))
+
+@testing.automatic
+@start_minecraft(separate_session=False, in_box=True)
+def direction_after_look_left():
+    control.look(left=230)
+    return is_close(control.get_direction(mc_create()), (45, 0))
+
+@testing.automatic
+@start_minecraft(separate_session=False, in_box=True)
+def direction_after_look_right():
+    control.look(right=230)
+    return is_close(control.get_direction(mc_create()), (-45, 0))
+
+@testing.automatic
+@start_minecraft(separate_session=False, in_box=True)
+def direction_after_look_left_up():
+    control.look(left=230, up=250)
+    return is_close(control.get_direction(mc_create()), (45, 46.69))
+
+@testing.debug
+@start_minecraft(separate_session=False, in_box=True)
+def heading_starts_on_z_axis():
+    return is_close(control.get_heading(mc_create()), 0, epsilon=1)
+
+@testing.debug
+@start_minecraft(separate_session=False, in_box=True)
+def heading_after_look_up():
+    control.look(up=1000)
+    return is_close(control.get_heading(mc_create()), 0, epsilon=1)
+
+@testing.debug
+@start_minecraft(separate_session=False, in_box=True)
+def heading_after_look_left():
+    control.look(left=237)
+    return is_close(control.get_heading(mc_create()), 45, epsilon=2)
+
+@testing.debug
+@start_minecraft(separate_session=False, in_box=True)
+def heading_after_look_right():
+    control.look(right=237)
+    return is_close(control.get_heading(mc_create()), -45, epsilon=2)
 
