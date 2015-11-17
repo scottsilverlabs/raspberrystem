@@ -26,6 +26,7 @@ from threading import Timer
 from .vec3 import Vec3
 from . import block
 from math import atan2, degrees, sqrt, floor
+import atexit
 
 shcall = partial(call, shell=True)
 shopen = partial(Popen, stdin=PIPE, stderr=PIPE, stdout=PIPE, close_fds=True, shell=True)
@@ -63,7 +64,10 @@ item_keys = [eval('uinput.KEY_{:d}'.format(item+1)) for item in range(8)]
 
 MIN_DURATION_PRESS = 0.1
 
-def show(show=True):
+def show(show=True, hide_at_exit=False):
+    if hide_at_exit:
+        atexit.register(hide)
+
     ret = shcall(SHOW_WIN_CMD if show else HIDE_WIN_CMD)
     if ret:
         raise IOError('Could not show/hide minecraft window.  Is it running?')
@@ -142,11 +146,12 @@ def enter():
 def inventory():
     key_press(uinput.KEY_E, duration=MIN_DURATION_PRESS)
     
-def look(left=0, right=0, up=0, down=0):
-    # requires throttling to prevent look() overruns
-    device.emit(uinput.REL_X, right-left, syn=False)
-    device.emit(uinput.REL_Y, down-up)
-    time.sleep(0.2)
+def look(left=0, right=0, up=0, down=0, sync=False):
+    device.emit(uinput.REL_X, int(right-left), syn=False)
+    device.emit(uinput.REL_Y, int(down-up))
+    if sync:
+        # add throttling to prevent look() overruns
+        time.sleep(0.2)
 
 def _wait_until_stopped(mc):
     prev = None
