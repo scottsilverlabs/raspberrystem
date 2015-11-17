@@ -181,7 +181,7 @@ class Input(Pin):
         supply voltage, i.e. 3.3 volts), it is considered `on`.
 
         `pull` is the state of the GPIO internal pullup/down.
-        If `pull` is `PULL_DISABLE`, then the internal pullup is diabled.
+        If `pull` is `PULL_DISABLE`, then the internal pullup is disabled.
         If `pull` is `PULL_UP`, then the internal pullup is enabled.
         If `pull` is `PULL_DOWN`, then the internal pulldown is enabled.
         '''
