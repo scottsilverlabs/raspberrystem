@@ -358,23 +358,23 @@ block_types = [
     block.STONE_BRICK_STAIRS,                     # S
     block.Block(109, 5), # STONE_BRICK_STAIRS     # T
     block.STONE_BRICK,                            # U
-    block.Block(108, 2), # BRICK_STAIRS           # V
+    block.Block(53, 2), # STAIRS_WOOD             # V
     block.Block(17, 5), # WOOD                    # W
-    block.Block(108, 3), # BRICK_STAIRS           # X
+    block.Block(53, 3), # STAIRS_WOOD             # X
     block.Block(109, 7), # STONE_BRICK_STAIRS     # Y
     block.Block(126, 8),                          # Z
     block.Block(53, 6), # STAIRS_WOOD             # a
     block.Block(53, 4), # STAIRS_WOOD             # b
     block.Block(53, 5), # STAIRS_WOOD             # c
-    block.Block(44, 12), # STONE_SLAB             # d
+    block.Block(44, 10), # STONE_SLAB             # d
     block.Block(125, 0),                          # e
     block.Block(53, 7), # STAIRS_WOOD             # f
     block.WOOL,                                   # g
-    block.Block(44, 4), # STONE_SLAB              # h
+    block.Block(44, 2), # STONE_SLAB              # h
     block.Block(65, 2), # LADDER                  # i
     block.Block(50, 4), # TORCH                   # j
-    block.BRICK_STAIRS,                           # k
-    block.Block(108, 1), # BRICK_STAIRS           # l
+    block.Block(53, 0), # STAIRS_WOOD             # k
+    block.Block(53, 1), # STAIRS_WOOD             # l
     block.TRAPDOOR,                               # m
     block.Block(145, 2),                          # n
     block.STONE_SLAB,                             # o
