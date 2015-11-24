@@ -65,12 +65,12 @@ item_keys = [eval('uinput.KEY_{:d}'.format(item+1)) for item in range(8)]
 MIN_DURATION_PRESS = 0.1
 
 def show(show=True, hide_at_exit=False):
-    if hide_at_exit:
-        atexit.register(hide)
-
     ret = shcall(SHOW_WIN_CMD if show else HIDE_WIN_CMD)
     if ret:
         raise IOError('Could not show/hide minecraft window.  Is it running?')
+
+    if hide_at_exit:
+        atexit.register(hide)
 
 def hide():
     show(show=False)
