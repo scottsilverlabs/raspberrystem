@@ -400,19 +400,13 @@ def create_house(mc, house_slices, offset, base=block.STONE):
         (corner.x + num_rows - 1, corner.y - 1, corner.z + row_length - 1),
         base)
                 
-"""
 control.show(hide_at_exit=True)
 mc = minecraft.Minecraft.create()
 button = Button(7)
 
 while True:
     if button.presses():
-        create_house(mc, house, Vec3(3,1,3))
+        create_house(mc, house, Vec3(0,1,0))
 
     time.sleep(0.01)
 
-"""
-control.show()
-mc = minecraft.Minecraft.create()
-create_house(mc, house, Vec3(-5,5,-5))
-time.sleep(10)
