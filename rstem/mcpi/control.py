@@ -120,7 +120,7 @@ def descend(duration=None, release=False, wait=True):
 def stop():
     for key in keys:
         key_release(key)
-        
+
 def smash(duration=MIN_DURATION_PRESS, release=False, wait=True):
     key_press(uinput.BTN_LEFT, duration, release, wait)
 
@@ -142,10 +142,10 @@ def item(choice):
 
 def enter():
     key_press(uinput.KEY_ENTER, duration=MIN_DURATION_PRESS)
-    
+
 def inventory():
     key_press(uinput.KEY_E, duration=MIN_DURATION_PRESS)
-    
+
 def look(left=0, right=0, up=0, down=0, sync=False):
     device.emit(uinput.REL_X, int(right-left), syn=False)
     device.emit(uinput.REL_Y, int(down-up))
@@ -163,21 +163,14 @@ def _wait_until_stopped(mc):
     return cur
 
 def _make_platform(mc, erase=False, height=58, half_width=3):
-    if erase:
-        bottom_block = block.AIR
-        top_block = block.AIR
-    else:
-        bottom_block = block.STONE
-        top_block = block.COBWEB
-
     mc.setBlocks(
-        Vec3(-half_width, height, -half_width), 
-        Vec3(half_width, height+0, half_width), 
-        bottom_block)
+        Vec3(-half_width-1, height+0, -half_width-1),
+        Vec3(half_width+1, height+4, half_width+1),
+        block.AIR if erase else block.STONE)
     mc.setBlocks(
-        Vec3(-half_width, height+1, -half_width), 
-        Vec3(half_width, height+3, half_width), 
-        top_block)
+        Vec3(-half_width, height+1, -half_width),
+        Vec3(half_width, height+3, half_width),
+        block.AIR if erase else block.COBWEB)
 
     return Vec3(0, height+1, 0)
 
@@ -199,7 +192,7 @@ def _circle(mc, origin, radius, blk):
         z_vector = Vec3(0, 0, floor(sqrt(radius**2 - delta_x**2)))
         v = origin + Vec3(delta_x,0,0)
         mc.setBlocks(v - z_vector, v + z_vector, blk)
-        
+
 def _sphere(mc, origin, radius, blk):
     for delta_y in range(-int(radius), int(radius)+1):
         _circle(mc, origin + Vec3(0,delta_y,0), sqrt(radius**2 - delta_y**2), blk)
