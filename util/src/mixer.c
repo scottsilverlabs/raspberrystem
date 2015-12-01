@@ -156,6 +156,7 @@ void * mixer()
     short (*pprevbufs)[MAX_PLAYERS][MAX_AUDIO_BUF];
     short outbuf[MAX_AUDIO_BUF];
     int audio_mix_buf[MAX_AUDIO_BUF];
+    short zero_buf[MAX_AUDIO_BUF];
     struct {
         int count;
         float gain;
@@ -170,6 +171,8 @@ void * mixer()
 
     pcurrbufs = &client_buffers1;
     pprevbufs = &client_buffers2;
+
+    memset(zero_buf, 0, sizeof(zero_buf));
 
     for(;;) {
         //
@@ -261,12 +264,9 @@ void * mixer()
         pthread_mutex_unlock(&mutex);
 
         //
-        // If there's a mixed audio buf, send it to ALSA.
+        // If there's a mixed audio buf, convert mixed ints to shorts.
         //
         if (count) {
-            //
-            // Convert int mix to short.
-            //
             for (j = 0; j < chunk_size; j++) {
                 register unsigned int high_short = ((unsigned int) audio_mix_buf[j]) >> 15;
                 if (high_short == 0x0001FFFF || high_short == 0x00000000) {
@@ -277,14 +277,18 @@ void * mixer()
                     outbuf[j] = 0x7FFF;
                 }
             }
-
-            //
-            // Write audio - should not fail (catastrophic failure cause
-            // pcm_write() to exit().
-            //
-            r = pcm_write((u_char *) outbuf, chunk_size);
-            assert(r == chunk_size);
         }
+
+        //
+        // Write audio - should not fail (catastrophic failure cause
+        // pcm_write() to exit().  If there's no mixed audio, write zero_buf -
+        // its a waste, but it prevents underruns, which cause pops.
+        //
+        r = pcm_write(
+            count ? (u_char *) outbuf : (u_char *) zero_buf,
+            chunk_size
+            );
+        assert(r == chunk_size);
         usleep(2000);
 
         //
