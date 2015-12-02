@@ -71,15 +71,18 @@ class Sprite(object):
     Two sprites of the same hieght can be added togther, creating a new
     horizontally concatenated composite sprite.
     '''
-    def __init__(self, image_string):
-        '''Creates a `Sprite` object from the given `image_string`.
+    def __init__(self, image):
+        '''Creates a `Sprite` object from the given `image`.
         
-        The `image_string` defines the bitmap of the `Sprite`.  It is a string
+        The `image` defines the bitmap of the `Sprite`.  It is a string
         that contains one line for each row in the `Sprite`.  Each line should
         contains the same number of valid color characters.  All whitespace,
         including blank lines, is ignored.  
 
-        Each character in the `image_string` represents one pixel of the
+        Alternatively, `image` can be a Sprite, and then a new Sprite object
+        will be created with the same bitmap of the given `image`.
+
+        Each character in the `image` represents one pixel of the
         `Sprite`.  The characters must be either single hex digits representing
         the color (0-9, a-f, A-F) or - (dash) to represent transparency.
 
@@ -92,8 +95,11 @@ class Sprite(object):
             f 0 0
             f 0 0
         '''
+        if isinstance(image, Sprite):
+            image = str(image)
+
         # Remove whitespace from lines
-        lines = (re.sub('\s', '', line) for line in image_string.splitlines())
+        lines = (re.sub('\s', '', line) for line in image.splitlines())
         # remove blank lines
         lines = (line for line in lines if line)
         # Convert chars to integer colors
@@ -101,7 +107,8 @@ class Sprite(object):
         # Reverse and transpose array
         transposed_bitmap = list(reversed(reversed_transposed_bitmap))
         self.original_bitmap = [list(z) for z in zip(*transposed_bitmap)]
-        self.bitmap = self.original_bitmap
+
+        self.reset()
 
     @classmethod
     def from_file(cls, filename):
@@ -202,6 +209,10 @@ class Sprite(object):
 
         Returns itself, so this function can be chained.
         '''
+        # When reset, bitmap is the original_bitmap.  Note, though, that
+        # because this is a reference, self.bitmap should not be edited
+        # in-place (even though it is mutable) - it should be replaced by any
+        # operations that do work on it (e.g. flip()).
         self.bitmap = self.original_bitmap
         return self
         

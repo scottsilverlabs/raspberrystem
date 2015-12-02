@@ -730,6 +730,44 @@ def sprite_rotate_and_crop():
         '''
     return arrays_equal(expected_bitmap, s)
 
+@testing.debug
+def sprite_reset():
+    s = copy.deepcopy(default_sprite)
+    s.rotate().reset()
+    expected_bitmap = '''
+        123
+        456
+        789
+        abc
+        '''
+    return arrays_equal(expected_bitmap, s)
+
+@testing.debug
+def sprite_reinit():
+    s = copy.deepcopy(default_sprite)
+    expected_bitmap = Sprite(s)
+    return arrays_equal(expected_bitmap, s)
+
+@testing.debug
+def sprite_reinit_change():
+    original = copy.deepcopy(default_sprite)
+    modified = Sprite(original)
+    modified.bitmap[0][0]=0
+    expected_modified = '''
+        123
+        456
+        789
+        0bc
+        '''
+    expected_original = '''
+        123
+        456
+        789
+        abc
+        '''
+    return arrays_equal(expected_original, original) \
+            and arrays_equal(expected_modified, modified)
+
 #########################################################################
 # Text tests
 #
@@ -781,6 +819,10 @@ def diagonal_wave_animation():
         # rotate colors
         colors = colors[1:] + colors[:1]
         time.sleep(0.04)
+
+#########################################################################
+# Other tests
+#
 
 @testing.automatic
 def verify_cpu():
