@@ -18,10 +18,9 @@ gold_pos.x +=  randint(-ARENA_WIDTH, ARENA_WIDTH)
 gold_pos.z +=  randint(-ARENA_WIDTH, ARENA_WIDTH)
 gold_pos.y = mc.getHeight(gold_pos.x, gold_pos.z) - GOLD_DEPTH
 mc.setBlock(gold_pos, block.GOLD_BLOCK)
-gold_exists = True
 
 next_beep_time = time.time()
-while gold_exists:
+while block.Block(mc.getBlock(gold_pos)) == block.GOLD_BLOCK:
     player_pos = mc.player.getTilePos()
     vector_to_gold = gold_pos - player_pos
     vector_to_gold.y = 0
@@ -35,7 +34,6 @@ while gold_exists:
             beep.play(duration=BEEP_DURATION).wait()
             next_beep_time = time.time() + log(distance_to_gold/100 + 1)
     
-    gold_exists = block.Block(mc.getBlock(gold_pos)) == block.GOLD_BLOCK
     time.sleep(0.01)
 
 beep.stop()
