@@ -1,12 +1,8 @@
 from rstem.accel import Accel
 from rstem.button import Button
-from rstem.led_matrix import FrameBuffer, Sprite
-from rstem.mcpi import minecraft, control, block
-from rstem.mcpi.vec3 import Vec3
-from rstem.sound import Note
+from rstem.led_matrix import FrameBuffer
+from rstem.mcpi import minecraft, control
 import time
-from random import randint
-from math import atan2, degrees
 
 control.show(hide_at_exit=True)
 mc = minecraft.Minecraft.create()

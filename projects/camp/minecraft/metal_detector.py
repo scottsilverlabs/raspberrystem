@@ -1,9 +1,6 @@
 from rstem.mcpi import minecraft, control, block
-from rstem.mcpi.vec3 import Vec3
-from rstem.sound import Note
 import time
 from random import randint
-from math import log
 
 control.show(hide_at_exit=True)
 mc = minecraft.Minecraft.create()

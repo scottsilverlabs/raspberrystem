@@ -1,6 +1,6 @@
 from rstem.accel import Accel
 from rstem.button import Button
-from rstem.mcpi import minecraft, control
+from rstem.mcpi import control
 import time
 
 control.show(hide_at_exit=True)

@@ -1,4 +1,3 @@
-from rstem.accel import Accel
 from rstem.button import Button
 from rstem.mcpi import minecraft, control, block
 from rstem.mcpi.vec3 import Vec3

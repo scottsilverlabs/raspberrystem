@@ -1,18 +1,8 @@
-from rstem.accel import Accel
-from rstem.button import Button
-from rstem.mcpi import minecraft, control, block
-from rstem.mcpi.vec3 import Vec3
 from rstem.led_matrix import FrameBuffer, Sprite
-from rstem.sound import Sound
 from itertools import cycle
 import time
-import sys
-from math import sin, cos, radians
 
 fb = FrameBuffer()
-
-control.show(hide_at_exit=True)
-mc = minecraft.Minecraft.create()
 
 animation = [
     Sprite("""

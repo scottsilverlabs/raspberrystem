@@ -1,11 +1,9 @@
-from rstem.accel import Accel
 from rstem.button import Button
 from rstem.mcpi import minecraft, control, block
 from rstem.mcpi.vec3 import Vec3
 from rstem.led_matrix import FrameBuffer, Text
 from rstem.sound import Sound
 import time
-from math import sin, cos, radians
 
 fb = FrameBuffer()
 

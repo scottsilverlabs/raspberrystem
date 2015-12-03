@@ -1,5 +1,4 @@
 from rstem.mcpi import minecraft, control, block
-from rstem.mcpi.vec3 import Vec3
 from rstem.sound import Note
 import time
 from random import randint
