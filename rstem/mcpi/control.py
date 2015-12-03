@@ -27,6 +27,7 @@ from .vec3 import Vec3
 from . import block
 from math import atan2, degrees, sqrt, floor
 import atexit
+import signal
 
 shcall = partial(call, shell=True)
 shopen = partial(Popen, stdin=PIPE, stderr=PIPE, stdout=PIPE, close_fds=True, shell=True)
@@ -71,6 +72,10 @@ def show(show=True, hide_at_exit=False):
         raise IOError('Could not show/hide minecraft window.  Is it running?')
 
     if hide_at_exit:
+        def hide_and_exit():
+            hide()
+            sys.exit()
+        signal.signal(signal.SIGTERM, hide_and_exit)
         atexit.register(hide)
 
 def hide():
