@@ -32,8 +32,9 @@ shcall = partial(call, shell=True)
 shopen = partial(Popen, stdin=PIPE, stderr=PIPE, stdout=PIPE, close_fds=True, shell=True)
 
 MINECRAFT_WIN_NAME = 'Minecraft - Pi edition'
-HIDE_WIN_CMD = "DISPLAY=:0 wmctrl -r '{:s}' -b add,hidden".format(MINECRAFT_WIN_NAME)
-SHOW_WIN_CMD = "DISPLAY=:0 wmctrl -a '{:s}'".format(MINECRAFT_WIN_NAME)
+WMCTRL_CMD = 'XAUTHORITY=/home/pi/.Xauthority DISPLAY=:0 wmctrl'
+HIDE_WIN_CMD = WMCTRL_CMD + " -r '{:s}' -b add,hidden".format(MINECRAFT_WIN_NAME)
+SHOW_WIN_CMD = WMCTRL_CMD + " -a '{:s}'".format(MINECRAFT_WIN_NAME)
 
 keys = [
     uinput.KEY_W,
