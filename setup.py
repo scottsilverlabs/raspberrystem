@@ -68,7 +68,7 @@ setup(
         'Programming Language :: Python :: 3.2',
         'Programming Language :: Python :: 3.3',
     ],
-    cmdclass={'install': install},  # overload install command
-    ext_modules = [led_driver, soundutil]  # c extensions defined above
-
+    cmdclass = {'install': install},  # overload install command
+    ext_modules = [led_driver, soundutil],  # c extensions defined above
+    install_requires = ['beautifulsoup4', 'python-uinput', 'pdoc']
 )

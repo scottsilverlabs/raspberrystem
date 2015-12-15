@@ -68,3 +68,10 @@ find "${SOUND_DIRS[@]}" \( -name "*.wav" -o -name "*.mp3" \) \
 ln -sf badswap.wav /opt/raspberrystem/sounds/hit.wav
 ln -sf match1.wav /opt/raspberrystem/sounds/fire.wav
 echo "...done"
+
+#
+# Install addition required debian packages
+#
+sudo apt-get install -y libudev-dev
+sudo apt-get install -y xdotool
+sudo apt-get install -y wmctrl
