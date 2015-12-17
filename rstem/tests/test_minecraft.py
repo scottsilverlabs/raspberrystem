@@ -501,24 +501,24 @@ def direction_after_look_left_up():
     control.look(left=230, up=250)
     return is_close(control.get_direction(mc_create()), (45, 46.69))
 
-@testing.debug
+@testing.automatic
 @start_minecraft(separate_session=False, in_box=True)
 def heading_starts_on_z_axis():
     return is_close(control.get_heading(mc_create()), 0, epsilon=1)
 
-@testing.debug
+@testing.automatic
 @start_minecraft(separate_session=False, in_box=True)
 def heading_after_look_up():
     control.look(up=1000)
     return is_close(control.get_heading(mc_create()), 0, epsilon=1)
 
-@testing.debug
+@testing.automatic
 @start_minecraft(separate_session=False, in_box=True)
 def heading_after_look_left():
     control.look(left=237)
     return is_close(control.get_heading(mc_create()), 45, epsilon=2)
 
-@testing.debug
+@testing.automatic
 @start_minecraft(separate_session=False, in_box=True)
 def heading_after_look_right():
     control.look(right=237)

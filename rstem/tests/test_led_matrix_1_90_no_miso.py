@@ -730,7 +730,7 @@ def sprite_rotate_and_crop():
         '''
     return arrays_equal(expected_bitmap, s)
 
-@testing.debug
+@testing.automatic
 def sprite_reset():
     s = copy.deepcopy(default_sprite)
     s.rotate().reset()
@@ -742,13 +742,13 @@ def sprite_reset():
         '''
     return arrays_equal(expected_bitmap, s)
 
-@testing.debug
+@testing.automatic
 def sprite_reinit():
     s = copy.deepcopy(default_sprite)
     expected_bitmap = Sprite(s)
     return arrays_equal(expected_bitmap, s)
 
-@testing.debug
+@testing.automatic
 def sprite_reinit_change():
     original = copy.deepcopy(default_sprite)
     modified = Sprite(original)
