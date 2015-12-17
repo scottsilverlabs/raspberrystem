@@ -787,6 +787,30 @@ def text():
     return arrays_equal(expected_bitmap, t)
 
 @testing.automatic
+def small_text():
+    t = Text("ABCabc", font_name='3x5')
+    expected_bitmap = '''
+        -F--FF---FF-FF--F------
+        F-F-F-F-F-----F-F------
+        FFF-FF--F---FFF-FFF-FFF
+        F-F-F-F-F---F-F-F-F-F--
+        F-F-FF---FF-FFF-FFF-FFF
+        '''
+    return arrays_equal(expected_bitmap, t)
+
+@testing.automatic
+def small_2spaces_text():
+    t = Text("ABCabc", char_spacing=2, font_name='3x5')
+    expected_bitmap = '''
+        -F---FF----FF--FF---F-------
+        F-F--F-F--F------F--F-------
+        FFF--FF---F----FFF--FFF--FFF
+        F-F--F-F--F----F-F--F-F--F--
+        F-F--FF----FF--FFF--FFF--FFF
+        '''
+    return arrays_equal(expected_bitmap, t)
+
+@testing.automatic
 def time_text():
     return timeit(partial(Text, '0123456789'), loops=10) > 5
 

@@ -237,7 +237,7 @@ class Text(Sprite):
             super().__init__(f.read())
         if len(message) > 1:
             self.__add__(Sprite((('-' * char_spacing) + '\n') * self.height))
-            self.__add__(Text(message[1:]))
+            self.__add__(Text(message[1:], char_spacing=char_spacing, font_name=font_name, font_dir=font_dir))
 
     @classmethod
     def from_file(cls, filename):
