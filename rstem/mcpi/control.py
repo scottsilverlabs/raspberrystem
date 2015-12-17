@@ -72,11 +72,16 @@ def show(show=True, hide_at_exit=True):
         raise IOError('Could not show/hide minecraft window.  Is it running?')
 
     if hide_at_exit:
+        def hide_ignoring_errors():
+            try:
+                hide()
+            except:
+                pass
         def hide_and_exit():
-            hide()
+            hide_ignoring_errors()
             sys.exit()
         signal.signal(signal.SIGTERM, hide_and_exit)
-        atexit.register(hide)
+        atexit.register(hide_ignoring_errors)
 
 def hide():
     show(show=False)
