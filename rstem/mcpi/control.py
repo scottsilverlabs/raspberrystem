@@ -116,7 +116,7 @@ def left(duration=None, release=False, wait=True):
 def right(duration=None, release=False, wait=True):
     key_press(uinput.KEY_D, duration, release, wait)
 
-def jump(duration=0.5, release=False, wait=True):
+def jump(duration=None, release=False, wait=True):
     key_press(uinput.KEY_SPACE, duration, release, wait)
 
 def crouch(duration=None, release=False, wait=True):
@@ -132,10 +132,10 @@ def stop():
     for key in keys:
         key_release(key)
 
-def smash(duration=MIN_DURATION_PRESS, release=False, wait=True):
+def smash(duration=None, release=False, wait=True):
     key_press(uinput.BTN_LEFT, duration, release, wait)
 
-def place(duration=MIN_DURATION_PRESS, release=False, wait=True):
+def place(duration=None, release=False, wait=True):
     key_press(uinput.BTN_RIGHT, duration, release, wait)
 
 def hit(*args, **kwargs):
@@ -160,7 +160,6 @@ def inventory():
 def look(left=0, right=0, up=0, down=0):
     device.emit(uinput.REL_X, int(right-left), syn=False)
     device.emit(uinput.REL_Y, int(down-up))
-    time.sleep(0.1)
 
 def _wait_until_stopped(mc):
     prev = None

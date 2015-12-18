@@ -39,6 +39,9 @@ BOX_HEIGHT = 3
 #
 LOTS_O_TRIES=10
 SMIDGEN_O_TRIES=3
+def slow_look(delay=0.1, **kwargs):
+    control.look(**kwargs)
+    time.sleep(delay)
 
 shcall(KILL_MINECRAFT_CMD)
 def start_minecraft(separate_session=True, in_box=False):
@@ -77,11 +80,16 @@ def start_minecraft(separate_session=True, in_box=False):
                     control.forward(0.1)
                     b = mc.player.getPos()
                     angle_to_x = degrees(atan2((b.x - a.x),(b.z - a.z)))
-                    control.look(right=int(angle_to_x*5))
+                    #
+                    # look adjustment tweaked for speed - look() approx 5x
+                    # angle, except when close, then adjust more agressively.
+                    #
+                    adjust = angle_to_x*10 if angle_to_x < 3 else angle_to_x*5
+                    slow_look(right=int(adjust), delay=0.05)
                 LOOK_TO_CENTER_DIST = 423
                 LOOK_UP_MAX = 2000
-                control.look(up=LOOK_UP_MAX)
-                control.look(up=-LOOK_TO_CENTER_DIST)
+                slow_look(up=LOOK_UP_MAX, delay=0.2)
+                slow_look(up=-LOOK_TO_CENTER_DIST, delay=0.2)
                 control.stop()
 
                 # Must reset position to center, as look()ing may have shifted
@@ -305,12 +313,12 @@ def action_place_item():
     mc = mc_create()
 
     # Place bottom block
-    control.look(down=300)
+    slow_look(down=300)
     control.item(2) # Cobblestone
     control.place()
 
     # Place top block
-    control.look(up=150)
+    slow_look(up=150)
     control.item(5) # Dirt
     control.place()
 
@@ -330,33 +338,33 @@ LOOK_HORIZ_90_DEG=422
 @testing.automatic_with_args(tries=LOTS_O_TRIES)
 @start_minecraft(separate_session=False, in_box=True)
 def look_left():
-    control.look(left=LOOK_HORIZ_90_DEG)
+    slow_look(left=LOOK_HORIZ_90_DEG)
     return move_test(control.forward, (BOX_WIDTH, 1, BOX_MIDDLE_TILE))
 
 @testing.automatic_with_args(tries=LOTS_O_TRIES)
 @start_minecraft(separate_session=False, in_box=True)
 def look_right():
-    control.look(right=LOOK_HORIZ_90_DEG)
+    slow_look(right=LOOK_HORIZ_90_DEG)
     return move_test(control.forward, (1, 1, BOX_MIDDLE_TILE))
 
 @testing.automatic_with_args(tries=LOTS_O_TRIES)
 @start_minecraft(separate_session=False, in_box=True)
 def look_180():
     for i in range(2):
-        control.look(left=LOOK_HORIZ_90_DEG)
+        slow_look(left=LOOK_HORIZ_90_DEG)
     return move_test(control.forward, (BOX_MIDDLE_TILE, 1, 1))
 
 @testing.automatic_with_args(tries=LOTS_O_TRIES)
 @start_minecraft(separate_session=False, in_box=True)
 def look_360():
     for i in range(4):
-        control.look(left=LOOK_HORIZ_90_DEG)
+        slow_look(left=LOOK_HORIZ_90_DEG)
     return move_test(control.forward, (BOX_MIDDLE_TILE, 1, BOX_WIDTH))
 
 @testing.automatic_with_args(tries=LOTS_O_TRIES)
 @start_minecraft(separate_session=False, in_box=True)
 def look_leftright():
-    control.look(left=(LOOK_HORIZ_90_DEG*2), right=LOOK_HORIZ_90_DEG)
+    slow_look(left=(LOOK_HORIZ_90_DEG*2), right=LOOK_HORIZ_90_DEG)
     return move_test(control.forward, (BOX_WIDTH, 1, BOX_MIDDLE_TILE))
 
 @testing.automatic
@@ -490,25 +498,25 @@ def direction_starts_on_z_axis():
 @testing.automatic_with_args(tries=LOTS_O_TRIES)
 @start_minecraft(separate_session=False, in_box=True)
 def direction_after_look_up():
-    control.look(up=1000)
+    slow_look(up=1000)
     return is_close(control.get_direction(mc_create()), (0, 90))
 
 @testing.automatic_with_args(tries=LOTS_O_TRIES)
 @start_minecraft(separate_session=False, in_box=True)
 def direction_after_look_left():
-    control.look(left=230)
+    slow_look(left=230)
     return is_close(control.get_direction(mc_create()), (45, 0))
 
 @testing.automatic_with_args(tries=LOTS_O_TRIES)
 @start_minecraft(separate_session=False, in_box=True)
 def direction_after_look_right():
-    control.look(right=230)
+    slow_look(right=230)
     return is_close(control.get_direction(mc_create()), (-45, 0))
 
 @testing.automatic_with_args(tries=LOTS_O_TRIES)
 @start_minecraft(separate_session=False, in_box=True)
 def direction_after_look_left_up():
-    control.look(left=230, up=250)
+    slow_look(left=230, up=250)
     return is_close(control.get_direction(mc_create()), (45, 46.69))
 
 @testing.automatic_with_args(tries=LOTS_O_TRIES)
@@ -519,18 +527,18 @@ def heading_starts_on_z_axis():
 @testing.automatic_with_args(tries=LOTS_O_TRIES)
 @start_minecraft(separate_session=False, in_box=True)
 def heading_after_look_up():
-    control.look(up=1000)
+    slow_look(up=1000)
     return is_close(control.get_heading(mc_create()), 0, epsilon=1)
 
 @testing.automatic_with_args(tries=LOTS_O_TRIES)
 @start_minecraft(separate_session=False, in_box=True)
 def heading_after_look_left():
-    control.look(left=237)
+    slow_look(left=237)
     return is_close(control.get_heading(mc_create()), 45, epsilon=2)
 
 @testing.automatic_with_args(tries=LOTS_O_TRIES)
 @start_minecraft(separate_session=False, in_box=True)
 def heading_after_look_right():
-    control.look(right=237)
+    slow_look(right=237)
     return is_close(control.get_heading(mc_create()), -45, epsilon=2)
 
