@@ -188,11 +188,21 @@ def _make_platform(mc, erase=False, height=58, half_width=3):
 def get_heading(mc):
     original_pos = mc.player.getPos()
     center_of_platform = _make_platform(mc)
-    mc.player.setPos(center_of_platform)
-    forward(0.1)
-    end = _wait_until_stopped(mc)
-    _make_platform(mc, erase=True)
 
+    #
+    # move forward for a brief moment to record direction of motion via
+    # start/end positions.  We do this as briefly as possible, which sometimes
+    # can fail - so we allow some retries.
+    #
+    end = center_of_platform
+    tries = 3
+    while center_of_platform == end and tries:
+        mc.player.setPos(center_of_platform)
+        forward(0.1)
+        end = _wait_until_stopped(mc)
+        tries -= 1
+
+    _make_platform(mc, erase=True)
     mc.player.setPos(original_pos)
 
     angle_to_z = degrees(atan2((end.x - center_of_platform.x),(end.z - center_of_platform.z)))
