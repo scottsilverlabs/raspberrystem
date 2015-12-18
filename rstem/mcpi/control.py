@@ -157,20 +157,20 @@ def enter():
 def inventory():
     key_press(uinput.KEY_E, duration=MIN_DURATION_PRESS)
 
-def look(left=0, right=0, up=0, down=0, sync=False):
+def look(left=0, right=0, up=0, down=0):
     device.emit(uinput.REL_X, int(right-left), syn=False)
     device.emit(uinput.REL_Y, int(down-up))
-    if sync:
-        # add throttling to prevent look() overruns
-        time.sleep(0.2)
+    time.sleep(0.1)
 
 def _wait_until_stopped(mc):
     prev = None
     cur = mc.player.getPos()
-    while cur != prev:
+    tries = 40
+    while cur != prev and tries > 0:
         prev = cur
         cur = mc.player.getPos()
         time.sleep(0.05)
+        tries -= 1
     return cur
 
 def _make_platform(mc, erase=False, height=58, half_width=3):

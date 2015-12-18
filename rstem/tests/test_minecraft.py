@@ -30,6 +30,16 @@ BOX_MIDDLE = BOX_WIDTH/2 + 1
 BOX_MIDDLE_TILE = int(BOX_MIDDLE)
 BOX_HEIGHT = 3
 
+#
+# control functions, especially look() are non-deterministic as they are
+# heavily timing dependent.  Therefore, a lot of these tests may intermittently
+# fail.  For some tests (particularlly ones with look()) we allow lots 'o
+# retries.  For others, just a smidgen.  (Some tests are deterministic and
+# require no retries).
+#
+LOTS_O_TRIES=10
+SMIDGEN_O_TRIES=3
+
 shcall(KILL_MINECRAFT_CMD)
 def start_minecraft(separate_session=True, in_box=False):
     def decorator(func):
@@ -180,27 +190,27 @@ def move_test(move, expected_pos):
 def move_nowhere():
     return move_test(None, (BOX_MIDDLE_TILE, 1, BOX_MIDDLE_TILE))
 
-@testing.automatic
+@testing.automatic_with_args(tries=SMIDGEN_O_TRIES)
 @start_minecraft(separate_session=False, in_box=True)
 def move_backward():
     return move_test(control.backward, (BOX_MIDDLE_TILE, 1, 1))
 
-@testing.automatic
+@testing.automatic_with_args(tries=SMIDGEN_O_TRIES)
 @start_minecraft(separate_session=False, in_box=True)
 def move_left():
     return move_test(control.left, (BOX_WIDTH, 1, BOX_MIDDLE_TILE))
 
-@testing.automatic
+@testing.automatic_with_args(tries=SMIDGEN_O_TRIES)
 @start_minecraft(separate_session=False, in_box=True)
 def move_right():
     return move_test(control.right, (1, 1, BOX_MIDDLE_TILE))
 
-@testing.automatic
+@testing.automatic_with_args(tries=SMIDGEN_O_TRIES)
 @start_minecraft(separate_session=False, in_box=True)
 def move_forward():
     return move_test(control.forward, (BOX_MIDDLE_TILE, 1, BOX_WIDTH))
 
-@testing.automatic
+@testing.automatic_with_args(tries=SMIDGEN_O_TRIES)
 @start_minecraft(separate_session=False, in_box=True)
 def move_forward_via_stop():
     def custom_move(duration):
@@ -209,7 +219,7 @@ def move_forward_via_stop():
         control.stop()
     return move_test(custom_move, (BOX_MIDDLE_TILE, 1, BOX_MIDDLE_TILE+1))
 
-@testing.automatic
+@testing.automatic_with_args(tries=SMIDGEN_O_TRIES)
 @start_minecraft(separate_session=False, in_box=True)
 def move_forward_via_release():
     def custom_move(duration):
@@ -218,14 +228,14 @@ def move_forward_via_release():
         control.forward(release=True)
     return move_test(custom_move, (BOX_MIDDLE_TILE, 1, BOX_MIDDLE_TILE+1))
 
-@testing.automatic
+@testing.automatic_with_args(tries=SMIDGEN_O_TRIES)
 @start_minecraft(separate_session=False, in_box=True)
 def move_forward_for_fixed_duration():
     def custom_move(duration):
         control.forward(duration=0.25)
     return move_test(custom_move, (BOX_MIDDLE_TILE, 1, BOX_MIDDLE_TILE+1))
 
-@testing.automatic
+@testing.automatic_with_args(tries=SMIDGEN_O_TRIES)
 @start_minecraft(separate_session=False, in_box=True)
 def move_forward_nowait():
     '''
@@ -264,7 +274,7 @@ def move_forward_nowait():
             print("FAILED: position not within 1%")
     return func_time < 0.02 and not failed
 
-@testing.automatic
+@testing.automatic_with_args(tries=SMIDGEN_O_TRIES)
 @start_minecraft(separate_session=False, in_box=True)
 def move_crouch():
     '''
@@ -283,7 +293,7 @@ def move_crouch():
     control.crouch()
     return move_test(control.forward, (BOX_MIDDLE_TILE, 0, BOX_MIDDLE_TILE+2))
 
-@testing.automatic
+@testing.automatic_with_args(tries=LOTS_O_TRIES)
 @start_minecraft(separate_session=True, in_box=True)
 def action_place_item():
     '''
@@ -315,35 +325,35 @@ def action_place_item():
     print("Top", "PASSED" if top_passed else "FAILED")
     return bottom_passed and top_passed
 
-LOOK_HORIZ_90_DEG=420
+LOOK_HORIZ_90_DEG=422
 
-@testing.automatic
+@testing.automatic_with_args(tries=LOTS_O_TRIES)
 @start_minecraft(separate_session=False, in_box=True)
 def look_left():
     control.look(left=LOOK_HORIZ_90_DEG)
     return move_test(control.forward, (BOX_WIDTH, 1, BOX_MIDDLE_TILE))
 
-@testing.automatic
+@testing.automatic_with_args(tries=LOTS_O_TRIES)
 @start_minecraft(separate_session=False, in_box=True)
 def look_right():
     control.look(right=LOOK_HORIZ_90_DEG)
     return move_test(control.forward, (1, 1, BOX_MIDDLE_TILE))
 
-@testing.automatic
+@testing.automatic_with_args(tries=LOTS_O_TRIES)
 @start_minecraft(separate_session=False, in_box=True)
 def look_180():
     for i in range(2):
         control.look(left=LOOK_HORIZ_90_DEG)
     return move_test(control.forward, (BOX_MIDDLE_TILE, 1, 1))
 
-@testing.automatic
+@testing.automatic_with_args(tries=LOTS_O_TRIES)
 @start_minecraft(separate_session=False, in_box=True)
 def look_360():
     for i in range(4):
         control.look(left=LOOK_HORIZ_90_DEG)
     return move_test(control.forward, (BOX_MIDDLE_TILE, 1, BOX_WIDTH))
 
-@testing.automatic
+@testing.automatic_with_args(tries=LOTS_O_TRIES)
 @start_minecraft(separate_session=False, in_box=True)
 def look_leftright():
     control.look(left=(LOOK_HORIZ_90_DEG*2), right=LOOK_HORIZ_90_DEG)
@@ -376,7 +386,7 @@ def item_typeerror():
         return True
     return False
 
-@testing.automatic
+@testing.automatic_with_args(tries=LOTS_O_TRIES)
 @start_minecraft(separate_session=True, in_box=True)
 def z_move_fly_up():
     '''
@@ -392,7 +402,7 @@ def z_move_fly_up():
     control.toggle_fly_mode()
     return move_test(control.ascend, (BOX_MIDDLE_TILE, HEIGHT-2, BOX_MIDDLE_TILE))
 
-@testing.automatic
+@testing.automatic_with_args(tries=LOTS_O_TRIES)
 @start_minecraft(separate_session=True, in_box=True)
 def action_smash():
     '''
@@ -415,7 +425,7 @@ def action_smash():
     print("After", "PASSED" if after_passed else "FAILED")
     return before_passed and after_passed
 
-@testing.automatic
+@testing.automatic_with_args(tries=LOTS_O_TRIES)
 @start_minecraft(separate_session=False, in_box=True)
 def action_inventory():
     '''
@@ -472,53 +482,53 @@ def is_close(actual, expected, epsilon=0.1):
             return False
     return True
 
-@testing.automatic
+@testing.automatic_with_args(tries=LOTS_O_TRIES)
 @start_minecraft(separate_session=False, in_box=True)
 def direction_starts_on_z_axis():
     return is_close(control.get_direction(mc_create()), (0, 0))
 
-@testing.automatic
+@testing.automatic_with_args(tries=LOTS_O_TRIES)
 @start_minecraft(separate_session=False, in_box=True)
 def direction_after_look_up():
     control.look(up=1000)
     return is_close(control.get_direction(mc_create()), (0, 90))
 
-@testing.automatic
+@testing.automatic_with_args(tries=LOTS_O_TRIES)
 @start_minecraft(separate_session=False, in_box=True)
 def direction_after_look_left():
     control.look(left=230)
     return is_close(control.get_direction(mc_create()), (45, 0))
 
-@testing.automatic
+@testing.automatic_with_args(tries=LOTS_O_TRIES)
 @start_minecraft(separate_session=False, in_box=True)
 def direction_after_look_right():
     control.look(right=230)
     return is_close(control.get_direction(mc_create()), (-45, 0))
 
-@testing.automatic
+@testing.automatic_with_args(tries=LOTS_O_TRIES)
 @start_minecraft(separate_session=False, in_box=True)
 def direction_after_look_left_up():
     control.look(left=230, up=250)
     return is_close(control.get_direction(mc_create()), (45, 46.69))
 
-@testing.automatic
+@testing.automatic_with_args(tries=LOTS_O_TRIES)
 @start_minecraft(separate_session=False, in_box=True)
 def heading_starts_on_z_axis():
     return is_close(control.get_heading(mc_create()), 0, epsilon=1)
 
-@testing.automatic
+@testing.automatic_with_args(tries=LOTS_O_TRIES)
 @start_minecraft(separate_session=False, in_box=True)
 def heading_after_look_up():
     control.look(up=1000)
     return is_close(control.get_heading(mc_create()), 0, epsilon=1)
 
-@testing.automatic
+@testing.automatic_with_args(tries=LOTS_O_TRIES)
 @start_minecraft(separate_session=False, in_box=True)
 def heading_after_look_left():
     control.look(left=237)
     return is_close(control.get_heading(mc_create()), 45, epsilon=2)
 
-@testing.automatic
+@testing.automatic_with_args(tries=LOTS_O_TRIES)
 @start_minecraft(separate_session=False, in_box=True)
 def heading_after_look_right():
     control.look(right=237)

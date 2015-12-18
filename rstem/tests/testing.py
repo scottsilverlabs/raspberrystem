@@ -37,7 +37,7 @@ There are different types of tests:
 import testing_log
 import traceback
 import importlib
-from functools import wraps
+from functools import wraps, partial
 import os
 import sys
 
@@ -76,13 +76,24 @@ def test_type_short_name(test_type):
 def debug(func):
     return automatic(func, debug=True)
 
-def automatic(func, debug=False):
+def debug_with_args(tries=1):
+    return partial(automatic, debug=True, tries=tries)
+
+def automatic_with_args(tries=1):
+    return partial(automatic, tries=tries)
+
+def automatic(func, debug=False, tries=1):
     @wraps(func)
     def wrapper():
         print(SEPARATOR)
         print('AUTOMATIC TEST: {0}'.format(func.__name__))
         try:
-            passed = func()
+            for i in range(tries):
+                if i > 0:
+                    print('--> FAILED.  RETRY #{}.'.format(i))
+                passed = func()
+                if passed:
+                    break
             if passed:
                 print('--> PASSED')
                 exc = 0
